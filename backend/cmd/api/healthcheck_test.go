@@ -16,6 +16,8 @@ func envFor(srv *httptest.Server) func(string) string {
 			return strings.TrimPrefix(srv.URL, "http://")
 		case "DATABASE_URL":
 			return "postgres://user:password@localhost:5432/database"
+		case "FIREBASE_PROJECT_ID":
+			return "demo-test"
 		default:
 			return ""
 		}

@@ -18,7 +18,7 @@ Requisitos: Docker com o Compose. Para desenvolver a API: Go 1.26 ou mais novo.
 
    Abra o `deploy/.env` e preencha os dois valores vazios: `POSTGRES_PASSWORD` e `S3_SECRET_ACCESS_KEY`. Para gerar um valor: `openssl rand -hex 24`. O arquivo `deploy/.env` não entra no git.
 
-2. Suba o ambiente local: a API, o banco e o servidor S3. O comando constrói as imagens e espera os serviços ficarem prontos:
+2. Suba o ambiente local: a API, o banco, o servidor S3 e o emulador do Firebase Authentication. O comando constrói as imagens e espera os serviços ficarem prontos:
 
    ```bash
    docker compose -f deploy/compose.yaml up -d --wait
@@ -49,6 +49,9 @@ Se a sua instalação tem só o binário `docker-compose`, use esse nome no luga
 | API | `http://localhost:8080` | |
 | PostgreSQL 18 com PostGIS e pgvector | `localhost:5432` | `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD` |
 | SeaweedFS (protocolo S3) | `http://localhost:8333` | `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` |
+| Emulador do Firebase Authentication | `http://localhost:9099` | |
+
+As contas criadas no emulador ficam na memória e somem quando o container reinicia. Os tutores continuam no banco. Use `down -v` para apagar os dois juntos.
 
 Se você mudar a senha do banco depois da primeira subida, apague os dados com `down -v`: o Postgres só grava a senha quando cria o banco.
 

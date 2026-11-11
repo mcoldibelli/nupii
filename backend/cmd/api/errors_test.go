@@ -36,7 +36,7 @@ func validateErrorBody(t *testing.T, body []byte) {
 }
 
 func TestUnknownRouteGetsNotFoundInTheErrorFormat(t *testing.T) {
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer())
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{})
 	tests := []struct {
 		name   string
 		method string
@@ -62,8 +62,8 @@ func TestUnknownRouteGetsNotFoundInTheErrorFormat(t *testing.T) {
 			if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 				t.Fatalf("decode body %q: %v", rec.Body.String(), err)
 			}
-			if body.Error != api.NotFound {
-				t.Errorf("error code = %q, want %q", body.Error, api.NotFound)
+			if body.Error != api.ErrorCodeNotFound {
+				t.Errorf("error code = %q, want %q", body.Error, api.ErrorCodeNotFound)
 			}
 			validateErrorBody(t, rec.Body.Bytes())
 		})
@@ -72,7 +72,9 @@ func TestUnknownRouteGetsNotFoundInTheErrorFormat(t *testing.T) {
 
 // failingOperations is an implementation of the contract whose operations
 // return an error.
-type failingOperations struct{}
+type failingOperations struct {
+	api.StrictServerInterface
+}
 
 const _internalDetail = "connection refused to 10.0.0.7:5432"
 
@@ -83,7 +85,7 @@ func (failingOperations) GetHealth(context.Context, api.GetHealthRequestObject) 
 func TestOperationErrorGetsInternalErrorInTheErrorFormat(t *testing.T) {
 	var logs bytes.Buffer
 	logger := slog.New(httpx.NewLogHandler(slog.NewJSONHandler(&logs, nil)))
-	handler := newHandler(logger, failingOperations{})
+	handler := newHandler(logger, failingOperations{}, fakeVerifier{})
 	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
 	rec := httptest.NewRecorder()
 
@@ -96,8 +98,8 @@ func TestOperationErrorGetsInternalErrorInTheErrorFormat(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body %q: %v", rec.Body.String(), err)
 	}
-	if body.Error != api.InternalError {
-		t.Errorf("error code = %q, want %q", body.Error, api.InternalError)
+	if body.Error != api.ErrorCodeInternalError {
+		t.Errorf("error code = %q, want %q", body.Error, api.ErrorCodeInternalError)
 	}
 	if strings.Contains(rec.Body.String(), _internalDetail) {
 		t.Errorf("body %q has the internal detail of the error", rec.Body.String())
@@ -113,7 +115,9 @@ func TestOperationErrorGetsInternalErrorInTheErrorFormat(t *testing.T) {
 
 // panickingOperations is an implementation of the contract whose operations
 // panic.
-type panickingOperations struct{}
+type panickingOperations struct {
+	api.StrictServerInterface
+}
 
 func (panickingOperations) GetHealth(
 	context.Context,
@@ -127,7 +131,7 @@ func (panickingOperations) GetHealth(
 func TestHandlerPanicGetsInternalErrorAndKeepsTheRequestLog(t *testing.T) {
 	var logs bytes.Buffer
 	logger := slog.New(httpx.NewLogHandler(slog.NewJSONHandler(&logs, nil)))
-	handler := newHandler(logger, panickingOperations{})
+	handler := newHandler(logger, panickingOperations{}, fakeVerifier{})
 	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
 	rec := httptest.NewRecorder()
 
@@ -140,8 +144,8 @@ func TestHandlerPanicGetsInternalErrorAndKeepsTheRequestLog(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body %q: %v", rec.Body.String(), err)
 	}
-	if body.Error != api.InternalError {
-		t.Errorf("error code = %q, want %q", body.Error, api.InternalError)
+	if body.Error != api.ErrorCodeInternalError {
+		t.Errorf("error code = %q, want %q", body.Error, api.ErrorCodeInternalError)
 	}
 	if strings.Contains(rec.Body.String(), "nil map write") {
 		t.Errorf("body %q has the panic value", rec.Body.String())
