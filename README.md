@@ -26,7 +26,7 @@ Ainda não há o que executar. A fatia 0 entrega o `docker compose` e o conteúd
 |---|---|---|
 | [0001](docs/adr/0001-registrar-decisoes-em-adrs.md) | Registrar decisões de arquitetura em ADRs | aceito |
 | [0002](docs/adr/0002-backend-go-monolito-modular.md) | Backend em Go, monólito modular | aceito |
-| [0003](docs/adr/0003-estado-postgres-fila-no-banco.md) | Postgres como único estado, sem Redis, fila de tarefas no banco | aceito |
+| [0003](docs/adr/0003-estado-postgres-fila-no-banco.md) | Postgres como único estado, sem Redis, fila de tarefas no banco | aceito (servidor S3 local: ver o 0012) |
 | [0004](docs/adr/0004-acesso-a-dados.md) | pgx e sqlc para consultas, goose para migrations | aceito |
 | [0005](docs/adr/0005-contrato-openapi.md) | Contrato da API em OpenAPI, escrito antes do código | aceito |
 | [0006](docs/adr/0006-mobile-expo-web-publica.md) | App em React Native com Expo, web pública mínima | aceito (a forma da web: decisão na fatia 4) |
@@ -35,6 +35,7 @@ Ainda não há o que executar. A fatia 0 entrega o `docker compose` e o conteúd
 | [0009](docs/adr/0009-idioma.md) | Código em inglês, documentação em português | aceito |
 | [0010](docs/adr/0010-ferramentas-de-teste.md) | Ferramentas de teste | aceito |
 | [0011](docs/adr/0011-runtime-do-oapi-codegen.md) | Biblioteca de runtime do código gerado pelo oapi-codegen | aceito |
+| [0012](docs/adr/0012-servidor-s3-local.md) | SeaweedFS como servidor S3 do ambiente local | aceito |
 
 ## Regras do projeto
 

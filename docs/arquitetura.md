@@ -24,7 +24,7 @@ flowchart LR
 | Web pública | O que o visitante faz sem instalar nada: mural, ficha, "encontrei um pet", avistamento, carteirinha por link. | [0006](adr/0006-mobile-expo-web-publica.md) |
 | API Go | Um binário. Regras de negócio, acesso ao banco, tarefas em segundo plano. | [0002](adr/0002-backend-go-monolito-modular.md) |
 | Postgres | Único estado: dados, busca geográfica, busca por vetor, fila de tarefas. | [0003](adr/0003-estado-postgres-fila-no-banco.md) |
-| Armazenamento S3 | Fotos e anexos. MinIO no ambiente local. | [0003](adr/0003-estado-postgres-fila-no-banco.md) |
+| Armazenamento S3 | Fotos e anexos. SeaweedFS no ambiente local. | [0003](adr/0003-estado-postgres-fila-no-banco.md), [0012](adr/0012-servidor-s3-local.md) |
 | Inferência Python | Foto do focinho para vetor. Sem estado. | [0007](adr/0007-inferencia-python-onnx.md) |
 | Firebase Authentication | Identidade do tutor: senha, sessão, login com Google, redefinição de senha. | [0008](adr/0008-autenticacao-firebase.md) |
 
