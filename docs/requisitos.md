@@ -21,10 +21,10 @@
 | RF-02 | O tutor entra com e-mail e senha. A sessão continua depois de fechar o app. | 1 | estável |
 | RF-03 | O tutor entra com a conta Google. | 10 | rascunho |
 | RF-04 | O tutor sai da conta. | 1 | estável |
-| RF-05 | O tutor redefine uma senha esquecida por um link que chega por e-mail. | 9 | rascunho |
-| RF-06 | O tutor vê e altera o próprio perfil. | 9 | rascunho |
-| RF-07 | O tutor troca a senha. | 9 | rascunho |
-| RF-08 | O tutor exclui a própria conta. | 9 | rascunho |
+| RF-05 | O tutor redefine uma senha esquecida por um link que chega por e-mail. | 9 | estável |
+| RF-06 | O tutor vê e altera o próprio perfil: o nome. O e-mail aparece, mas não muda ([ADR 0028](adr/0028-exclusao-da-conta-e-limpeza.md)). | 9 | estável |
+| RF-07 | O tutor troca a senha. | 9 | estável |
+| RF-08 | O tutor exclui a própria conta. O app pede a senha de novo antes. | 9 | estável |
 
 ### Pets
 
@@ -93,8 +93,9 @@
 |---|---|---|---|
 | RN-01 | O sistema guarda a data e a versão dos termos de uso que o tutor aceitou. O tutor só é registrado com o aceite da versão vigente dos termos. | RF-01 | estável |
 | RN-02 | Um e-mail identifica uma conta só. O provedor de identidade aplica a regra. Para o login com Google, ver a seção "Em aberto". | RF-01, RF-03 | estável |
-| RN-03 | Excluir a conta anonimiza o tutor, zera o vetor de cada cadastro biométrico dele, deixa esses cadastros inválidos e apaga o usuário no provedor de identidade. | RF-08 | rascunho |
-| RN-04 | Uma conta excluída recebe 401, mesmo com um token ainda válido. Os pets dela saem da identificação e do mural. | RF-08 | rascunho |
+| RN-03 | Excluir a conta anonimiza o tutor (nome "Conta excluída", e-mail sem dono, data da exclusão) e apaga o usuário no provedor de identidade. Um usuário que já não existe no provedor conta como apagado. | RF-08 | estável |
+| RN-04 | Uma conta excluída recebe 401, mesmo com um token ainda válido, também no registro. Os pets dela saem da identificação e do mural. | RF-08 | estável |
+| RN-84 | Excluir a conta exclui os pets (com a foto), apaga os cadastros biométricos (com as fotos) e os candidatos de identificação deles, os eventos de saúde (com os anexos), os links da carteirinha, as notificações, os dispositivos e a última localização. Um desaparecimento aberto do tutor fica resolvido, sem a descrição e sem o lugar. | RF-08 | estável |
 | RN-44 | A senha tem no mínimo 8 caracteres. O app confere antes de enviar. | RF-01 | estável |
 | RN-45 | O nome do tutor é obrigatório e tem no máximo 100 caracteres. | RF-01 | estável |
 | RN-46 | Uma chamada sem token, com token inválido ou com token vencido recebe 401. | RF-02 | estável |
@@ -224,7 +225,7 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 
 | ID | Regra | RF | Estado |
 |---|---|---|---|
-| RN-42 | Todo dia às 3h o sistema apaga o que tem mais de 30 dias: o contato deixado por visitantes, a foto da consulta e a última localização do tutor. | RF-32 | estável |
+| RN-42 | Todo dia às 3h, no fuso de Brasília (`America/Sao_Paulo`), o sistema apaga o que tem mais de 30 dias: o contato deixado por visitantes, a foto da consulta e a última localização do tutor. | RF-32 | estável |
 | RN-43 | Um endpoint público aceita no máximo 10 `POST` por minuto, por IP e por caminho. | RF-12, RF-13, RF-19, RF-20, RF-31 | estável |
 
 ## Requisitos não funcionais
@@ -256,7 +257,3 @@ Cada item é fechado na fatia indicada, antes do código.
 | 10 | O que acontece quando um login com Google usa o e-mail de uma conta que já tem senha? | RN-02 |
 | 10 | De onde a API lê o endereço do cliente quando fica atrás de um proxy? Hoje ela usa o endereço da conexão. | RN-43 |
 | 7 | Em qual fuso horário vale a data de hoje para uma data que o tutor informa? Hoje a API usa a data em UTC. | RN-50 |
-| 9 | Quais são os dados do perfil? | RF-06 |
-| 9 | O que a API faz quando o e-mail da conta muda no provedor de identidade? Hoje ela guarda o e-mail do registro. | RF-06 |
-| 9 | Como o tutor aceita uma versão nova dos termos de uso? Hoje só o registro grava o aceite. | RN-01 |
-| 9 | Em qual fuso horário valem as 3h da limpeza? | RN-42 |

@@ -95,14 +95,14 @@ Leituras com `JOIN` entre módulos, conhecidas pelos requisitos:
 
 | Consulta | Módulo dono | Lê também | Requisito |
 |---|---|---|---|
-| Busca dos focinhos mais parecidos | `biometrics` | `pets` (pet não excluído). A leitura de `identity` (conta ativa) entra na fatia 9 | RN-10, RN-11 |
+| Busca dos focinhos mais parecidos | `biometrics` | `pets` (pet não excluído). A exclusão da conta exclui os pets dela e apaga os cadastros, então a busca não lê `identity` (RN-84) | RN-10, RN-11 |
 | Trava do pet durante o cadastro do focinho | `biometrics` | `pets` (linha do pet, com `FOR UPDATE`, sem escrita) | RN-09 |
 | Nome e foto de perfil dos candidatos | `biometrics` | `pets` | RN-62 |
 | Mural e ficha (visão `report_views`) | `reports` | `pets` (nome, espécie, foto, pet não excluído), `biometrics` (o pet tem cadastro) | RN-24, RN-72 |
 | Avisos de encontro do tutor | `biometrics` | `pets` (pets do tutor, não excluídos) | RN-66 |
 | Próximos cuidados | `health` | `pets` (nome, pets do tutor, não excluídos) | RN-81 |
 | Carteirinha aberta pelo link | `health` | `pets` (dados e foto do pet, pet não excluído) | RN-41, RN-83 |
-| Tutores perto de um ponto | `alerts` | `identity` (conta ativa). A leitura entra na fatia 9, com os estados da conta. Hoje a consulta lê só `owner_locations` | RN-32, RN-33 |
+| Tutores perto de um ponto | `alerts` | Nenhum. A consulta lê só `owner_locations`: a exclusão da conta apaga a localização (RN-84) | RN-32, RN-33 |
 
 ## Tarefas em segundo plano
 
@@ -115,8 +115,8 @@ Uma tabela `jobs` no Postgres. Workers no mesmo binário leem com `SELECT ... FO
 | `notify_found` | `biometrics`, na mesma transação da confirmação | RN-16, RN-73 |
 | `send_push` | `alerts`, na mesma transação da notificação | RF-26 |
 | (recálculo dos vetores) | Não é uma tarefa da fila: o recálculo é executado na subida da API, em uma goroutine (RN-67). Ele refaz tudo o que falta a cada subida, então não precisa de uma tarefa por cadastro | RF-15 |
-| `purge_expired_data` | agenda diária | RF-32, RN-42 |
-| `delete_identity_user` | `identity`, na mesma transação da anonimização | RF-08, RN-03 |
+| `purge_expired_data` | a própria tarefa, que grava a próxima execução às 3h de `America/Sao_Paulo`; a subida da API grava a primeira | RF-32, RN-42 |
+| `delete_identity_user` | `identity`, na mesma transação da exclusão da conta | RF-08, RN-03 |
 
 Concorrência, declarada por regra:
 
@@ -336,3 +336,4 @@ Cada item entra quando o gatilho acontece.
 | Detector de focinho no aparelho | Depois da prova técnica descrita no [roteiro](roteiro.md) |
 | Login com Apple | Publicação na App Store |
 | Endpoints de administração | Uma tarefa de administração que se repete |
+| Aceite de uma versão nova dos termos de uso | A primeira mudança do texto dos termos ([ADR 0028](adr/0028-exclusao-da-conta-e-limpeza.md)) |
