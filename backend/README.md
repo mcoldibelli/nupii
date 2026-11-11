@@ -171,7 +171,7 @@ A primeira execução baixa o `oapi-codegen` na versão fixada em `internal/api/
 | `db/migrations/` | Arquivos SQL das migrations |
 | `db/queries/` | Arquivos SQL das consultas, a entrada do `sqlc` |
 | `sqlc.yaml` | Configuração do `sqlc`: qual arquivo de consultas gera qual pacote |
-| `internal/identity/` | Módulo do tutor: validação do token das requisições (uma conta excluída recebe 401, RN-04), regras do registro, exclusão da conta (RN-03, RN-84) e a tarefa que apaga o usuário no Firebase, handlers de `/v1/me`. `identitydb/` é o código gerado das consultas |
+| `internal/identity/` | Módulo do tutor: validação do token das requisições (uma conta excluída recebe 401, RN-04), regras do registro e do perfil (RF-06, RN-45), exclusão da conta (RN-03, RN-84) e a tarefa que apaga o usuário no Firebase, handlers de `/v1/me`. `identitydb/` é o código gerado das consultas |
 | `internal/biometrics/` | Módulo de biometria: cadastro do focinho (RN-07 a RN-09, RN-59, RN-60), identificação (RN-10 a RN-15, RN-61, RN-62), confirmação (RN-16, RN-63 a RN-65), avisos de encontro (RN-66) e recálculo dos vetores (RN-67). `biometricsdb/` é o código gerado das consultas |
 | `internal/alerts/` | Módulo de alertas: última localização (RN-30), dispositivos (RN-31), notificações (RN-35, RN-74), as tarefas que criam as notificações (RN-32 a RN-34, RN-73) e o envio de push (RN-36). `alertsdb/` é o código gerado das consultas |
 | `internal/health/` | Módulo de saúde: eventos dos cinco tipos (RN-37, RN-38, RN-76 a RN-80), anexos (RN-82), próximos cuidados (RN-81) e links da carteirinha (RN-39 a RN-41, RN-83). `healthdb/` é o código gerado das consultas |

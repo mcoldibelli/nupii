@@ -124,10 +124,9 @@ func (s *Service) CurrentOwner(ctx context.Context) (Owner, error) {
 // validateRegistration applies the rules of the registration and returns
 // the name without the spaces around it.
 func validateRegistration(name, acceptedTermsVersion string) (string, error) {
-	// RN-45: o nome do tutor é obrigatório e tem no máximo 100 caracteres.
-	name = strings.TrimSpace(name)
-	if name == "" || utf8.RuneCountInString(name) > _maxNameLength {
-		return "", ErrInvalidName
+	name, err := validateName(name)
+	if err != nil {
+		return "", err
 	}
 	// RN-01: o tutor só é registrado com o aceite da versão vigente dos
 	// termos de uso.
@@ -135,6 +134,35 @@ func validateRegistration(name, acceptedTermsVersion string) (string, error) {
 		return "", ErrTermsVersion
 	}
 	return name, nil
+}
+
+// validateName returns the name without the spaces around it.
+func validateName(name string) (string, error) {
+	// RN-45: o nome do tutor é obrigatório e tem no máximo 100 caracteres.
+	name = strings.TrimSpace(name)
+	if name == "" || utf8.RuneCountInString(name) > _maxNameLength {
+		return "", ErrInvalidName
+	}
+	return name, nil
+}
+
+// UpdateName changes the name of the owner of the account who (RF-06). It
+// returns ErrOwnerNotFound when the account did not register an owner.
+func (s *Service) UpdateName(ctx context.Context, who Identity, name string) (Owner, error) {
+	name, err := validateName(name)
+	if err != nil {
+		return Owner{}, err
+	}
+	row, err := s.queries.UpdateOwnerName(ctx, identitydb.UpdateOwnerNameParams{
+		FirebaseUID: who.UID, Name: name,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Owner{}, ErrOwnerNotFound
+	}
+	if err != nil {
+		return Owner{}, fmt.Errorf("update the name of the owner: %w", err)
+	}
+	return ownerFromRow(row), nil
 }
 
 func ownerFromRow(row identitydb.Owner) Owner {

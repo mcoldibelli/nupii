@@ -107,3 +107,29 @@ func (q *Queries) LockOwner(ctx context.Context, firebaseUid string) (string, er
 	err := row.Scan(&id)
 	return id, err
 }
+
+const updateOwnerName = `-- name: UpdateOwnerName :one
+UPDATE owners SET name = $2 WHERE firebase_uid = $1 AND deleted_at IS NULL
+RETURNING id, firebase_uid, email, name, terms_version, terms_accepted_at, created_at, deleted_at
+`
+
+type UpdateOwnerNameParams struct {
+	FirebaseUID string
+	Name        string
+}
+
+func (q *Queries) UpdateOwnerName(ctx context.Context, arg UpdateOwnerNameParams) (Owner, error) {
+	row := q.db.QueryRow(ctx, updateOwnerName, arg.FirebaseUID, arg.Name)
+	var i Owner
+	err := row.Scan(
+		&i.ID,
+		&i.FirebaseUID,
+		&i.Email,
+		&i.Name,
+		&i.TermsVersion,
+		&i.TermsAcceptedAt,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
