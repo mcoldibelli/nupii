@@ -24,30 +24,31 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres/postgrestest"
 )
 
-// ownerAPI is the handler of the API with the real database, for one test.
-type ownerAPI struct {
+// testAPI is the handler of the API with the real database, for one test.
+type testAPI struct {
 	t       *testing.T
 	handler http.Handler
+	pool    *pgxpool.Pool
 }
 
-// newOwnerAPI returns the API with the database of the local environment
+// newTestAPI returns the API with the database of the local environment
 // and verifier. The owners of the given accounts are deleted when the test
 // ends.
-func newOwnerAPI(t *testing.T, verifier identity.TokenVerifier, uids ...string) ownerAPI {
+func newTestAPI(t *testing.T, verifier identity.TokenVerifier, uids ...string) testAPI {
 	t.Helper()
 	pool := postgrestest.Open(t)
 	t.Cleanup(func() { deleteOwners(t, pool, uids) })
-	operations := server{
-		Handlers: identity.NewHandlers(identity.NewService(pool)),
-		logger:   slog.New(slog.DiscardHandler),
-		database: pool,
-	}
-	return ownerAPI{t: t, handler: newHandler(slog.New(slog.DiscardHandler), operations, verifier)}
+	logger := slog.New(slog.DiscardHandler)
+	return testAPI{t: t, handler: newHandler(logger, newServer(logger, pool), verifier), pool: pool}
 }
 
 func deleteOwners(t *testing.T, pool *pgxpool.Pool, uids []string) {
 	t.Helper()
 	ctx := context.WithoutCancel(t.Context())
+	const deletePets = "DELETE FROM pets WHERE owner_id IN (SELECT id FROM owners WHERE firebase_uid = ANY($1))"
+	if _, err := pool.Exec(ctx, deletePets, uids); err != nil {
+		t.Errorf("delete the pets of the test: %v", err)
+	}
 	if _, err := pool.Exec(ctx, "DELETE FROM owners WHERE firebase_uid = ANY($1)", uids); err != nil {
 		t.Errorf("delete the owners of the test: %v", err)
 	}
@@ -55,7 +56,7 @@ func deleteOwners(t *testing.T, pool *pgxpool.Pool, uids []string) {
 
 // call sends a request with the token and validates the response against
 // the contract.
-func (a ownerAPI) call(method, path, token, body string) *httptest.ResponseRecorder {
+func (a testAPI) call(method, path, token, body string) *httptest.ResponseRecorder {
 	a.t.Helper()
 	var reader io.Reader
 	if body != "" {
@@ -88,10 +89,10 @@ func TestRegisterMeThenGetMe(t *testing.T) {
 	verifier := fakeVerifier{identities: map[string]identity.Identity{
 		"token-ana": {UID: uid, Email: "ana@example.com"},
 	}}
-	ownerAPI := newOwnerAPI(t, verifier, uid)
+	testAPI := newTestAPI(t, verifier, uid)
 
 	// The account has no owner before the registration.
-	before := ownerAPI.call(http.MethodGet, "/v1/me", "token-ana", "")
+	before := testAPI.call(http.MethodGet, "/v1/me", "token-ana", "")
 	if before.Code != http.StatusNotFound {
 		t.Fatalf("GET /v1/me before the registration: status = %d, want 404", before.Code)
 	}
@@ -100,7 +101,7 @@ func TestRegisterMeThenGetMe(t *testing.T) {
 	}
 
 	// RF-01, RN-01: o registro guarda o nome, a data e a versão dos termos aceitos.
-	created := ownerAPI.call(http.MethodPost, "/v1/me", "token-ana", _registerBody)
+	created := testAPI.call(http.MethodPost, "/v1/me", "token-ana", _registerBody)
 	if created.Code != http.StatusCreated {
 		t.Fatalf("POST /v1/me: status = %d, want 201, body %s", created.Code, created.Body)
 	}
@@ -114,7 +115,7 @@ func TestRegisterMeThenGetMe(t *testing.T) {
 	}
 
 	// A second registration changes nothing and returns the same owner.
-	again := ownerAPI.call(http.MethodPost, "/v1/me", "token-ana",
+	again := testAPI.call(http.MethodPost, "/v1/me", "token-ana",
 		`{"name": "Other name", "acceptedTermsVersion": "2026-11-10"}`)
 	if again.Code != http.StatusOK {
 		t.Fatalf("second POST /v1/me: status = %d, want 200", again.Code)
@@ -123,7 +124,7 @@ func TestRegisterMeThenGetMe(t *testing.T) {
 		t.Errorf("second POST /v1/me: owner = %+v, want the first owner without changes", got)
 	}
 
-	after := ownerAPI.call(http.MethodGet, "/v1/me", "token-ana", "")
+	after := testAPI.call(http.MethodGet, "/v1/me", "token-ana", "")
 	if after.Code != http.StatusOK {
 		t.Fatalf("GET /v1/me after the registration: status = %d, want 200", after.Code)
 	}
@@ -137,7 +138,7 @@ func TestRegisterMeRejectsAnInvalidRequest(t *testing.T) {
 	verifier := fakeVerifier{identities: map[string]identity.Identity{
 		"token-ana": {UID: uid, Email: "ana@example.com"},
 	}}
-	ownerAPI := newOwnerAPI(t, verifier, uid)
+	testAPI := newTestAPI(t, verifier, uid)
 	tests := []struct {
 		name string
 		body string
@@ -150,7 +151,7 @@ func TestRegisterMeRejectsAnInvalidRequest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := ownerAPI.call(http.MethodPost, "/v1/me", "token-ana", tt.body)
+			rec := testAPI.call(http.MethodPost, "/v1/me", "token-ana", tt.body)
 
 			if rec.Code != http.StatusBadRequest {
 				t.Fatalf("status = %d, want 400, body %s", rec.Code, rec.Body)
@@ -162,7 +163,7 @@ func TestRegisterMeRejectsAnInvalidRequest(t *testing.T) {
 	}
 
 	// No request above created the owner.
-	if rec := ownerAPI.call(http.MethodGet, "/v1/me", "token-ana", ""); rec.Code != http.StatusNotFound {
+	if rec := testAPI.call(http.MethodGet, "/v1/me", "token-ana", ""); rec.Code != http.StatusNotFound {
 		t.Errorf("GET /v1/me after the invalid requests: status = %d, want 404", rec.Code)
 	}
 }
@@ -242,21 +243,21 @@ func TestOwnerRegistrationWithATokenOfTheEmulator(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewVerifier: %v", err)
 	}
-	ownerAPI := newOwnerAPI(t, tokenVerifier{firebase: verifier}, uid)
+	testAPI := newTestAPI(t, tokenVerifier{firebase: verifier}, uid)
 
-	created := ownerAPI.call(http.MethodPost, "/v1/me", idToken, _registerBody)
+	created := testAPI.call(http.MethodPost, "/v1/me", idToken, _registerBody)
 	if created.Code != http.StatusCreated {
 		t.Fatalf("POST /v1/me: status = %d, want 201, body %s", created.Code, created.Body)
 	}
 	if owner := decode[api.Owner](t, created); owner.Email != email {
 		t.Errorf("owner e-mail = %q, want the e-mail of the account %q", owner.Email, email)
 	}
-	if rec := ownerAPI.call(http.MethodGet, "/v1/me", idToken, ""); rec.Code != http.StatusOK {
+	if rec := testAPI.call(http.MethodGet, "/v1/me", idToken, ""); rec.Code != http.StatusOK {
 		t.Errorf("GET /v1/me: status = %d, want 200", rec.Code)
 	}
 
 	// RN-46: o verificador real recusa um texto que não é um token.
-	if rec := ownerAPI.call(http.MethodGet, "/v1/me", "not-a-token", ""); rec.Code != http.StatusUnauthorized {
+	if rec := testAPI.call(http.MethodGet, "/v1/me", "not-a-token", ""); rec.Code != http.StatusUnauthorized {
 		t.Errorf("GET /v1/me with an invalid token: status = %d, want 401", rec.Code)
 	}
 }

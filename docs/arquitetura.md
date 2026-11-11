@@ -139,7 +139,9 @@ Concorrência, declarada por regra:
 - Endpoints públicos têm limite de tentativas por IP (RN-43).
 - Autenticação: uma operação do contrato sem `security` é pública. Toda outra operação pede o ID token do Firebase no cabeçalho `Authorization: Bearer`. Sem token válido, a resposta é 401 com o código `unauthenticated` (RN-46). A conferência do token acontece antes da leitura do corpo.
 - O módulo `identity` depende da interface `TokenVerifier`. A implementação com o Firebase Admin SDK fica em `platform/firebase`, e `cmd/api` liga as duas.
-- Um corpo ou um parâmetro que não pode ser lido recebe 400 com o código `invalid_request`.
+- Um corpo ou um parâmetro que não pode ser lido recebe 400 com o código `invalid_request`. Um dado que quebra uma regra de negócio recebe a mesma resposta, com a regra na mensagem.
+- Um recurso de outro tutor não existe para quem chama: a resposta é 404, igual à de um recurso que nunca existiu (RN-52).
+- Uma conta sem tutor registrado recebe 404 com o código `owner_not_found` nas operações que precisam do tutor.
 - O corpo de uma requisição tem no máximo 1 MiB. Um corpo maior recebe a mesma resposta 400.
 - O emulador do Authentication só é aceito com um projeto de demonstração (`FIREBASE_PROJECT_ID` com o prefixo `demo-`). Com outro projeto, a API não sobe.
 - Toda resposta tem o cabeçalho `X-Request-Id`, com o identificador que aparece nas linhas de log da requisição (RNF-07).

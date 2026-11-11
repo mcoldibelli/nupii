@@ -1,6 +1,30 @@
 # sqlc configuration. Input: the migrations (schema) and db/queries.
 # Output: one Go package of queries for each module. Run: go generate ./...
 version: "2"
+overrides:
+  go:
+    overrides:
+      - db_type: uuid
+        go_type: string
+      - db_type: timestamptz
+        go_type: time.Time
+      - db_type: timestamptz
+        nullable: true
+        go_type:
+          import: time
+          type: Time
+          pointer: true
+      - db_type: date
+        nullable: true
+        go_type:
+          import: time
+          type: Time
+          pointer: true
+      - db_type: pg_catalog.numeric
+        nullable: true
+        go_type:
+          type: float64
+          pointer: true
 sql:
   - engine: postgresql
     schema: db/migrations
@@ -11,8 +35,16 @@ sql:
         out: internal/identity/identitydb
         sql_package: pgx/v5
         initialisms: ["id", "uid"]
-        overrides:
-          - db_type: uuid
-            go_type: string
-          - db_type: timestamptz
-            go_type: time.Time
+        emit_pointers_for_null_types: true
+        omit_unused_structs: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries/pets.sql
+    gen:
+      go:
+        package: petsdb
+        out: internal/pets/petsdb
+        sql_package: pgx/v5
+        initialisms: ["id", "uid"]
+        emit_pointers_for_null_types: true
+        omit_unused_structs: true

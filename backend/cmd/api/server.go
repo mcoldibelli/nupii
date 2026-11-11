@@ -9,8 +9,11 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/mcoldibelli/nupii/backend/internal/api"
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
+	"github.com/mcoldibelli/nupii/backend/internal/pets"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 )
@@ -29,16 +32,36 @@ type pinger interface {
 	Ping(ctx context.Context) error
 }
 
+// The handlers of two modules have the same type name. The aliases give
+// each embedded field of server a different name.
+type (
+	identityHandlers = identity.Handlers
+	petsHandlers     = pets.Handlers
+)
+
 // server implements the operations of the contract. The operations of each
 // module come from the handlers of the module.
 type server struct {
-	*identity.Handlers
+	*identityHandlers
+	*petsHandlers
 
 	logger   *slog.Logger
 	database pinger
 }
 
 var _ api.StrictServerInterface = server{}
+
+// newServer connects the modules: each module gets the connection pool and
+// the modules it depends on.
+func newServer(logger *slog.Logger, pool *pgxpool.Pool) server {
+	owners := identity.NewService(pool)
+	return server{
+		identityHandlers: identity.NewHandlers(owners),
+		petsHandlers:     pets.NewHandlers(pets.NewService(pool, owners)),
+		logger:           logger,
+		database:         pool,
+	}
+}
 
 // GetHealth reports that the process is running and that the database
 // responds.
