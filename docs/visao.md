@@ -1,7 +1,5 @@
 # Visão
 
-Estado: rascunho, para revisão.
-
 ## O que é
 
 O Nupii é uma plataforma para tutores de pets. Ela tem três partes: saúde do pet, mural de perdidos e achados, e identificação de cães pela foto do focinho.
