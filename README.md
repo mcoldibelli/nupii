@@ -4,7 +4,7 @@ Plataforma para tutores de pets, com três partes: saúde do pet, mural de perdi
 
 ## Estado
 
-A fatia 0 do [roteiro](docs/roteiro.md) está pronta: a API responde `GET /v1/health`, o ambiente local sobe com um comando, o app mostra a resposta da API e o CI confere os três. O andamento de cada fatia está nos milestones do GitHub.
+As fatias 0 e 1 do [roteiro](docs/roteiro.md) estão prontas. O ambiente local sobe com um comando e o CI confere a API, o app e a integração. O tutor cria a conta e entra pelo app, e a API valida o token e registra o tutor com o aceite dos termos. O andamento de cada fatia está nos milestones do GitHub.
 
 ## Como executar
 

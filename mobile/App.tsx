@@ -18,6 +18,9 @@ type State =
   | { kind: "ready"; owner: Owner }
   | { kind: "failed"; message: string };
 
+/** Message for a failure of the renewal of the session. */
+const SESSION_FAILURE = "Não foi possível confirmar a sua sessão. Confira a internet e tente de novo.";
+
 /** Message for a failure of a call about the owner. */
 function failureMessage(result: Extract<OwnerResult, { ok: false }>): string {
   if (result.code === "network") {
@@ -32,7 +35,14 @@ export default function App() {
   // Reads the owner of the signed-in account from the API.
   const loadOwner = useCallback(async () => {
     setState({ kind: "loading" });
-    const idToken = await currentIdToken();
+    let idToken: string | null;
+    try {
+      idToken = await currentIdToken();
+    } catch {
+      // The renewal of the token failed, for example without network.
+      setState({ kind: "failed", message: SESSION_FAILURE });
+      return;
+    }
     if (idToken === null) {
       setState({ kind: "signedOut" });
       return;
@@ -64,7 +74,12 @@ export default function App() {
   }, [loadOwner]);
 
   async function register(name: string): Promise<string | null> {
-    const idToken = await currentIdToken();
+    let idToken: string | null;
+    try {
+      idToken = await currentIdToken();
+    } catch {
+      return SESSION_FAILURE;
+    }
     if (idToken === null) {
       return "A sessão terminou. Entre de novo.";
     }

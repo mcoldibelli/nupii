@@ -52,12 +52,13 @@ export interface components {
             id: string;
             name: string;
             email: string;
-            termsVersion: components["schemas"]["TermsVersion"];
+            /** @description Versão dos termos de uso que o tutor aceitou. Pode ser uma versão anterior à vigente. */
+            termsVersion: string;
             /** Format: date-time */
             termsAcceptedAt: string;
         };
         RegisterOwnerRequest: {
-            /** @description Nome do tutor. Não pode ser vazio. */
+            /** @description Nome do tutor. Não pode ser vazio. Tem no máximo 100 caracteres. */
             name: string;
             acceptedTermsVersion: components["schemas"]["TermsVersion"];
         };

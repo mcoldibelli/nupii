@@ -15,8 +15,8 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
 )
 
-// RN-46: a request without a token, or with a token that is not valid,
-// gets 401.
+// RN-46: uma chamada sem token, com token inválido ou com token vencido
+// recebe 401.
 func TestProtectedRouteWithoutAValidTokenGetsUnauthenticated(t *testing.T) {
 	verifier := fakeVerifier{identities: map[string]identity.Identity{
 		"valid-token": {UID: "uid-1", Email: "tutor@example.com"},
@@ -110,5 +110,32 @@ func TestIsPublicMatchesTheContract(t *testing.T) {
 	}
 	if operations == 0 {
 		t.Fatal("the contract has no operation")
+	}
+}
+
+// A request body has a size limit. The handler is not called for a body
+// over the limit: healthyServer has no handler for this route.
+func TestRequestBodyOverTheLimitGetsInvalidRequest(t *testing.T) {
+	verifier := fakeVerifier{identities: map[string]identity.Identity{
+		"valid-token": {UID: "uid-1", Email: "tutor@example.com"},
+	}}
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), verifier)
+	body := `{"name": "` + strings.Repeat("a", _maxBodyBytes) + `", "acceptedTermsVersion": "x"}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/me", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer valid-token")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400, body %s", rec.Code, rec.Body)
+	}
+	var got api.Error
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decode body %q: %v", rec.Body.String(), err)
+	}
+	if got.Error != api.ErrorCodeInvalidRequest {
+		t.Errorf("error code = %q, want %q", got.Error, api.ErrorCodeInvalidRequest)
 	}
 }

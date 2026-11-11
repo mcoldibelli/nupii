@@ -3,6 +3,7 @@ package identity
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/mcoldibelli/nupii/backend/internal/api"
 )
@@ -22,7 +23,10 @@ func NewHandlers(service *Service) *Handlers {
 }
 
 // GetMe returns the owner of the account that made the request.
-func (h *Handlers) GetMe(ctx context.Context, _ api.GetMeRequestObject) (api.GetMeResponseObject, error) {
+func (h *Handlers) GetMe(
+	ctx context.Context,
+	_ api.GetMeRequestObject,
+) (api.GetMeResponseObject, error) {
 	who, ok := FromContext(ctx)
 	if !ok {
 		return nil, errNoIdentity
@@ -35,7 +39,7 @@ func (h *Handlers) GetMe(ctx context.Context, _ api.GetMeRequestObject) (api.Get
 		}, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get the owner of the account: %w", err)
 	}
 	return api.GetMe200JSONResponse(ownerToAPI(owner)), nil
 }
@@ -63,7 +67,7 @@ func (h *Handlers) RegisterMe(
 			Message: "acceptedTermsVersion is not the current version of the terms",
 		}, nil
 	case err != nil:
-		return nil, err
+		return nil, fmt.Errorf("register the owner of the account: %w", err)
 	case created:
 		return api.RegisterMe201JSONResponse(ownerToAPI(owner)), nil
 	default:
@@ -76,7 +80,7 @@ func ownerToAPI(owner Owner) api.Owner {
 		Id:              owner.ID,
 		Name:            owner.Name,
 		Email:           owner.Email,
-		TermsVersion:    api.TermsVersion(owner.TermsVersion),
+		TermsVersion:    owner.TermsVersion,
 		TermsAcceptedAt: owner.TermsAcceptedAt,
 	}
 }

@@ -43,13 +43,11 @@ type Owner struct {
 // Service has the rules of the owner.
 type Service struct {
 	queries *identitydb.Queries
-	now     func() time.Time
 }
 
-// NewService returns a Service that reads and writes with db. The function
-// now gives the time of the acceptance of the terms.
-func NewService(db identitydb.DBTX, now func() time.Time) *Service {
-	return &Service{queries: identitydb.New(db), now: now}
+// NewService returns a Service that reads and writes with db.
+func NewService(db identitydb.DBTX) *Service {
+	return &Service{queries: identitydb.New(db)}
 }
 
 // Register creates the owner of the account who, with the name and the
@@ -70,12 +68,15 @@ func (s *Service) Register(
 		Email:           who.Email,
 		Name:            name,
 		TermsVersion:    acceptedTermsVersion,
-		TermsAcceptedAt: s.now(),
+		TermsAcceptedAt: time.Now(),
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		// The insert changed nothing: the account already has an owner.
 		owner, err = s.Owner(ctx, who)
-		return owner, false, err
+		if err != nil {
+			return Owner{}, false, fmt.Errorf("read the owner that already exists: %w", err)
+		}
+		return owner, false, nil
 	}
 	if err != nil {
 		return Owner{}, false, fmt.Errorf("create owner: %w", err)
@@ -99,13 +100,13 @@ func (s *Service) Owner(ctx context.Context, who Identity) (Owner, error) {
 // validateRegistration applies the rules of the registration and returns
 // the name without the spaces around it.
 func validateRegistration(name, acceptedTermsVersion string) (string, error) {
-	// RN-45: the name of the owner is required.
+	// RN-45: o nome do tutor é obrigatório e tem no máximo 100 caracteres.
 	name = strings.TrimSpace(name)
 	if name == "" || utf8.RuneCountInString(name) > _maxNameLength {
 		return "", ErrInvalidName
 	}
-	// RN-01: the owner is registered only with the acceptance of the
-	// current version of the terms of use.
+	// RN-01: o tutor só é registrado com o aceite da versão vigente dos
+	// termos de uso.
 	if acceptedTermsVersion != CurrentTermsVersion {
 		return "", ErrTermsVersion
 	}

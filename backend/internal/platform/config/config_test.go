@@ -89,3 +89,15 @@ func TestLoadReadsTheFirebaseVariables(t *testing.T) {
 			cfg.FirebaseProjectID, cfg.FirebaseAuthEmulatorHost)
 	}
 }
+
+// With the emulator, the ID tokens have no signature. The process does not
+// start with the emulator and a project that is not a demonstration project.
+func TestLoadRejectsTheEmulatorWithARealProject(t *testing.T) {
+	vars := map[string]string{
+		"FIREBASE_PROJECT_ID":         "real-project",
+		"FIREBASE_AUTH_EMULATOR_HOST": "127.0.0.1:9099",
+	}
+	if _, err := config.Load(env(vars)); err == nil {
+		t.Error("Load with the emulator and the project real-project: got nil error, want an error")
+	}
+}

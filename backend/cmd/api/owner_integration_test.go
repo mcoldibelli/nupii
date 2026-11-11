@@ -38,7 +38,7 @@ func newOwnerAPI(t *testing.T, verifier identity.TokenVerifier, uids ...string) 
 	pool := postgrestest.Open(t)
 	t.Cleanup(func() { deleteOwners(t, pool, uids) })
 	operations := server{
-		Handlers: identity.NewHandlers(identity.NewService(pool, time.Now)),
+		Handlers: identity.NewHandlers(identity.NewService(pool)),
 		logger:   slog.New(slog.DiscardHandler),
 		database: pool,
 	}
@@ -99,14 +99,14 @@ func TestRegisterMeThenGetMe(t *testing.T) {
 		t.Errorf("error code = %q, want %q", code, api.ErrorCodeOwnerNotFound)
 	}
 
-	// RF-01, RN-01: the registration stores the name and the accepted terms.
+	// RF-01, RN-01: o registro guarda o nome, a data e a versão dos termos aceitos.
 	created := ownerAPI.call(http.MethodPost, "/v1/me", "token-ana", _registerBody)
 	if created.Code != http.StatusCreated {
 		t.Fatalf("POST /v1/me: status = %d, want 201, body %s", created.Code, created.Body)
 	}
 	owner := decode[api.Owner](t, created)
 	if owner.Name != "Ana Lima" || owner.Email != "ana@example.com" ||
-		owner.TermsVersion != api.TermsVersionN20261110 || owner.Id == "" {
+		owner.TermsVersion != identity.CurrentTermsVersion || owner.Id == "" {
 		t.Errorf("owner = %+v, want name Ana Lima, the e-mail of the token and the current terms", owner)
 	}
 	if age := time.Since(owner.TermsAcceptedAt); age < 0 || age > time.Minute {
@@ -145,7 +145,7 @@ func TestRegisterMeRejectsAnInvalidRequest(t *testing.T) {
 		{name: "body that is not JSON", body: `{"name": `},
 		{name: "RN-45 empty name", body: `{"name": "", "acceptedTermsVersion": "2026-11-10"}`},
 		{name: "RN-45 no name", body: `{"acceptedTermsVersion": "2026-11-10"}`},
-		{name: "RN-01 old terms version", body: `{"name": "Ana", "acceptedTermsVersion": "2020-01-01"}`},
+		{name: "RN-01 version that is not the current one", body: `{"name": "Ana", "acceptedTermsVersion": "another-version"}`},
 		{name: "RN-01 no terms version", body: `{"name": "Ana"}`},
 	}
 	for _, tt := range tests {
@@ -167,9 +167,9 @@ func TestRegisterMeRejectsAnInvalidRequest(t *testing.T) {
 	}
 }
 
-// emulatorAccount creates an account in the Authentication emulator and
-// returns its identifier and an ID token.
-func emulatorAccount(t *testing.T, email string) (uid, idToken string) {
+// emulatorSignUp asks the Authentication emulator to create an account.
+// It returns the HTTP status and the body of the answer.
+func emulatorSignUp(t *testing.T, email string) (status int, body []byte) {
 	t.Helper()
 	url := "http://" + emulatorHost(t) + "/identitytoolkit.googleapis.com/v1/accounts:signUp?key=test"
 	payload, err := json.Marshal(map[string]any{
@@ -193,8 +193,19 @@ func emulatorAccount(t *testing.T, email string) (uid, idToken string) {
 	if cerr := resp.Body.Close(); cerr != nil {
 		t.Fatalf("close sign-up response: %v", cerr)
 	}
-	if rerr != nil || resp.StatusCode != http.StatusOK {
-		t.Fatalf("sign up in the emulator: status %d, read error %v, body %s", resp.StatusCode, rerr, body)
+	if rerr != nil {
+		t.Fatalf("read sign-up response: %v", rerr)
+	}
+	return resp.StatusCode, body
+}
+
+// emulatorAccount creates an account in the Authentication emulator and
+// returns its identifier and an ID token.
+func emulatorAccount(t *testing.T, email string) (uid, idToken string) {
+	t.Helper()
+	status, body := emulatorSignUp(t, email)
+	if status != http.StatusOK {
+		t.Fatalf("sign up in the emulator: status %d, body %s", status, body)
 	}
 	var account struct {
 		LocalID string `json:"localId"`
@@ -206,8 +217,24 @@ func emulatorAccount(t *testing.T, email string) (uid, idToken string) {
 	return account.LocalID, account.IDToken
 }
 
+// RN-02: um e-mail identifica uma conta só. O provedor de identidade aplica
+// a regra: ele recusa uma segunda conta com o mesmo e-mail.
+func TestIdentityProviderRejectsASecondAccountWithTheSameEmail(t *testing.T) {
+	email := fmt.Sprintf("tutor-%s@example.com", strings.ToLower(rand.Text()))
+	emulatorAccount(t, email)
+
+	status, body := emulatorSignUp(t, email)
+
+	if status != http.StatusBadRequest || !strings.Contains(string(body), "EMAIL_EXISTS") {
+		t.Errorf("second sign-up with the same e-mail: status %d, body %s, want 400 with EMAIL_EXISTS", status, body)
+	}
+}
+
 // The Firebase Admin SDK validates a token of the Authentication emulator,
 // and the API registers the owner of that account.
+//
+// RN-47: a conta pode ser usada sem a confirmação do e-mail. A conta deste
+// teste acabou de ser criada, e o e-mail dela não foi confirmado.
 func TestOwnerRegistrationWithATokenOfTheEmulator(t *testing.T) {
 	email := fmt.Sprintf("tutor-%s@example.com", strings.ToLower(rand.Text()))
 	uid, idToken := emulatorAccount(t, email)
@@ -228,7 +255,7 @@ func TestOwnerRegistrationWithATokenOfTheEmulator(t *testing.T) {
 		t.Errorf("GET /v1/me: status = %d, want 200", rec.Code)
 	}
 
-	// RN-46: the real verifier rejects a text that is not a token.
+	// RN-46: o verificador real recusa um texto que não é um token.
 	if rec := ownerAPI.call(http.MethodGet, "/v1/me", "not-a-token", ""); rec.Code != http.StatusUnauthorized {
 		t.Errorf("GET /v1/me with an invalid token: status = %d, want 401", rec.Code)
 	}

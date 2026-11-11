@@ -18,7 +18,8 @@ func URL(t testing.TB) string {
 	t.Helper()
 	url := os.Getenv("DATABASE_URL")
 	if url == "" {
-		t.Fatal("DATABASE_URL is not set: start the compose and set the variable (see backend/README.md)")
+		t.Fatal("DATABASE_URL is not set: start the compose and set the variable " +
+			"(see backend/README.md)")
 	}
 	return url
 }

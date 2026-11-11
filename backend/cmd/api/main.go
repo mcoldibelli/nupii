@@ -36,24 +36,26 @@ const (
 )
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
-		ctx, cancel := context.WithTimeout(context.Background(), _healthcheckTimeout)
-		err := healthcheck(ctx, os.Getenv)
-		cancel()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "nupii api healthcheck:", err)
-			os.Exit(1)
-		}
-		return
-	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	err := run(ctx, os.Getenv, os.Stdout)
-	stop()
-	if err != nil {
+	if err := runCommand(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, "nupii api:", err)
 		os.Exit(1)
 	}
+}
+
+// runCommand runs the server, or the health check of the container when
+// the first argument is "healthcheck".
+func runCommand(args []string) error {
+	if len(args) > 0 && args[0] == "healthcheck" {
+		ctx, cancel := context.WithTimeout(context.Background(), _healthcheckTimeout)
+		defer cancel()
+		if err := healthcheck(ctx, os.Getenv); err != nil {
+			return fmt.Errorf("healthcheck: %w", err)
+		}
+		return nil
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	return run(ctx, os.Getenv, os.Stdout)
 }
 
 // run connects to the database, applies the migrations, starts the HTTP
@@ -89,7 +91,7 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 			slog.String("host", cfg.FirebaseAuthEmulatorHost))
 	}
 	operations := server{
-		Handlers: identity.NewHandlers(identity.NewService(pool, time.Now)),
+		Handlers: identity.NewHandlers(identity.NewService(pool)),
 		logger:   logger,
 		database: pool,
 	}

@@ -9,16 +9,29 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
+  type Auth,
 } from "firebase/auth";
 
 import { authEmulatorUrl, firebaseConfig } from "../config";
 
-const app = initializeApp(firebaseConfig);
-// The session stays in the storage of the device, so it continues after the
-// app is closed (RF-02).
-const auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
-if (authEmulatorUrl !== "") {
-  connectAuthEmulator(auth, authEmulatorUrl, { disableWarnings: true });
+let instance: Auth | null = null;
+
+/**
+ * Returns the Firebase Authentication of the app. The first call creates
+ * it, so the import of this file does not fail when the configuration is
+ * missing: the app shows a message for that.
+ */
+function auth(): Auth {
+  if (instance === null) {
+    const app = initializeApp(firebaseConfig);
+    // The session stays in the storage of the device, so it continues
+    // after the app is closed (RF-02).
+    instance = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
+    if (authEmulatorUrl !== "") {
+      connectAuthEmulator(instance, authEmulatorUrl, { disableWarnings: true });
+    }
+  }
+  return instance;
 }
 
 /** The account that is signed in. */
@@ -29,14 +42,19 @@ export type Account = { email: string };
  * time it changes. Returns the function that stops the calls.
  */
 export function subscribeToAccount(listener: (account: Account | null) => void): () => void {
-  return onAuthStateChanged(auth, (user) => {
+  return onAuthStateChanged(auth(), (user) => {
     listener(user === null ? null : { email: user.email ?? "" });
   });
 }
 
-/** Returns the ID token of the account that is signed in, or null. The SDK renews the token. */
+/**
+ * Returns the ID token of the account that is signed in, or null when no
+ * account is signed in. The SDK renews the token. The renewal needs the
+ * network: this function throws when the renewal fails.
+ */
 export async function currentIdToken(): Promise<string | null> {
-  return auth.currentUser === null ? null : auth.currentUser.getIdToken();
+  const user = auth().currentUser;
+  return user === null ? null : user.getIdToken();
 }
 
 /** Messages for the error codes of Firebase Authentication that the user can fix. */
@@ -64,15 +82,15 @@ async function messageOf(action: () => Promise<unknown>): Promise<string | null>
 
 /** Signs in. Returns null, or the message of the failure. */
 export function signIn(email: string, password: string): Promise<string | null> {
-  return messageOf(() => signInWithEmailAndPassword(auth, email.trim(), password));
+  return messageOf(() => signInWithEmailAndPassword(auth(), email.trim(), password));
 }
 
 /** Creates the account and signs in. Returns null, or the message of the failure. */
 export function createAccount(email: string, password: string): Promise<string | null> {
-  return messageOf(() => createUserWithEmailAndPassword(auth, email.trim(), password));
+  return messageOf(() => createUserWithEmailAndPassword(auth(), email.trim(), password));
 }
 
 /** Signs out. Returns null, or the message of the failure. */
 export function signOutAccount(): Promise<string | null> {
-  return messageOf(() => signOut(auth));
+  return messageOf(() => signOut(auth()));
 }

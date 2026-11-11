@@ -107,9 +107,8 @@ type Owner struct {
 	Name            string    `json:"name"`
 	TermsAcceptedAt time.Time `json:"termsAcceptedAt"`
 
-	// TermsVersion Versão dos termos de uso. A lista tem só a versão vigente.
-	// Uma versão nova dos termos troca o valor desta lista.
-	TermsVersion TermsVersion `json:"termsVersion"`
+	// TermsVersion Versão dos termos de uso que o tutor aceitou. Pode ser uma versão anterior à vigente.
+	TermsVersion string `json:"termsVersion"`
 }
 
 // RegisterOwnerRequest defines model for RegisterOwnerRequest.
@@ -118,7 +117,7 @@ type RegisterOwnerRequest struct {
 	// Uma versão nova dos termos troca o valor desta lista.
 	AcceptedTermsVersion TermsVersion `json:"acceptedTermsVersion"`
 
-	// Name Nome do tutor. Não pode ser vazio.
+	// Name Nome do tutor. Não pode ser vazio. Tem no máximo 100 caracteres.
 	Name string `json:"name"`
 }
 

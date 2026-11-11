@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/getkin/kin-openapi/openapi3"
+
 	"github.com/mcoldibelli/nupii/backend/internal/api"
 )
 
@@ -19,12 +21,12 @@ func TestValidateRegistration(t *testing.T) {
 		{name: "valid", ownerName: "Ana", termsVersion: CurrentTermsVersion, wantName: "Ana"},
 		{name: "spaces around the name are removed", ownerName: "  Ana Lima ", termsVersion: CurrentTermsVersion, wantName: "Ana Lima"},
 		{name: "name with 100 characters", ownerName: strings.Repeat("á", 100), termsVersion: CurrentTermsVersion, wantName: strings.Repeat("á", 100)},
-		// RN-45: the name of the owner is required.
+		// RN-45: o nome do tutor é obrigatório e tem no máximo 100 caracteres.
 		{name: "RN-45 empty name", ownerName: "", termsVersion: CurrentTermsVersion, wantErr: ErrInvalidName},
 		{name: "RN-45 name with only spaces", ownerName: "   ", termsVersion: CurrentTermsVersion, wantErr: ErrInvalidName},
-		{name: "name with 101 characters", ownerName: strings.Repeat("á", 101), termsVersion: CurrentTermsVersion, wantErr: ErrInvalidName},
-		// RN-01: only the current version of the terms can be accepted.
-		{name: "RN-01 old terms version", ownerName: "Ana", termsVersion: "2020-01-01", wantErr: ErrTermsVersion},
+		{name: "RN-45 name with 101 characters", ownerName: strings.Repeat("á", 101), termsVersion: CurrentTermsVersion, wantErr: ErrInvalidName},
+		// RN-01: o tutor só é registrado com o aceite da versão vigente dos termos.
+		{name: "RN-01 version that is not the current one", ownerName: "Ana", termsVersion: "another-version", wantErr: ErrTermsVersion},
 		{name: "RN-01 no terms version", ownerName: "Ana", termsVersion: "", wantErr: ErrTermsVersion},
 	}
 	for _, tt := range tests {
@@ -44,5 +46,17 @@ func TestValidateRegistration(t *testing.T) {
 func TestCurrentTermsVersionIsInTheContract(t *testing.T) {
 	if !api.TermsVersion(CurrentTermsVersion).Valid() {
 		t.Errorf("CurrentTermsVersion %q is not a value of the schema TermsVersion of the contract", CurrentTermsVersion)
+	}
+}
+
+// The contract and the service must have the same limit for the name.
+func TestMaxNameLengthIsInTheContract(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromFile("../../../api/openapi.yaml")
+	if err != nil {
+		t.Fatalf("load contract: %v", err)
+	}
+	name := doc.Components.Schemas["RegisterOwnerRequest"].Value.Properties["name"].Value
+	if name.MaxLength == nil || *name.MaxLength != _maxNameLength {
+		t.Errorf("maxLength of RegisterOwnerRequest.name in the contract = %v, want %d", name.MaxLength, _maxNameLength)
 	}
 }

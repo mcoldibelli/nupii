@@ -15,7 +15,6 @@ export function HomeScreen({ owner, onSignOut }: Props) {
       <Text testID="home-greeting" style={styles.title}>
         Olá, {owner.name}
       </Text>
-      <Text style={styles.text}>{owner.email}</Text>
       <Pressable testID="sign-out-button" accessibilityRole="button" style={styles.button} onPress={onSignOut}>
         <Text style={styles.buttonText}>Sair</Text>
       </Pressable>
