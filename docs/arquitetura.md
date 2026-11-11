@@ -224,7 +224,7 @@ Os workflows ficam em `.github/workflows/`. Cada um é disparado só pelos arqui
 | `backend` | `backend/`, `api/` | Lint, código gerado igual ao contrato, testes de unidade com detector de corrida, build, e que as bibliotecas de teste não entram no binário |
 | `mobile` | `mobile/`, `api/` | Instalação, tipos gerados iguais ao contrato, lint e testes de unidade |
 | `inference` | `inference/` | Lint, download dos pesos com conferência do SHA-256, e os testes no Linux x86, com o teste de igualdade das imagens geradas |
-| `integration` | `backend/`, `api/`, `deploy/` | Sobe o compose (API, banco, servidor S3 e emulador do Authentication), chama `GET /v1/health` e executa os testes de integração |
+| `integration` | `backend/`, `api/`, `deploy/`, `inference/` | Baixa os pesos, sobe o compose (API, banco, servidor S3, emulador do Authentication e serviço de inferência), chama `GET /v1/health` da API, pede um vetor ao serviço de inferência e executa os testes de integração |
 
 O workflow `integration` cria o `deploy/.env` com credenciais aleatórias em cada execução. Nenhum workflow tem credencial escrita.
 
