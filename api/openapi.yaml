@@ -937,6 +937,110 @@ paths:
           $ref: "#/components/responses/HealthEventNotFound"
         default:
           $ref: "#/components/responses/Error"
+  /v1/pets/{petId}/health-events/{eventId}/attachments:
+    parameters:
+      - $ref: "#/components/parameters/PetId"
+      - name: eventId
+        in: path
+        required: true
+        description: Identificador do evento de saúde.
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: listHealthAttachments
+      tags: [health]
+      summary: Os anexos de um evento de saúde.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Os anexos, do mais antigo para o mais novo.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthAttachmentList"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/HealthEventNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createHealthAttachment
+      tags: [health]
+      summary: Envia um anexo de um evento de saúde.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Imagem JPEG, PNG ou WebP, ou PDF, com no máximo 10 MB.
+      responses:
+        "201":
+          description: O anexo criado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthAttachment"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/HealthEventNotFound"
+        "409":
+          description: O evento já tem 10 anexos. O código do erro é `attachment_limit`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/pets/{petId}/health-events/{eventId}/attachments/{attachmentId}:
+    parameters:
+      - $ref: "#/components/parameters/PetId"
+      - name: eventId
+        in: path
+        required: true
+        description: Identificador do evento de saúde.
+        schema:
+          type: string
+          format: uuid
+      - name: attachmentId
+        in: path
+        required: true
+        description: Identificador do anexo.
+        schema:
+          type: string
+          format: uuid
+    delete:
+      operationId: deleteHealthAttachment
+      tags: [health]
+      summary: Apaga um anexo de um evento de saúde.
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: O anexo foi apagado.
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/HealthEventNotFound"
+        default:
+          $ref: "#/components/responses/Error"
   /v1/upcoming-care:
     get:
       operationId: listUpcomingCare
@@ -1561,6 +1665,36 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/HealthEvent"
+    HealthAttachment:
+      type: object
+      required: [id, url, contentType, fileName, sizeBytes, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          description: URL temporária do arquivo. Vale por 900 segundos.
+        contentType:
+          type: string
+          enum: [image/jpeg, image/png, image/webp, application/pdf]
+        fileName:
+          type: string
+          description: Nome do arquivo enviado, ou "anexo" quando o envio não tem nome.
+        sizeBytes:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    HealthAttachmentList:
+      type: object
+      required: [attachments]
+      properties:
+        attachments:
+          type: array
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/HealthAttachment"
     UpcomingCare:
       type: object
       required: [eventId, petId, petName, type, title, dueDate]
@@ -1661,6 +1795,7 @@ components:
         - report_not_open
         - notification_not_found
         - health_event_not_found
+        - attachment_limit
         - rate_limited
         - species_not_supported
         - image_low_quality
@@ -1704,7 +1839,7 @@ components:
             $ref: "#/components/schemas/Error"
     HealthEventNotFound:
       description: |
-        O evento não existe para este pet, com o código `health_event_not_found`.
+        O evento ou o anexo não existe para este pet, com o código `health_event_not_found`.
         Ou o pet não existe para este tutor, com o código `pet_not_found`.
       content:
         application/json:

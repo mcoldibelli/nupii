@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math"
+	"mime/multipart"
 	"net/http"
 	"time"
 
@@ -258,4 +260,130 @@ func eventToAPI(event Event) (api.HealthEvent, error) {
 			event.ID, err)
 	}
 	return converted, nil
+}
+
+func attachmentToAPI(attachment Attachment) (api.HealthAttachment, error) {
+	converted := api.HealthAttachment{
+		Url:         attachment.URL,
+		ContentType: api.HealthAttachmentContentType(attachment.ContentType),
+		FileName:    attachment.FileName,
+		SizeBytes:   int(attachment.SizeBytes),
+		CreatedAt:   attachment.CreatedAt,
+	}
+	if err := converted.Id.UnmarshalText([]byte(attachment.ID)); err != nil {
+		return api.HealthAttachment{}, fmt.Errorf("parse the id of the attachment %q: %w",
+			attachment.ID, err)
+	}
+	return converted, nil
+}
+
+// ListHealthAttachments returns the attachments of an event.
+func (h *Handlers) ListHealthAttachments(
+	ctx context.Context,
+	request api.ListHealthAttachmentsRequestObject,
+) (api.ListHealthAttachmentsResponseObject, error) {
+	petID, eventID := request.PetId.String(), request.EventId.String()
+	attachments, err := h.service.Attachments(ctx, petID, eventID)
+	if err != nil {
+		if status, body := classify(err); status == http.StatusNotFound {
+			return api.ListHealthAttachments404JSONResponse{
+				HealthEventNotFoundJSONResponse: api.HealthEventNotFoundJSONResponse(body),
+			}, nil
+		}
+		return nil, fmt.Errorf("list health attachments: %w", err)
+	}
+	list := api.HealthAttachmentList{
+		Attachments: make([]api.HealthAttachment, 0, len(attachments)),
+	}
+	for _, attachment := range attachments {
+		converted, err := attachmentToAPI(attachment)
+		if err != nil {
+			return nil, err
+		}
+		list.Attachments = append(list.Attachments, converted)
+	}
+	return api.ListHealthAttachments200JSONResponse(list), nil
+}
+
+// CreateHealthAttachment stores the part "file" of the body as an attachment.
+func (h *Handlers) CreateHealthAttachment(
+	ctx context.Context,
+	request api.CreateHealthAttachmentRequestObject,
+) (api.CreateHealthAttachmentResponseObject, error) {
+	invalid := func(message string) api.CreateHealthAttachmentResponseObject {
+		return api.CreateHealthAttachment400JSONResponse{
+			InvalidRequestJSONResponse: api.InvalidRequestJSONResponse{
+				Error: api.ErrorCodeInvalidRequest, Message: message,
+			},
+		}
+	}
+	name, data, err := readFile(request.Body)
+	if err != nil {
+		return invalid(err.Error()), nil
+	}
+	attachment, err := h.service.AddAttachment(ctx, request.PetId.String(),
+		request.EventId.String(), name, data)
+	if errors.Is(err, ErrAttachmentLimit) {
+		return api.CreateHealthAttachment409JSONResponse{
+			Error: api.ErrorCodeAttachmentLimit, Message: "the event has 10 attachments",
+		}, nil
+	}
+	if err != nil {
+		switch status, body := classify(err); status {
+		case http.StatusBadRequest:
+			return invalid(body.Message), nil
+		case http.StatusNotFound:
+			return api.CreateHealthAttachment404JSONResponse{
+				HealthEventNotFoundJSONResponse: api.HealthEventNotFoundJSONResponse(body),
+			}, nil
+		default:
+			return nil, fmt.Errorf("create health attachment: %w", err)
+		}
+	}
+	converted, err := attachmentToAPI(attachment)
+	if err != nil {
+		return nil, err
+	}
+	return api.CreateHealthAttachment201JSONResponse(converted), nil
+}
+
+// readFile reads the part "file" of a multipart body: its name and content.
+// The content has at most one byte more than RN-82 allows, so the service
+// tells a file that is too big.
+func readFile(body *multipart.Reader) (string, []byte, error) {
+	for {
+		part, err := body.NextPart()
+		if errors.Is(err, io.EOF) {
+			return "", nil, errors.New(`the body has no part "file"`)
+		}
+		if err != nil {
+			return "", nil, errors.New("the multipart body could not be read")
+		}
+		if part.FormName() != "file" {
+			continue
+		}
+		data, err := io.ReadAll(io.LimitReader(part, _maxAttachmentBytes+1))
+		if err != nil {
+			return "", nil, errors.New("the file could not be read")
+		}
+		return part.FileName(), data, nil
+	}
+}
+
+// DeleteHealthAttachment deletes an attachment of an event.
+func (h *Handlers) DeleteHealthAttachment(
+	ctx context.Context,
+	request api.DeleteHealthAttachmentRequestObject,
+) (api.DeleteHealthAttachmentResponseObject, error) {
+	err := h.service.DeleteAttachment(ctx, request.PetId.String(), request.EventId.String(),
+		request.AttachmentId.String())
+	if err != nil {
+		if status, body := classify(err); status == http.StatusNotFound {
+			return api.DeleteHealthAttachment404JSONResponse{
+				HealthEventNotFoundJSONResponse: api.HealthEventNotFoundJSONResponse(body),
+			}, nil
+		}
+		return nil, fmt.Errorf("delete health attachment: %w", err)
+	}
+	return api.DeleteHealthAttachment204Response{}, nil
 }

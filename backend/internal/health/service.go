@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -54,15 +55,28 @@ type PetFinder interface {
 
 // Service has the rules of the health events.
 type Service struct {
+	pool    *pgxpool.Pool
 	queries *healthdb.Queries
 	owners  OwnerFinder
 	pets    PetFinder
+	photos  PhotoStore
+	logger  *slog.Logger
 	now     func() time.Time
 }
 
-// NewService returns the service that keeps the events in the database of pool.
-func NewService(pool *pgxpool.Pool, owners OwnerFinder, petFinder PetFinder) *Service {
-	return &Service{queries: healthdb.New(pool), owners: owners, pets: petFinder, now: time.Now}
+// NewService returns the service that keeps the events in the database of
+// pool and the attachments in photos.
+func NewService(
+	pool *pgxpool.Pool,
+	owners OwnerFinder,
+	petFinder PetFinder,
+	photos PhotoStore,
+	logger *slog.Logger,
+) *Service {
+	return &Service{
+		pool: pool, queries: healthdb.New(pool), owners: owners, pets: petFinder,
+		photos: photos, logger: logger, now: time.Now,
+	}
 }
 
 // today returns the date of today, in UTC (RN-50).
@@ -158,15 +172,17 @@ func (s *Service) Delete(ctx context.Context, petID, eventID string) error {
 	if err := s.checkPet(ctx, petID); err != nil {
 		return err
 	}
-	rows, err := s.queries.DeleteHealthEvent(ctx, healthdb.DeleteHealthEventParams{
+	row, err := s.queries.DeleteHealthEvent(ctx, healthdb.DeleteHealthEventParams{
 		ID: eventID, PetID: petID,
 	})
 	if err != nil {
 		return fmt.Errorf("delete health event: %w", err)
 	}
-	if rows == 0 {
+	if row.Deleted == 0 {
 		return ErrEventNotFound
 	}
+	// RN-82: apagar um evento apaga os anexos dele.
+	s.deleteObjects(ctx, row.Keys)
 	return nil
 }
 

@@ -171,7 +171,7 @@ Limites conhecidos da fila:
 - Um corpo ou um parâmetro que não pode ser lido recebe 400 com o código `invalid_request`. Um dado que quebra uma regra de negócio recebe a mesma resposta, com a regra na mensagem.
 - Um recurso de outro tutor não existe para quem chama: a resposta é 404, igual à de um recurso que nunca existiu (RN-52).
 - Uma conta sem tutor registrado recebe 404 com o código `owner_not_found` nas operações que precisam do tutor.
-- O corpo de uma requisição JSON tem no máximo 1 MiB, o de um envio de foto de perfil tem no máximo 6 MiB, e o de um envio de foto de focinho tem no máximo 9 MiB. Um corpo maior recebe a mesma resposta 400.
+- O corpo de uma requisição JSON tem no máximo 1 MiB, o de um envio de foto de perfil tem no máximo 6 MiB, e o de um envio de foto de focinho tem no máximo 9 MiB, e o de um anexo de saúde tem no máximo 11 MiB. Um corpo maior recebe a mesma resposta 400.
 - Uma foto de focinho recusada recebe 422, com o motivo no código: `species_not_supported`, `image_low_quality` ou `image_framing`.
 - Quando o serviço de inferência não responde, a operação que precisa dele recebe 503 com o código `unavailable`. A causa vai para o log. A API sobe sem o serviço de inferência.
 - Um arquivo enviado tem o tipo conferido pelos bytes do arquivo, não pelo que o cliente declara (RN-54).

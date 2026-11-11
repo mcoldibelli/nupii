@@ -10,6 +10,41 @@ import (
 	"time"
 )
 
+const createHealthAttachment = `-- name: CreateHealthAttachment :one
+INSERT INTO health_attachments (event_id, key, content_type, file_name, size_bytes)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, event_id, key, content_type, file_name, size_bytes, created_at
+`
+
+type CreateHealthAttachmentParams struct {
+	EventID     string
+	Key         string
+	ContentType string
+	FileName    string
+	SizeBytes   int32
+}
+
+func (q *Queries) CreateHealthAttachment(ctx context.Context, arg CreateHealthAttachmentParams) (HealthAttachment, error) {
+	row := q.db.QueryRow(ctx, createHealthAttachment,
+		arg.EventID,
+		arg.Key,
+		arg.ContentType,
+		arg.FileName,
+		arg.SizeBytes,
+	)
+	var i HealthAttachment
+	err := row.Scan(
+		&i.ID,
+		&i.EventID,
+		&i.Key,
+		&i.ContentType,
+		&i.FileName,
+		&i.SizeBytes,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const createHealthEvent = `-- name: CreateHealthEvent :one
 INSERT INTO health_events (
     pet_id, type, date, notes, name, vet, manufacturer, batch, dose, next_dose_date,
@@ -124,8 +159,44 @@ func (q *Queries) CreateHealthEvent(ctx context.Context, arg CreateHealthEventPa
 	return i, err
 }
 
-const deleteHealthEvent = `-- name: DeleteHealthEvent :execrows
-DELETE FROM health_events WHERE id = $1 AND pet_id = $2
+const deleteHealthAttachment = `-- name: DeleteHealthAttachment :one
+DELETE FROM health_attachments AS a
+USING health_events AS h
+WHERE a.id = $1 AND a.event_id = $2
+    AND h.id = a.event_id AND h.pet_id = $3
+RETURNING a.key
+`
+
+type DeleteHealthAttachmentParams struct {
+	ID      string
+	EventID string
+	PetID   string
+}
+
+func (q *Queries) DeleteHealthAttachment(ctx context.Context, arg DeleteHealthAttachmentParams) (string, error) {
+	row := q.db.QueryRow(ctx, deleteHealthAttachment, arg.ID, arg.EventID, arg.PetID)
+	var key string
+	err := row.Scan(&key)
+	return key, err
+}
+
+const deleteHealthEvent = `-- name: DeleteHealthEvent :one
+WITH event AS (
+    SELECT h.id FROM health_events AS h
+    WHERE h.id = $1 AND h.pet_id = $2
+    FOR UPDATE
+), attachments AS (
+    DELETE FROM health_attachments AS a USING event
+    WHERE a.event_id = event.id
+    RETURNING a.key
+), deleted AS (
+    DELETE FROM health_events AS h USING event
+    WHERE h.id = event.id
+    RETURNING h.id
+)
+SELECT
+    (SELECT count(*) FROM deleted)::int AS deleted,
+    COALESCE((SELECT array_agg(key) FROM attachments), '{}')::text[] AS keys
 `
 
 type DeleteHealthEventParams struct {
@@ -133,12 +204,76 @@ type DeleteHealthEventParams struct {
 	PetID string
 }
 
-func (q *Queries) DeleteHealthEvent(ctx context.Context, arg DeleteHealthEventParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteHealthEvent, arg.ID, arg.PetID)
+type DeleteHealthEventRow struct {
+	Deleted int32
+	Keys    []string
+}
+
+// RN-82: apagar um evento apaga os anexos dele. The statement returns the
+// keys of the objects, which the service deletes from the store.
+func (q *Queries) DeleteHealthEvent(ctx context.Context, arg DeleteHealthEventParams) (DeleteHealthEventRow, error) {
+	row := q.db.QueryRow(ctx, deleteHealthEvent, arg.ID, arg.PetID)
+	var i DeleteHealthEventRow
+	err := row.Scan(&i.Deleted, &i.Keys)
+	return i, err
+}
+
+const healthEventExists = `-- name: HealthEventExists :one
+SELECT EXISTS (
+    SELECT 1 FROM health_events WHERE id = $1 AND pet_id = $2
+)
+`
+
+type HealthEventExistsParams struct {
+	ID    string
+	PetID string
+}
+
+func (q *Queries) HealthEventExists(ctx context.Context, arg HealthEventExistsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, healthEventExists, arg.ID, arg.PetID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const listHealthAttachments = `-- name: ListHealthAttachments :many
+SELECT a.id, a.event_id, a.key, a.content_type, a.file_name, a.size_bytes, a.created_at FROM health_attachments AS a
+JOIN health_events AS h ON h.id = a.event_id
+WHERE a.event_id = $1 AND h.pet_id = $2
+ORDER BY a.created_at, a.id
+`
+
+type ListHealthAttachmentsParams struct {
+	EventID string
+	PetID   string
+}
+
+func (q *Queries) ListHealthAttachments(ctx context.Context, arg ListHealthAttachmentsParams) ([]HealthAttachment, error) {
+	rows, err := q.db.Query(ctx, listHealthAttachments, arg.EventID, arg.PetID)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return result.RowsAffected(), nil
+	defer rows.Close()
+	var items []HealthAttachment
+	for rows.Next() {
+		var i HealthAttachment
+		if err := rows.Scan(
+			&i.ID,
+			&i.EventID,
+			&i.Key,
+			&i.ContentType,
+			&i.FileName,
+			&i.SizeBytes,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listHealthEvents = `-- name: ListHealthEvents :many
@@ -269,6 +404,32 @@ func (q *Queries) ListUpcomingCare(ctx context.Context, ownerID string) ([]ListU
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockHealthEvent = `-- name: LockHealthEvent :one
+SELECT h.id,
+    (SELECT count(*) FROM health_attachments AS a WHERE a.event_id = h.id)::int AS attachments
+FROM health_events AS h
+WHERE h.id = $1 AND h.pet_id = $2
+FOR UPDATE
+`
+
+type LockHealthEventParams struct {
+	ID    string
+	PetID string
+}
+
+type LockHealthEventRow struct {
+	ID          string
+	Attachments int32
+}
+
+// The lock puts two uploads to the same event in sequence (RN-82: 10 anexos).
+func (q *Queries) LockHealthEvent(ctx context.Context, arg LockHealthEventParams) (LockHealthEventRow, error) {
+	row := q.db.QueryRow(ctx, lockHealthEvent, arg.ID, arg.PetID)
+	var i LockHealthEventRow
+	err := row.Scan(&i.ID, &i.Attachments)
+	return i, err
 }
 
 const updateHealthEvent = `-- name: UpdateHealthEvent :one
