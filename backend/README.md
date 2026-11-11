@@ -81,7 +81,32 @@ O processo não sobe com um valor inválido. Ele escreve o erro na saída de err
 | `FIREBASE_PROJECT_ID` | Sim | | Identificador do projeto do Firebase. A API só aceita ID tokens desse projeto. No ambiente local é `demo-nupii` |
 | `FIREBASE_AUTH_EMULATOR_HOST` | Não | | Endereço `host:porta` do emulador do Authentication. Só no ambiente local e no CI |
 
-Sem `FIREBASE_AUTH_EMULATOR_HOST`, o Firebase Admin SDK precisa de uma credencial do projeto real para subir. O passo a passo do projeto real fica na issue #52.
+## Projeto real do Firebase
+
+O ambiente local usa o emulador. Para ligar a API e o app no projeto real, execute o roteiro guiado na raiz do repositório:
+
+```bash
+./deploy/firebase-setup.sh
+```
+
+O roteiro abre as páginas do console do Firebase, diz o que fazer em cada uma e guarda os valores:
+
+| Valor | Onde fica |
+|---|---|
+| `FIREBASE_PROJECT_ID` e `GOOGLE_APPLICATION_CREDENTIALS` | `backend/.env`, fora do git |
+| Chave da conta de serviço (segredo) | `~/.config/nupii/firebase-service-account.json`, fora do repositório, com acesso só para o dono |
+| Configuração do app | `mobile/.env`, fora do git |
+
+Para subir a API com o projeto real, carregue também o `backend/.env` e não defina `FIREBASE_AUTH_EMULATOR_HOST`:
+
+```bash
+set -a; . ../deploy/.env; . ./.env; set +a
+export DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432/$POSTGRES_DB?sslmode=disable"
+unset FIREBASE_AUTH_EMULATOR_HOST
+go run ./cmd/api
+```
+
+Sem `FIREBASE_AUTH_EMULATOR_HOST`, o Firebase Admin SDK lê a credencial do arquivo de `GOOGLE_APPLICATION_CREDENTIALS`. Sem essa credencial, a API não sobe.
 
 ## Migrations
 

@@ -59,6 +59,8 @@ Para desenvolver a API, suba só o banco e o servidor S3 e execute a API com `go
 
 Para executar o app, veja o README do [mobile](mobile/README.md).
 
+O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app no projeto real, execute `./deploy/firebase-setup.sh`: ele guia os passos do console e guarda cada valor fora do git.
+
 ## Documentos
 
 | Documento | O que tem |
