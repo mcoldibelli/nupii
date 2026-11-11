@@ -136,6 +136,8 @@ FROM identification_candidates AS c
 JOIN identifications AS i ON i.id = c.identification_id
 JOIN pets AS p ON p.id = c.pet_id
 WHERE p.owner_id = sqlc.arg(owner_id) AND p.deleted_at IS NULL AND c.confirmed_at IS NOT NULL
+    -- RN-42: a notice with the contact purged leaves the list.
+    AND i.contact_name IS NOT NULL
 ORDER BY c.confirmed_at DESC, c.id DESC;
 
 -- name: DeleteOwnerCandidates :exec
@@ -147,3 +149,17 @@ WHERE pet_id IN (SELECT id FROM pets WHERE owner_id = sqlc.arg(owner_id));
 DELETE FROM noseprints
 WHERE pet_id IN (SELECT id FROM pets WHERE owner_id = sqlc.arg(owner_id))
 RETURNING image_key;
+
+-- name: LockExpiredIdentifications :many
+-- RN-42: the consults older than the limit that still have a contact or a
+-- photo. The update comes in the next statement.
+SELECT id, photo_key FROM identifications
+WHERE created_at < sqlc.arg(before)
+    AND (photo_key IS NOT NULL OR contact_name IS NOT NULL OR contact_phone IS NOT NULL
+        OR contact_message IS NOT NULL)
+FOR UPDATE;
+
+-- name: PurgeIdentifications :exec
+UPDATE identifications
+SET photo_key = NULL, contact_name = NULL, contact_phone = NULL, contact_message = NULL
+WHERE id = ANY(sqlc.arg(ids)::uuid[]);

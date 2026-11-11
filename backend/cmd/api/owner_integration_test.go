@@ -23,6 +23,7 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/inference"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/jobs"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres/postgrestest"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/storage"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/storage/storagetest"
@@ -35,6 +36,10 @@ type testAPI struct {
 	pool    *pgxpool.Pool
 	// embedder is in the place of the inference service.
 	embedder *fakeEmbedder
+	// purge is the handler of the daily purge job (RN-42).
+	purge jobs.Handler
+	// photos is the object store of the server.
+	photos *storage.Store
 	// noseprints is the biometrics service of the server.
 	noseprints *biometrics.Service
 }
@@ -83,6 +88,8 @@ func newTestAPI(t *testing.T, verifier identity.TokenVerifier, uids ...string) t
 		pool:       pool,
 		embedder:   embedder,
 		noseprints: operations.noseprints,
+		purge:      operations.purge,
+		photos:     photos,
 	}
 }
 

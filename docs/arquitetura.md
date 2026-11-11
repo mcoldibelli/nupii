@@ -123,6 +123,7 @@ Concorrência, declarada por regra:
 
 - O contexto raiz nasce em `main` e é cancelado por `SIGTERM`.
 - Cada worker para quando o contexto é cancelado e termina a tarefa em curso antes de sair.
+- Uma tarefa com hora marcada usa `jobs.EnqueueAt`. Um índice único em `(kind, run_at)` impede duas execuções no mesmo horário. A limpeza diária usa esse índice (RN-42).
 - Uma tarefa que falha volta para a fila com espera crescente. Depois do limite de tentativas ela fica marcada como falha.
 - O código da fila fica em `platform/jobs`. Um runner pega uma tarefa vencida com `FOR UPDATE SKIP LOCKED`, só dos tipos que ele conhece, e espera 1 segundo quando nenhuma tarefa vence. Uma tarefa tem 1 minuto.
 - O worker executa a tarefa na mesma transação que trava a linha dela. As escritas da tarefa no banco e o fim da tarefa entram juntos, ou não entram.

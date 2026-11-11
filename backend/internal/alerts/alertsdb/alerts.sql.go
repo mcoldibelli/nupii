@@ -259,6 +259,16 @@ func (q *Queries) MarkNotificationRead(ctx context.Context, arg MarkNotification
 	return result.RowsAffected(), nil
 }
 
+const purgeOwnerLocations = `-- name: PurgeOwnerLocations :exec
+DELETE FROM owner_locations WHERE updated_at < $1
+`
+
+// RN-42: a última localização com mais de 30 dias.
+func (q *Queries) PurgeOwnerLocations(ctx context.Context, before time.Time) error {
+	_, err := q.db.Exec(ctx, purgeOwnerLocations, before)
+	return err
+}
+
 const removeDevice = `-- name: RemoveDevice :exec
 DELETE FROM devices WHERE token = $1 AND owner_id = $2
 `

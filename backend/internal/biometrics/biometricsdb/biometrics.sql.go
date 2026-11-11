@@ -271,6 +271,8 @@ FROM identification_candidates AS c
 JOIN identifications AS i ON i.id = c.identification_id
 JOIN pets AS p ON p.id = c.pet_id
 WHERE p.owner_id = $1 AND p.deleted_at IS NULL AND c.confirmed_at IS NOT NULL
+    -- RN-42: a notice with the contact purged leaves the list.
+    AND i.contact_name IS NOT NULL
 ORDER BY c.confirmed_at DESC, c.id DESC
 `
 
@@ -389,6 +391,41 @@ func (q *Queries) LockCandidate(ctx context.Context, arg LockCandidateParams) (L
 	return i, err
 }
 
+const lockExpiredIdentifications = `-- name: LockExpiredIdentifications :many
+SELECT id, photo_key FROM identifications
+WHERE created_at < $1
+    AND (photo_key IS NOT NULL OR contact_name IS NOT NULL OR contact_phone IS NOT NULL
+        OR contact_message IS NOT NULL)
+FOR UPDATE
+`
+
+type LockExpiredIdentificationsRow struct {
+	ID       string
+	PhotoKey *string
+}
+
+// RN-42: the consults older than the limit that still have a contact or a
+// photo. The update comes in the next statement.
+func (q *Queries) LockExpiredIdentifications(ctx context.Context, before time.Time) ([]LockExpiredIdentificationsRow, error) {
+	rows, err := q.db.Query(ctx, lockExpiredIdentifications, before)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LockExpiredIdentificationsRow
+	for rows.Next() {
+		var i LockExpiredIdentificationsRow
+		if err := rows.Scan(&i.ID, &i.PhotoKey); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockPet = `-- name: LockPet :one
 SELECT p.id
 FROM pets AS p
@@ -403,6 +440,17 @@ func (q *Queries) LockPet(ctx context.Context, id string) (string, error) {
 	var id_2 string
 	err := row.Scan(&id_2)
 	return id_2, err
+}
+
+const purgeIdentifications = `-- name: PurgeIdentifications :exec
+UPDATE identifications
+SET photo_key = NULL, contact_name = NULL, contact_phone = NULL, contact_message = NULL
+WHERE id = ANY($1::uuid[])
+`
+
+func (q *Queries) PurgeIdentifications(ctx context.Context, ids []string) error {
+	_, err := q.db.Exec(ctx, purgeIdentifications, ids)
+	return err
 }
 
 const searchNoseprints = `-- name: SearchNoseprints :many

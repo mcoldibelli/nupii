@@ -3,6 +3,7 @@ package alerts
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -22,4 +23,12 @@ func (s *Service) EraseOwner(ctx context.Context, tx pgx.Tx, ownerID string) ([]
 		return nil, fmt.Errorf("delete the devices of the owner: %w", err)
 	}
 	return nil, nil
+}
+
+// PurgeExpired deletes, in tx, the locations updated before before (RN-42).
+func (s *Service) PurgeExpired(ctx context.Context, tx pgx.Tx, before time.Time) error {
+	if err := s.queries.WithTx(tx).PurgeOwnerLocations(ctx, before); err != nil {
+		return fmt.Errorf("purge the owner locations: %w", err)
+	}
+	return nil
 }
