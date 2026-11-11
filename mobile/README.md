@@ -53,7 +53,7 @@ O mapa é uma página com o Leaflet e os quadros do OpenStreetMap, dentro de um 
 
 ## Web pública
 
-A página "encontrei um pet" é a rota `/found` do mesmo projeto, no alvo web ([ADR 0022](../docs/adr/0022-web-publica-no-alvo-web-do-expo.md)). Ela não pede conta.
+As páginas públicas são rotas do mesmo projeto, no alvo web: `/found` ("encontrei um pet", com a publicação do achado), `/reports` (mural) e `/reports/<id>` (ficha, com o avistamento). Com o link que a publicação do achado mostra, `/reports/<id>?code=...`, quem publicou resolve o achado. Nenhuma delas pede conta ([ADR 0022](../docs/adr/0022-web-publica-no-alvo-web-do-expo.md)).
 
 No navegador da sua máquina, a API fica em `localhost`, e não no endereço do emulador Android. Suba a web com o endereço certo:
 
@@ -61,7 +61,7 @@ No navegador da sua máquina, a API fica em `localhost`, e não no endereço do 
 EXPO_PUBLIC_API_URL=http://localhost:8080 npm run web
 ```
 
-Abra `http://localhost:8081/found`. Para medir o JavaScript da página: `npx expo export -p web`. O orçamento é de 500 KB com gzip.
+Abra `http://localhost:8081/found` ou `http://localhost:8081/reports`. Para medir o JavaScript da página: `npx expo export -p web`. O orçamento é de 500 KB com gzip.
 
 As fotos vêm do armazenamento por uma URL temporária. No emulador Android, o `deploy/.env` precisa de `S3_PUBLIC_ENDPOINT=http://10.0.2.2:8333`, para o aparelho alcançar o armazenamento da sua máquina.
 

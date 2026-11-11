@@ -7,6 +7,7 @@ import { apiUrl } from "../src/config";
 import { CONTACT_LIMITS, foundFailureMessage, similarityLabel, toContact } from "../src/found/contact";
 import { currentLocation } from "../src/found/location";
 import { filePart, NOSE_PHOTO_QUALITY, pickPhoto } from "../src/pets/pickPhoto";
+import { PublishFound } from "../src/reports/PublishFound";
 import { styles } from "../src/screens/styles";
 
 /**
@@ -184,6 +185,11 @@ export default function Found() {
             <Text style={styles.buttonText}>{busy ? "Enviando..." : "Avisar o tutor"}</Text>
           </Pressable>
         </>
+      )}
+
+      {/* RF-19: with no candidate, or after the contact, the dog can go to the board. */}
+      {photo !== null && identification !== null && (identification.candidates.length === 0 || sent) && (
+        <PublishFound photo={() => filePart(photo)} />
       )}
 
       {sent && chosen !== undefined && (
