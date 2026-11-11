@@ -8,7 +8,8 @@ A construção segue fatias verticais. Uma fatia vai do banco até a tela e term
 2. Ordem do trabalho: contrato OpenAPI, migration, regra de domínio com teste, handler, tela.
 3. Pronto significa: os testes foram executados e passaram, o fluxo foi executado de ponta a ponta e a documentação foi atualizada.
 4. Uma fatia não começa antes de a anterior estar pronta.
-5. Cada tarefa da fatia é uma issue no GitHub, criada antes de o trabalho começar.
+5. Cada tarefa da fatia é uma issue no GitHub, criada antes de o trabalho começar. O trabalho da issue acontece em um branch próprio, que entra em `develop` por PR.
+6. No fim da fatia, quando o milestone dela fecha, um PR leva `develop` para `main`.
 
 ## Fatias
 

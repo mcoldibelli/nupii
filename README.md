@@ -39,5 +39,6 @@ Ainda não há o que executar. A fatia 0 entrega o `docker compose` e o conteúd
 - Toda decisão que não é trivial vira um ADR antes do código.
 - Nenhuma dependência entra sem estar em um ADR aceito.
 - Toda tarefa em trabalho é uma issue no GitHub, criada antes de o trabalho começar.
+- Cada issue tem um branch próprio, que entra em `develop` por PR. Nenhuma mudança entra direto em `main`.
 - Toda fatia do roteiro termina com teste executado e documento atualizado.
 - Uma decisão ou uma implementação que muda o que um documento diz atualiza esse documento na mesma mudança.
