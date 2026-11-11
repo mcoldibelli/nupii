@@ -76,8 +76,8 @@
 
 | ID | Requisito | Fatia | Estado |
 |---|---|---|---|
-| RF-30 | O tutor cria um link público da carteirinha do pet, com QR code, e revoga o link. | 8 | rascunho |
-| RF-31 | Qualquer pessoa com o link vê a carteirinha. | 8 | rascunho |
+| RF-30 | O tutor cria um link público da carteirinha do pet, com QR code, e revoga o link ([ADR 0027](adr/0027-link-da-carteirinha.md)). | 8 | estável |
+| RF-31 | Qualquer pessoa com o link vê a carteirinha. | 8 | estável |
 
 ### Privacidade
 
@@ -215,16 +215,17 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 
 | ID | Regra | RF | Estado |
 |---|---|---|---|
-| RN-39 | O link usa um token de 256 bits. Só o SHA-256 do token vai para o banco. | RF-30 | rascunho |
-| RN-40 | O link tem validade, pode ser revogado e conta as aberturas. | RF-30 | rascunho |
-| RN-41 | Um link revogado ou vencido devolve 404. | RF-31 | rascunho |
+| RN-39 | O link usa um token de 256 bits. Só o SHA-256 do token vai para o banco. O token aparece só na resposta da criação. | RF-30 | estável |
+| RN-40 | O link vale 30 dias. O tutor revoga o link a qualquer hora. O link conta as aberturas, e o tutor vê os links ativos com as aberturas. | RF-30 | estável |
+| RN-41 | Um link desconhecido, revogado, vencido ou de um pet excluído devolve 404. | RF-31 | estável |
+| RN-83 | A carteirinha mostra o pet (nome, espécie, raça, sexo, data de nascimento, peso, castração e foto), o veterinário do pet (nome, clínica e telefone), as vacinas (nome, data, próxima dose, fabricante, lote, dose e veterinário) e as medicações antipulgas e vermífugo (nome, categoria, data e intervalo), da mais nova para a mais antiga. Ela não mostra dados do tutor, IDs internos nem anexos. | RF-31 | estável |
 
 ### Privacidade e endpoints públicos
 
 | ID | Regra | RF | Estado |
 |---|---|---|---|
 | RN-42 | Todo dia às 3h o sistema apaga o que tem mais de 30 dias: o contato deixado por visitantes, a foto da consulta e a última localização do tutor. | RF-32 | estável |
-| RN-43 | Um endpoint público aceita no máximo 10 `POST` por minuto, por IP e por caminho. | RF-12, RF-13, RF-19, RF-20 | estável |
+| RN-43 | Um endpoint público aceita no máximo 10 `POST` por minuto, por IP e por caminho. | RF-12, RF-13, RF-19, RF-20, RF-31 | estável |
 
 ## Requisitos não funcionais
 
@@ -255,7 +256,6 @@ Cada item é fechado na fatia indicada, antes do código.
 | 10 | O que acontece quando um login com Google usa o e-mail de uma conta que já tem senha? | RN-02 |
 | 10 | De onde a API lê o endereço do cliente quando fica atrás de um proxy? Hoje ela usa o endereço da conexão. | RN-43 |
 | 7 | Em qual fuso horário vale a data de hoje para uma data que o tutor informa? Hoje a API usa a data em UTC. | RN-50 |
-| 8 | Qual é a validade do link da carteirinha? | RN-40 |
 | 9 | Quais são os dados do perfil? | RF-06 |
 | 9 | O que a API faz quando o e-mail da conta muda no provedor de identidade? Hoje ela guarda o e-mail do registro. | RF-06 |
 | 9 | Como o tutor aceita uma versão nova dos termos de uso? Hoje só o registro grava o aceite. | RN-01 |
