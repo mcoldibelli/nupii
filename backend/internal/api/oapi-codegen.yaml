@@ -1,0 +1,7 @@
+# oapi-codegen configuration. Input: api/openapi.yaml. Output: api.gen.go.
+package: api
+output: api.gen.go
+generate:
+  std-http-server: true
+  strict-server: true
+  models: true

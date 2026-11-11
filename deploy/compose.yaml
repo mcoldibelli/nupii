@@ -1,0 +1,54 @@
+# Local environment and CI: the API and the state that it needs.
+# The values come from deploy/.env (not versioned). See deploy/.env.example.
+name: nupii-local
+
+services:
+  api:
+    build: ../backend
+    environment:
+      HTTP_ADDR: ":8080"
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    build: ./postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_DB: ${POSTGRES_DB:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      # The check uses TCP. During the first start, Postgres runs a temporary
+      # server that listens only on the Unix socket.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  s3:
+    image: chrislusf/seaweedfs:4.53
+    environment:
+      # SeaweedFS creates this access key and this bucket when it starts.
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?}
+      S3_BUCKET: ${S3_BUCKET:?}
+    ports:
+      - "127.0.0.1:8333:8333"
+    volumes:
+      - s3-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+volumes:
+  db-data:
+  s3-data:

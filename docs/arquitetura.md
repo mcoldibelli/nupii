@@ -24,7 +24,7 @@ flowchart LR
 | Web pública | O que o visitante faz sem instalar nada: mural, ficha, "encontrei um pet", avistamento, carteirinha por link. | [0006](adr/0006-mobile-expo-web-publica.md) |
 | API Go | Um binário. Regras de negócio, acesso ao banco, tarefas em segundo plano. | [0002](adr/0002-backend-go-monolito-modular.md) |
 | Postgres | Único estado: dados, busca geográfica, busca por vetor, fila de tarefas. | [0003](adr/0003-estado-postgres-fila-no-banco.md) |
-| Armazenamento S3 | Fotos e anexos. MinIO no ambiente local. | [0003](adr/0003-estado-postgres-fila-no-banco.md) |
+| Armazenamento S3 | Fotos e anexos. SeaweedFS no ambiente local. | [0003](adr/0003-estado-postgres-fila-no-banco.md), [0012](adr/0012-servidor-s3-local.md) |
 | Inferência Python | Foto do focinho para vetor. Sem estado. | [0007](adr/0007-inferencia-python-onnx.md) |
 | Firebase Authentication | Identidade do tutor: senha, sessão, login com Google, redefinição de senha. | [0008](adr/0008-autenticacao-firebase.md) |
 
@@ -42,6 +42,7 @@ backend/
     reports/            perdido, achado, avistamento, mural
     alerts/             localização, dispositivos, notificações, push
     health/             eventos de saúde, anexos, carteirinha compartilhada
+    api/                código gerado do contrato (tipos e interface do servidor), não editado à mão
     platform/           postgres, storage, jobs, httpx (middleware), config, firebase, inference
   db/migrations/        SQL das migrations
   db/queries/           SQL das consultas (entrada do sqlc)
@@ -116,30 +117,47 @@ Concorrência, declarada por regra:
 
 - PostgreSQL com PostGIS (distância) e pgvector (vetores com índice HNSW e cosseno).
 - O esquema nasce das migrations de `backend/db/migrations/`. As migrations são a fonte do modelo de dados.
+- A API aplica as migrations pendentes quando sobe, antes de aceitar requisições. A primeira migration cria as extensões PostGIS e pgvector.
+- `GET /v1/health` responde 503 com o código `unavailable` quando o banco não responde.
 - Nomes de tabelas e colunas em inglês ([ADR 0009](adr/0009-idioma.md)).
 - Chaves primárias UUID.
 
 ## API
 
 - `api/openapi.yaml` é a fonte do contrato. Os tipos do Go e do TypeScript são gerados dele ([ADR 0005](adr/0005-contrato-openapi.md)).
+- O contrato usa a OpenAPI 3.1.
+- O código Go é gerado em `backend/internal/api/` pelo `oapi-codegen`, no modo `strict-server`: cada handler recebe um tipo de requisição e devolve um dos tipos de resposta que o contrato declara. O comando é `go generate ./...`, no diretório `backend`.
+- Os tipos TypeScript são gerados em `mobile/src/api/schema.d.ts` pelo `openapi-typescript`. O comando é `npm run generate:api`, no diretório `mobile`. O gerador é executado com `npx`, fora das dependências do app.
+- O código gerado é versionado. O CI falha se ele estiver diferente do contrato.
+- O teste `TestContractIsValid` confere que o contrato é um documento OpenAPI válido.
 - Erros em um formato único: `{"error": "<código>", "message": "<texto>"}`. O código é estável e o app decide a mensagem pela tabela de códigos.
+- Os códigos de erro estão no contrato, no schema `ErrorCode`. Um código novo entra no contrato antes de entrar no servidor.
+- Uma rota que não existe e um método que a rota não aceita recebem 404 com o código `not_found`. O 405 não é usado.
+- Uma rota com `GET` atende também `HEAD`, com a mesma resposta sem o corpo. É o comportamento do `http.ServeMux`.
+- Um erro devolvido por uma operação recebe 500 com o código `internal_error`. O detalhe do erro vai só para o log.
 - Rotas em inglês, com versão no caminho: `/v1/...`.
 - Endpoints públicos têm limite de tentativas por IP (RN-43).
+- Toda resposta tem o cabeçalho `X-Request-Id`, com o identificador que aparece nas linhas de log da requisição (RNF-07).
 
 ## Convenções
 
 ### Código
 
 - Go: Effective Go, Go Code Review Comments e o guia de estilo da Uber. `gofmt` e `go vet` em toda mudança.
+- Lint: um comando por projeto, usado no ambiente local e no CI. No backend é `./lint.sh` (`gofmt` e `go vet`). No app é `npm run lint` (conferência de tipos do TypeScript).
 - Erros em Go: sempre com contexto e `%w`. Nenhum erro descartado.
 - Log: `log/slog` com saída JSON e um identificador por requisição.
 - Configuração: variáveis de ambiente, lidas uma vez em `main` e validadas na subida. O processo não sobe com configuração inválida.
+- Segredos: nenhuma senha, chave secreta ou token fica no repositório, em issue ou em PR. Onde há segredo, um arquivo `.env.example` versionado tem os nomes das variáveis, sem os valores secretos. Os valores ficam em um arquivo `.env`, que o `.gitignore` exclui. No CI, eles ficam nos secrets do GitHub Actions ou são gerados em cada execução.
 - TypeScript: modo `strict`.
 
 ### Git
 
 - Toda tarefa em trabalho é uma issue no GitHub, criada antes de o trabalho começar. Cada fatia do roteiro é um milestone, e a issue de uma tarefa fica no milestone da fatia dela. O andamento do projeto é lido nas issues e nos milestones.
-- `main` protegida. Um branch por tarefa, um PR por tarefa. O PR fecha a issue da tarefa.
+- `develop` é o branch de integração e o branch padrão do repositório no GitHub. Cada issue tem um branch próprio, criado a partir de `develop` quando o trabalho da issue começa.
+- Nome do branch de uma issue: `<tipo>/<número da issue>-<resumo em inglês>`. O tipo é o mesmo do Conventional Commits. Exemplo: `feat/8-backend-health`.
+- Um PR por issue, com destino `develop`. O merge é por squash: uma issue vira um commit em `develop`, com o título do PR. A issue é fechada quando o PR dela entra em `develop`. O branch da issue é apagado logo depois do merge, no GitHub e no ambiente local.
+- Nenhuma mudança entra direto em `main`. `main` recebe mudanças só por PR a partir de `develop`, no fim de cada fatia do roteiro. A regra vale por convenção: a proteção de branch do GitHub não está ligada. Esse PR entra com commit de merge, para `main` e `develop` terem o mesmo histórico.
 - Commits no formato Conventional Commits, só com título, em inglês ([ADR 0009](adr/0009-idioma.md)).
 - O CI precisa passar antes do merge.
 
@@ -155,16 +173,26 @@ Concorrência, declarada por regra:
 | Nível | O que cobre | Como |
 |---|---|---|
 | Unidade (Go) | Regras de domínio: limiares, agrupamento por pet, estados da ocorrência | Testes de tabela, sem banco |
-| Integração (Go) | Consultas SQL, PostGIS, pgvector, fila de tarefas | Postgres real em container |
-| Contrato | A API responde o que o OpenAPI declara | Validação das respostas nos testes de integração |
+| Integração (Go) | Consultas SQL, PostGIS, pgvector, fila de tarefas | Postgres do compose, testes com a build tag `integration` |
+| Contrato | A API responde o que o OpenAPI declara | Validação das respostas contra o `api/openapi.yaml` nos testes de integração |
 | Inferência | O vetor do serviço é igual ao vetor de referência da calibração | Vetores de referência versionados junto do teste ([ADR 0007](adr/0007-inferencia-python-onnx.md)) |
-| Mobile | Lógica pura e chamadas da API | Testes de unidade |
+| Mobile | Lógica pura e chamadas da API | Testes de unidade com Jest |
+
+As ferramentas de cada nível estão no [ADR 0010](adr/0010-ferramentas-de-teste.md).
 
 Regra: toda regra de negócio de [requisitos.md](requisitos.md) tem um teste que cita o identificador dela e usa o mesmo valor (exemplo: RN-13, similaridade mínima 0,351).
 
 ## CI
 
-Um workflow por projeto, disparado só pelos arquivos daquele projeto: lint, testes e build. Um workflow de integração sobe o compose e chama a API.
+Os workflows ficam em `.github/workflows/`. Cada um é disparado só pelos arquivos que ele confere.
+
+| Workflow | Disparado por | O que confere |
+|---|---|---|
+| `backend` | `backend/`, `api/` | Lint, código gerado igual ao contrato, testes de unidade com detector de corrida, build, e que as bibliotecas de teste não entram no binário |
+| `mobile` | `mobile/`, `api/` | Instalação, tipos gerados iguais ao contrato, lint e testes de unidade |
+| `integration` | `backend/`, `api/`, `deploy/` | Sobe o compose (API, banco e servidor S3), chama `GET /v1/health` e executa os testes de integração |
+
+O workflow `integration` cria o `deploy/.env` com credenciais aleatórias em cada execução. Nenhum workflow tem credencial escrita.
 
 ## Glossário
 
