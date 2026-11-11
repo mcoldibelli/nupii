@@ -13,14 +13,20 @@ paths:
     get:
       operationId: getHealth
       tags: [service]
-      summary: Informa se o serviço está em execução.
+      summary: Informa se o serviço está pronto para atender requisições.
       responses:
         "200":
-          description: O serviço está em execução.
+          description: O serviço está em execução e o banco de dados responde.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Health"
+        "503":
+          description: O banco de dados não responde. O código do erro é `unavailable`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         default:
           $ref: "#/components/responses/Error"
 components:
@@ -50,6 +56,7 @@ components:
       enum:
         - not_found
         - internal_error
+        - unavailable
   responses:
     Error:
       description: Erro no formato único.

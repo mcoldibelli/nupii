@@ -13,11 +13,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mcoldibelli/nupii/backend/db/migrations"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/config"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres"
 )
 
 const (
+	// databaseStartTimeout is the time the process waits for the database
+	// to respond and for the migrations to end, when the process starts.
+	databaseStartTimeout = 30 * time.Second
 	// readHeaderTimeout is the time a client has to send the request headers.
 	readHeaderTimeout = 10 * time.Second
 	// shutdownTimeout is the time the requests in progress have to end
@@ -35,9 +40,10 @@ func main() {
 	}
 }
 
-// run starts the HTTP server and blocks until ctx is canceled or the server
-// fails. When ctx is canceled, run stops accepting connections, waits for
-// the requests in progress and returns nil.
+// run connects to the database, applies the migrations, starts the HTTP
+// server and blocks until ctx is canceled or the server fails. When ctx is
+// canceled, run stops accepting connections, waits for the requests in
+// progress and returns nil.
 func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) error {
 	cfg, err := config.Load(getenv)
 	if err != nil {
@@ -45,12 +51,24 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	}
 	logger := slog.New(httpx.NewLogHandler(slog.NewJSONHandler(logOutput, nil)))
 
+	startCtx, cancelStart := context.WithTimeout(ctx, databaseStartTimeout)
+	defer cancelStart()
+	pool, err := postgres.Open(startCtx, cfg.DatabaseURL)
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
+	defer pool.Close()
+	if err := postgres.Migrate(startCtx, pool, migrations.FS); err != nil {
+		return fmt.Errorf("migrate database: %w", err)
+	}
+	logger.InfoContext(ctx, "database ready")
+
 	listener, err := net.Listen("tcp", cfg.HTTPAddr)
 	if err != nil {
 		return fmt.Errorf("listen on %s: %w", cfg.HTTPAddr, err)
 	}
 	srv := &http.Server{
-		Handler:           newHandler(logger, server{}),
+		Handler:           newHandler(logger, server{logger: logger, database: pool}),
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
 
