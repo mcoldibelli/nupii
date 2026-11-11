@@ -170,12 +170,17 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 
 | ID | Regra | RF | Estado |
 |---|---|---|---|
-| RN-24 | O mural mostra 20 ocorrências por página, com as contagens. | RF-16 | estável |
-| RN-25 | A ficha de uma ocorrência do tipo perdido mostra os avistamentos dela. | RF-17 | estável |
+| RN-24 | O mural mostra 20 ocorrências abertas por página, da mais nova para a mais antiga, com as contagens de perdidos e de achados abertos. Um desaparecimento de um pet excluído sai do mural. | RF-16 | estável |
+| RN-25 | A ficha de uma ocorrência do tipo perdido mostra os avistamentos dela, do mais antigo para o mais novo. | RF-17 | estável |
 | RN-26 | Só o tutor do pet registra o desaparecimento dele. | RF-18 | estável |
-| RN-27 | Um achado não pede conta e não pede pet cadastrado. A foto do achado é a foto do focinho usada na identificação. | RF-19 | estável |
+| RN-27 | Um achado não pede conta e não pede pet cadastrado. A foto do achado é a foto do focinho usada na identificação: uma imagem JPEG, PNG ou WebP de até 8 MB (RN-59). | RF-19 | estável |
 | RN-28 | Um avistamento só entra em uma ocorrência do tipo perdido que está aberta. Latitude e longitude vêm juntas ou não vêm. Sem coordenadas, vale o ponto do desaparecimento. | RF-20 | estável |
-| RN-29 | Só o autor resolve a ocorrência. Resolver uma ocorrência do tipo perdido resolve os avistamentos dela. | RF-21 | estável |
+| RN-29 | Só o autor resolve a ocorrência. Uma ocorrência resolvida sai do mural e não recebe avistamentos. Resolver de novo não muda nada. | RF-21 | estável |
+| RN-68 | Um pet tem no máximo um desaparecimento aberto. Um segundo registro recebe 409 `lost_report_open`. | RF-18 | estável |
+| RN-69 | Um achado registrado sem conta recebe, na criação, um código de 256 bits. Só o SHA-256 do código vai para o banco. Quem tem o código resolve o achado. A resposta mostra o código uma vez. | RF-19, RF-21 | estável |
+| RN-70 | O desaparecimento e o achado têm latitude e longitude obrigatórias, de um ponto da Terra (RN-61). O recado tem no máximo 1.000 caracteres, e o nome do local tem no máximo 200. Os espaços do começo e do fim são removidos, e um texto vazio fica sem valor. | RF-18, RF-19, RF-20 | estável |
+| RN-71 | A data do desaparecimento é opcional e não é futura. Sem data, vale o momento do registro. | RF-18 | estável |
+| RN-72 | O mural e a ficha não têm dado do autor nem de quem avistou. Um desaparecimento mostra o nome, a espécie e a foto de perfil do pet, e diz se o pet tem cadastro biométrico. | RF-16, RF-17 | estável |
 
 ### Alertas
 
@@ -227,6 +232,10 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 
 Limite conhecido de RN-43: a contagem fica na memória do processo. Ela vale para uma instância da API e zera quando o processo sobe ([ADR 0003](adr/0003-estado-postgres-fila-no-banco.md)). O IP é o endereço da conexão. O minuto começa na primeira chamada do endereço para a rota.
 
+## Uso do modelo
+
+O modelo `tinyvit21m-s43` foi treinado com um conjunto de dados cujos termos limitam o uso a fins sem lucro. A v1 do Nupii não tem fins lucrativos. Uma cobrança ou um uso comercial pede, antes, uma nova leitura desses termos ou um modelo treinado com outro conjunto.
+
 ## Em aberto
 
 Cada item é fechado na fatia indicada, antes do código.
@@ -235,8 +244,6 @@ Cada item é fechado na fatia indicada, antes do código.
 |---|---|---|
 | 10 | O que acontece quando um login com Google usa o e-mail de uma conta que já tem senha? | RN-02 |
 | 10 | De onde a API lê o endereço do cliente quando fica atrás de um proxy? Hoje ela usa o endereço da conexão. | RN-43 |
-| 10 | Os termos de uso do conjunto de dados do treino do modelo permitem o uso do modelo em um serviço publicado? Sem essa permissão, a publicação pede um modelo treinado com outro conjunto. | RN-19 |
-| 5 | Quem resolve um achado registrado sem conta? | RN-29 |
 | 7 | Onde o lembrete é calculado: no app ou em uma tarefa do backend? | RF-29 |
 | 7 | Em qual fuso horário vale a data de hoje para uma data que o tutor informa? Hoje a API usa a data em UTC. | RN-50 |
 | 8 | Qual é a validade do link da carteirinha? | RN-40 |
