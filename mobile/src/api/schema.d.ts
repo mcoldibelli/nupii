@@ -2206,6 +2206,8 @@ export interface operations {
                      * @description Imagem JPEG, PNG ou WebP, ou PDF, com no máximo 10 MB.
                      */
                     file: string;
+                    /** @description Nome do arquivo. Sem este campo, vale o nome da parte "file". */
+                    fileName?: string;
                 };
             };
         };

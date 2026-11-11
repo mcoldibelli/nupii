@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"math"
 	"mime/multipart"
 	"net/http"
@@ -15,6 +14,7 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/api"
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/pets"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 )
 
 // Handlers implements the health operations of the contract.
@@ -347,27 +347,23 @@ func (h *Handlers) CreateHealthAttachment(
 	return api.CreateHealthAttachment201JSONResponse(converted), nil
 }
 
-// readFile reads the part "file" of a multipart body: its name and content.
-// The content has at most one byte more than RN-82 allows, so the service
-// tells a file that is too big.
+// readFile reads the part "file" of a multipart body and the name of the
+// file: the field "fileName", or the name of the part. The content has at
+// most one byte more than RN-82 allows, so the service tells a file that is
+// too big.
 func readFile(body *multipart.Reader) (string, []byte, error) {
-	for {
-		part, err := body.NextPart()
-		if errors.Is(err, io.EOF) {
-			return "", nil, errors.New(`the body has no part "file"`)
-		}
-		if err != nil {
-			return "", nil, errors.New("the multipart body could not be read")
-		}
-		if part.FormName() != "file" {
-			continue
-		}
-		data, err := io.ReadAll(io.LimitReader(part, _maxAttachmentBytes+1))
-		if err != nil {
-			return "", nil, errors.New("the file could not be read")
-		}
-		return part.FileName(), data, nil
+	form, err := httpx.ReadForm(body, _maxAttachmentBytes)
+	if err != nil {
+		return "", nil, err
 	}
+	if form.File == nil {
+		return "", nil, errors.New(`the body has no part "file"`)
+	}
+	name := form.FileName
+	if field, ok := form.Fields["fileName"]; ok {
+		name = field
+	}
+	return name, form.File, nil
 }
 
 // DeleteHealthAttachment deletes an attachment of an event.

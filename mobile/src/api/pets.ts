@@ -8,7 +8,7 @@ export type PetInput = components["schemas"]["PetInput"];
  * A file that a person chose on the device. On the web, the browser gives
  * the content of the file too.
  */
-export type LocalFile = { uri: string; file?: Blob };
+export type LocalFile = { uri: string; file?: Blob; name?: string };
 
 /** Calls GET /v1/pets. The pets come in name order. */
 export async function listPets(baseUrl: string, idToken: string, fetchFn: typeof fetch = fetch): Promise<ApiResult<Pet[]>> {

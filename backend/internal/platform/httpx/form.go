@@ -16,6 +16,8 @@ type Form struct {
 	Fields map[string]string
 	// File has the content of the part "file", or nil.
 	File []byte
+	// FileName is the name of the part "file", as the client gives it.
+	FileName string
 }
 
 // ReadForm reads the parts of a multipart body. The part "file" can have at
@@ -42,6 +44,7 @@ func ReadForm(body *multipart.Reader, maxFileBytes int64) (Form, error) {
 		}
 		if part.FormName() == "file" {
 			result.File = data
+			result.FileName = part.FileName()
 			continue
 		}
 		if int64(len(data)) > limit {

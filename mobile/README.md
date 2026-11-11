@@ -49,6 +49,7 @@ Para usar o projeto real do Firebase no lugar do emulador, execute `./deploy/fir
 7. Mural: as ocorrências abertas de perdidos e achados. A ficha de uma ocorrência tem o mapa, os avistamentos e o formulário de um novo avistamento.
 8. Desaparecimento: na tela de editar pet, a ação "Registrar desaparecimento" abre o mapa para o tutor marcar o ponto. Com um desaparecimento aberto, a tela tem a ação "Marcar como encontrado".
 9. Notificações: os alertas de pets desaparecidos perto do tutor, os avistamentos e os encontros de um pet do tutor. Tocar em uma notificação abre a ocorrência e marca a notificação como lida. O app envia a posição do aparelho quando a lista de pets abre ([ADR 0025](../docs/adr/0025-localizacao-no-app.md)). No emulador Android, envie um ponto de GPS com `adb emu geo fix <longitude> <latitude>` enquanto o app pede a posição.
+10. Saúde: na tela de editar pet, a ação "Saúde do pet" abre os eventos de saúde: vacina, consulta, medicação, exame e anotação. Cada evento tem um formulário com os campos do tipo, e os anexos (foto ou PDF). A tela inicial mostra os três próximos cuidados de vacina e de medicação.
 
 O mapa é uma página com o Leaflet e os quadros do OpenStreetMap, dentro de um WebView ([ADR 0023](../docs/adr/0023-mapa-com-leaflet.md)). Ele precisa de internet.
 
@@ -122,6 +123,8 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `app/reports/lost.tsx` | Registro do desaparecimento de um pet |
 | `src/map/` | O mapa: a página HTML (`mapHtml.ts`, com testes), o WebView do app e o iframe da web |
 | `app/notifications.tsx` | Notificações |
+| `app/health/[petId].tsx`, `app/health/event.tsx` | Eventos de saúde de um pet, e o formulário de um evento com os anexos |
+| `src/health/` | Campos e regras de cada tipo de evento (RN-37, RN-38, RN-76 a RN-80), texto dos próximos cuidados, com testes; o único arquivo que importa o seletor de documentos |
 | `src/alerts/` | Envio da localização (com testes), destino de uma notificação (com testes), e o único arquivo que importa a localização do aparelho |
 | `src/reports/` | Regras dos textos de uma ocorrência (RN-70), títulos e mensagens, com testes; ações do desaparecimento na tela do pet |
 | `app/sign-in.tsx`, `app/complete-profile.tsx` | Entrada e primeiro acesso |
