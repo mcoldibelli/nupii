@@ -1,0 +1,2 @@
+# The weight files come from a release of the repository: see download_weights.sh.
+*.onnx
