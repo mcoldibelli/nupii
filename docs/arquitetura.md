@@ -143,6 +143,7 @@ Concorrência, declarada por regra:
 - Erros em Go: sempre com contexto e `%w`. Nenhum erro descartado.
 - Log: `log/slog` com saída JSON e um identificador por requisição.
 - Configuração: variáveis de ambiente, lidas uma vez em `main` e validadas na subida. O processo não sobe com configuração inválida.
+- Segredos: nenhuma senha, chave secreta ou token fica no repositório, em issue ou em PR. Onde há segredo, um arquivo `.env.example` versionado tem os nomes das variáveis, sem os valores secretos. Os valores ficam em um arquivo `.env`, que o `.gitignore` exclui. No CI, eles ficam nos secrets do GitHub Actions ou são gerados em cada execução.
 - TypeScript: modo `strict`.
 
 ### Git

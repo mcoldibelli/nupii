@@ -10,20 +10,28 @@ Fase de plano. As decisões de arquitetura estão aceitas. Ainda não existe có
 
 Requisitos: Docker com o Compose, e Go 1.26 ou mais novo.
 
-1. Suba o banco e o servidor S3 do ambiente local. O comando espera os dois ficarem prontos:
+1. Crie o arquivo de configuração do ambiente local:
+
+   ```bash
+   cp deploy/.env.example deploy/.env
+   ```
+
+   Abra o `deploy/.env` e preencha os dois valores vazios: `POSTGRES_PASSWORD` e `S3_SECRET_ACCESS_KEY`. Para gerar um valor: `openssl rand -hex 24`. O arquivo `deploy/.env` não entra no git.
+
+2. Suba o banco e o servidor S3 do ambiente local. O comando espera os dois ficarem prontos:
 
    ```bash
    docker compose -f deploy/compose.yaml up -d --wait
    ```
 
-2. Suba a API:
+3. Suba a API:
 
    ```bash
    cd backend
    go run ./cmd/api
    ```
 
-3. Em outro terminal, chame a API:
+4. Em outro terminal, chame a API:
 
    ```bash
    curl -i http://localhost:8080/v1/health
@@ -33,10 +41,12 @@ Para parar o ambiente local: `docker compose -f deploy/compose.yaml down`. Os da
 
 Se a sua instalação tem só o binário `docker-compose`, use esse nome no lugar de `docker compose`.
 
-| Serviço | Endereço | Credenciais do ambiente local |
+| Serviço | Endereço | Variáveis no `deploy/.env` |
 |---|---|---|
-| PostgreSQL 18 com PostGIS e pgvector | `localhost:5432`, banco `nupii` | usuário `nupii`, senha `nupii` |
-| SeaweedFS (protocolo S3) | `http://localhost:8333`, bucket `nupii-local` | chave `nupii-local`, segredo `nupii-local-secret` |
+| PostgreSQL 18 com PostGIS e pgvector | `localhost:5432` | `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD` |
+| SeaweedFS (protocolo S3) | `http://localhost:8333` | `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` |
+
+Se você mudar a senha do banco depois da primeira subida, apague os dados com `down -v`: o Postgres só grava a senha quando cria o banco.
 
 Cada projeto tem um README com os próprios comandos: [backend](backend/README.md).
 
@@ -71,6 +81,7 @@ Cada projeto tem um README com os próprios comandos: [backend](backend/README.m
 
 - Toda decisão que não é trivial vira um ADR antes do código.
 - Nenhuma dependência entra sem estar em um ADR aceito.
+- Nenhuma senha, chave secreta ou token fica no repositório, em issue ou em PR. Os valores ficam em arquivos `.env`, fora do git, e nos secrets do CI.
 - Toda tarefa em trabalho é uma issue no GitHub, criada antes de o trabalho começar.
 - Cada issue tem um branch próprio, que entra em `develop` por PR. Nenhuma mudança entra direto em `main`.
 - Toda fatia do roteiro termina com teste executado e documento atualizado.
