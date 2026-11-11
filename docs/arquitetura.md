@@ -134,7 +134,7 @@ Concorrência, declarada por regra:
 - Os códigos de erro estão no contrato, no schema `ErrorCode`. Um código novo entra no contrato antes de entrar no servidor.
 - Uma rota que não existe e um método que a rota não aceita recebem 404 com o código `not_found`. O 405 não é usado.
 - Uma rota com `GET` atende também `HEAD`, com a mesma resposta sem o corpo. É o comportamento do `http.ServeMux`.
-- Um erro devolvido por uma operação recebe 500 com o código `internal_error`. O detalhe do erro vai só para o log.
+- Um erro devolvido por uma operação, ou um panic em um handler, recebe 500 com o código `internal_error`. O detalhe do erro vai só para o log, com o identificador da requisição.
 - Rotas em inglês, com versão no caminho: `/v1/...`.
 - Endpoints públicos têm limite de tentativas por IP (RN-43).
 - Toda resposta tem o cabeçalho `X-Request-Id`, com o identificador que aparece nas linhas de log da requisição (RNF-07).

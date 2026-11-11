@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/mcoldibelli/nupii/backend/internal/api"
@@ -68,7 +69,32 @@ func newHandler(logger *slog.Logger, operations api.StrictServerInterface) http.
 	})
 	routes := api.HandlerFromMux(strict, mux)
 
-	return httpx.RequestLog(logger)(routes)
+	return httpx.RequestLog(logger)(recoverPanic(logger, routes))
+}
+
+// recoverPanic answers with the internal error of the contract when next
+// panics, and writes the panic value and the stack to the log. It is inside
+// the request log, so the request still gets its log line.
+func recoverPanic(logger *slog.Logger, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			value := recover()
+			if value == nil {
+				return
+			}
+			// net/http uses this value to abort a response without a log.
+			if value == http.ErrAbortHandler {
+				panic(value)
+			}
+			logger.ErrorContext(r.Context(), "handler panic",
+				slog.Any("panic", value),
+				slog.String("stack", string(debug.Stack())),
+			)
+			writeError(r.Context(), logger, w,
+				http.StatusInternalServerError, api.InternalError, "internal error")
+		}()
+		next.ServeHTTP(w, r)
+	})
 }
 
 // writeError writes an error response in the Error format of the contract.

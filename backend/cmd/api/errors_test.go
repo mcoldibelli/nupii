@@ -110,3 +110,59 @@ func TestOperationErrorGetsInternalErrorInTheErrorFormat(t *testing.T) {
 		t.Errorf("log does not have the error detail and the request id %q:\n%s", id, logs.String())
 	}
 }
+
+// panickingOperations is an implementation of the contract whose operations
+// panic.
+type panickingOperations struct{}
+
+func (panickingOperations) GetHealth(
+	context.Context,
+	api.GetHealthRequestObject,
+) (api.GetHealthResponseObject, error) {
+	panic("nil map write in the health handler")
+}
+
+// RNF-07: the identifier of the request is in all its log lines, also when
+// a handler panics.
+func TestHandlerPanicGetsInternalErrorAndKeepsTheRequestLog(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(httpx.NewLogHandler(slog.NewJSONHandler(&logs, nil)))
+	handler := newHandler(logger, panickingOperations{})
+	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want 500", rec.Code)
+	}
+	var body api.Error
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode body %q: %v", rec.Body.String(), err)
+	}
+	if body.Error != api.InternalError {
+		t.Errorf("error code = %q, want %q", body.Error, api.InternalError)
+	}
+	if strings.Contains(rec.Body.String(), "nil map write") {
+		t.Errorf("body %q has the panic value", rec.Body.String())
+	}
+	validateResponse(t, req, rec.Code, rec.Header(), rec.Body.Bytes())
+
+	id := rec.Header().Get(httpx.RequestIDHeader)
+	var messages []string
+	dec := json.NewDecoder(&logs)
+	for dec.More() {
+		var line map[string]any
+		if err := dec.Decode(&line); err != nil {
+			t.Fatalf("decode log line: %v", err)
+		}
+		if line["request_id"] != id {
+			t.Errorf("log line %q has request_id %v, want %q", line["msg"], line["request_id"], id)
+		}
+		messages = append(messages, line["msg"].(string))
+	}
+	want := []string{"handler panic", "http request"}
+	if len(messages) != len(want) || messages[0] != want[0] || messages[1] != want[1] {
+		t.Errorf("log messages = %q, want %q", messages, want)
+	}
+}
