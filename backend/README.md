@@ -99,6 +99,7 @@ A primeira execução baixa o `oapi-codegen` na versão fixada em `internal/api/
 | Caminho | O que tem |
 |---|---|
 | `cmd/api/main.go` | `main` e `run`: lê a configuração, abre o banco, aplica as migrations, sobe o servidor HTTP e trata o sinal de parada |
+| `cmd/api/main.go` (`healthcheck`) | O comando `api healthcheck` chama o health da própria API. A verificação de saúde do container usa esse comando, porque a imagem não tem shell |
 | `cmd/api/server.go` | O tipo que implementa as operações do contrato, e a montagem do handler |
 | `internal/api/` | Código gerado do contrato |
 | `internal/platform/config/` | Leitura e validação das variáveis de ambiente |
