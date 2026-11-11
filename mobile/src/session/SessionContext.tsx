@@ -4,6 +4,7 @@ import { failureMessage, SESSION_FAILURE } from "../api/http";
 import { deleteMe, getMe, registerMe, updateMe, type Owner } from "../api/owner";
 import { confirmPassword, currentIdToken, signOutAccount, subscribeToAccount } from "../auth/firebase";
 import { apiUrl, missingConfig } from "../config";
+import { deleteAccountFlow, renameFailure } from "./account";
 
 export type SessionState =
   | { kind: "loading" }
@@ -115,7 +116,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }
       const result = await updateMe(apiUrl, token, name);
       if (!result.ok) {
-        return result.code === "invalid_request" ? "Informe um nome com até 100 caracteres." : failureMessage(result);
+        return renameFailure(result);
       }
       setState({ kind: "ready", owner: result.value });
       return null;
@@ -124,23 +125,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const deleteAccount = useCallback(
-    async (password: string): Promise<string | null> => {
-      const wrong = await confirmPassword(password);
-      if (wrong !== null) {
-        return wrong;
-      }
-      const token = await idToken();
-      if (token === null) {
-        return SESSION_FAILURE;
-      }
-      const result = await deleteMe(apiUrl, token);
-      if (!result.ok) {
-        return failureMessage(result);
-      }
-      // RN-04: the API refuses the token now. The app signs out.
-      await signOutAccount();
-      return null;
-    },
+    (password: string) =>
+      deleteAccountFlow(
+        { confirm: confirmPassword, idToken, remove: (token) => deleteMe(apiUrl, token), signOut: signOutAccount },
+        password,
+      ),
     [idToken],
   );
 

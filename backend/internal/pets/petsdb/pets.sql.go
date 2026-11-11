@@ -107,10 +107,13 @@ func (q *Queries) DeletePet(ctx context.Context, arg DeletePetParams) (*string, 
 
 const eraseOwnerPets = `-- name: EraseOwnerPets :exec
 UPDATE pets
-SET deleted_at = COALESCE(deleted_at, now()), photo_key = NULL, updated_at = now()
+SET deleted_at = COALESCE(deleted_at, now()), photo_key = NULL, updated_at = now(),
+    name = 'Pet excluído', breed = NULL, birth_date = NULL, weight_kg = NULL,
+    vet_name = NULL, vet_clinic = NULL, vet_phone = NULL
 WHERE owner_id = $1
 `
 
+// RN-84: o pet fica excluído, sem a foto e sem os dados dele.
 func (q *Queries) EraseOwnerPets(ctx context.Context, ownerID string) error {
 	_, err := q.db.Exec(ctx, eraseOwnerPets, ownerID)
 	return err

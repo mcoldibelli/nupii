@@ -90,6 +90,8 @@ type server struct {
 
 	// purge is the handler of the daily purge job (RN-42).
 	purge jobs.Handler
+	// accounts gives the job of the delete of an account (RN-03, RN-84).
+	accounts *identity.Accounts
 	// owners tells the middleware which accounts are deleted (RN-04).
 	owners *identity.Service
 	// noseprints runs the recompute of the vectors when the API starts.
@@ -128,7 +130,8 @@ func newServer(
 		alertsHandlers:     alerts.NewHandlers(alertService),
 		healthHandlers:     health.NewHandlers(healthService),
 		owners:             owners,
-		purge:              purgeHandler(noseprints, alertService, photos, logger),
+		purge:              purgeHandler(pool, noseprints, alertService, logger),
+		accounts:           accounts,
 		noseprints:         noseprints,
 		logger:             logger,
 		database:           pool,

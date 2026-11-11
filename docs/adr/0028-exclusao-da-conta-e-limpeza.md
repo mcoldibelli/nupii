@@ -34,3 +34,11 @@ Os dados de um tutor ficam em tabelas de seis módulos. Um módulo escreve só n
 - Toda requisição com token faz uma leitura da linha do tutor.
 - Entre o commit e a tarefa, o usuário ainda existe no Firebase, mas a API recusa o token.
 - Um módulo novo com dados do tutor implementa `Eraser`. Sem isso, o dado fica depois da exclusão.
+
+## Verificação posterior
+
+Data: 2026-11-11. A revisão da fatia 9 achou três pontos. A decisão continua, com estes ajustes:
+
+1. Uma escrita que já passou pelo middleware antes da exclusão termina depois do commit. A linha do tutor e as linhas dos pets ficam, então a escrita não falha. A tarefa `delete_identity_user` agora roda 5 minutos depois, mais que o limite de escrita do servidor (3 minutos), e passa os apagadores de novo antes de apagar o usuário.
+2. A limpeza diária apagava as fotos dentro da transação que trava as consultas. Os arquivos agora saem numa tarefa `delete_stored_objects`, depois do commit. A próxima limpeza é gravada fora da transação da tarefa, então uma limpeza que falha não para as próximas.
+3. O contato do visitante também fica no texto da notificação de encontro e no payload das tarefas. A limpeza apaga as notificações de encontro e as tarefas terminadas com mais de 30 dias.
