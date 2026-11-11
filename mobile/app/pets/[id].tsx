@@ -1,0 +1,111 @@
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import { Alert, Text, View } from "react-native";
+
+import { failureMessage } from "../../src/api/http";
+import { deletePet, getPet, updatePet, uploadPetPhoto, type LocalFile, type Pet, type PetInput } from "../../src/api/pets";
+import { apiUrl } from "../../src/config";
+import { formFromPet } from "../../src/pets/form";
+import { PetFormView } from "../../src/pets/PetFormView";
+import { filePart } from "../../src/pets/pickPhoto";
+import { styles } from "../../src/screens/styles";
+import { useSession } from "../../src/session/SessionContext";
+
+const SESSION_FAILURE = "Não foi possível confirmar a sua sessão. Tente de novo.";
+
+/** Changes or deletes a pet of the owner. */
+export default function EditPet() {
+  const { id, photoFailed } = useLocalSearchParams<{ id: string; photoFailed?: string }>();
+  const { idToken } = useSession();
+  const [pet, setPet] = useState<Pet | null>(null);
+  // The screen of new pet comes here when it created the pet and could not
+  // send the photo.
+  const [error, setError] = useState<string | null>(
+    photoFailed ? "O pet foi criado, mas a foto não foi enviada. Escolha a foto e salve de novo." : null,
+  );
+
+  useEffect(() => {
+    let mounted = true;
+    void (async () => {
+      const token = await idToken();
+      if (token === null) {
+        setError(SESSION_FAILURE);
+        return;
+      }
+      const result = await getPet(apiUrl, token, id);
+      if (!mounted) {
+        return;
+      }
+      if (result.ok) {
+        setPet(result.value);
+      } else {
+        setError(result.code === "pet_not_found" ? "Este pet não existe mais." : failureMessage(result));
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [id, idToken]);
+
+  async function save(input: PetInput, photo: LocalFile | null): Promise<string | null> {
+    const token = await idToken();
+    if (token === null) {
+      return SESSION_FAILURE;
+    }
+    const updated = await updatePet(apiUrl, token, id, input);
+    if (!updated.ok) {
+      return failureMessage(updated);
+    }
+    if (photo !== null) {
+      const uploaded = await uploadPetPhoto(apiUrl, token, id, filePart(photo));
+      if (!uploaded.ok) {
+        return `Os dados foram salvos, mas a foto não foi enviada. ${failureMessage(uploaded)}`;
+      }
+    }
+    router.back();
+    return null;
+  }
+
+  function confirmDelete() {
+    Alert.alert("Excluir pet", `Excluir ${pet?.name ?? "este pet"}?`, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Excluir",
+        style: "destructive",
+        onPress: async () => {
+          const token = await idToken();
+          if (token === null) {
+            setError(SESSION_FAILURE);
+            return;
+          }
+          const result = await deletePet(apiUrl, token, id);
+          if (result.ok) {
+            router.back();
+          } else {
+            setError(failureMessage(result));
+          }
+        },
+      },
+    ]);
+  }
+
+  if (pet === null) {
+    return (
+      <View style={styles.screen}>
+        <Text testID="status-message" style={styles.text}>
+          {error ?? "Carregando..."}
+        </Text>
+      </View>
+    );
+  }
+  return (
+    <>
+      {error !== null && (
+        <Text testID="edit-pet-error" accessibilityRole="alert" style={styles.error}>
+          {error}
+        </Text>
+      )}
+      <PetFormView initial={formFromPet(pet)} photoUrl={pet.photoUrl} onSubmit={save} onDelete={confirmDelete} />
+    </>
+  );
+}

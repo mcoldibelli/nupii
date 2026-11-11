@@ -91,6 +91,7 @@ O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app n
 | [0014](docs/adr/0014-emulador-do-firebase-auth.md) | Emulador do Firebase Authentication no ambiente local e no CI | aceito |
 | [0015](docs/adr/0015-cliente-de-armazenamento.md) | Cliente do armazenamento de objetos com a biblioteca padrão | aceito |
 | [0016](docs/adr/0016-navegacao-e-foto-no-app.md) | Navegação com Expo Router e seleção de foto com Expo Image Picker | aceito |
+| [0017](docs/adr/0017-arquivo-do-aparelho-no-app.md) | Expo File System para enviar um arquivo do aparelho | aceito |
 
 ## Regras do projeto
 
