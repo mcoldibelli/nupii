@@ -66,6 +66,9 @@ func TestRunMigratesServesAndStops(t *testing.T) {
 			return emulator
 		case "S3_ENDPOINT":
 			return store.Endpoint
+		case "INFERENCE_URL":
+			// The API starts without a call to the inference service.
+			return "http://127.0.0.1:1"
 		case "S3_BUCKET":
 			return store.Bucket
 		case "S3_ACCESS_KEY_ID":
@@ -153,6 +156,8 @@ func TestRunFailsWhenTheDatabaseDoesNotRespond(t *testing.T) {
 		case "FIREBASE_PROJECT_ID":
 			return _emulatorProjectID
 		case "S3_ENDPOINT":
+			return "http://127.0.0.1:1"
+		case "INFERENCE_URL":
 			return "http://127.0.0.1:1"
 		case "S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY":
 			return "value-for-the-test"

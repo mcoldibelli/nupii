@@ -6,10 +6,10 @@ Todos os comandos abaixo são executados no diretório `backend`.
 
 ## Como executar
 
-A API precisa do Postgres e do emulador do Firebase Authentication do ambiente local. Crie o `deploy/.env` (ver o [README da raiz](../README.md)) e suba o banco, o servidor S3 e o emulador. O serviço `api` do compose usa a mesma porta 8080, então ele fica parado:
+A API precisa do Postgres, do servidor S3, do emulador do Firebase Authentication e do serviço de inferência do ambiente local. Crie o `deploy/.env` e baixe os arquivos de pesos (ver o [README da raiz](../README.md)), e suba esses quatro serviços. O serviço `api` do compose usa a mesma porta 8080, então ele fica parado:
 
 ```bash
-docker compose -f ../deploy/compose.yaml up -d --wait db s3 auth
+docker compose -f ../deploy/compose.yaml up -d --wait db s3 auth inference
 ```
 
 Carregue as variáveis do `deploy/.env` no terminal, monte o endereço do banco e aponte para o emulador:
@@ -20,6 +20,7 @@ export DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432
 export FIREBASE_PROJECT_ID=demo-nupii
 export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
 export S3_ENDPOINT=http://127.0.0.1:8333
+export INFERENCE_URL=http://127.0.0.1:8000
 go run ./cmd/api
 ```
 
@@ -57,7 +58,7 @@ Testes de unidade, sem banco:
 go test -race ./...
 ```
 
-Testes de integração, com o compose em execução e as variáveis `DATABASE_URL`, `FIREBASE_AUTH_EMULATOR_HOST` e `S3_ENDPOINT` definidas como na seção anterior:
+Testes de integração, com o compose em execução e as variáveis `DATABASE_URL`, `FIREBASE_AUTH_EMULATOR_HOST`, `S3_ENDPOINT` e `INFERENCE_URL` definidas como na seção anterior:
 
 ```bash
 go test -race -tags=integration ./...
@@ -82,6 +83,7 @@ O processo não sobe com um valor inválido. Ele escreve o erro na saída de err
 | `HTTP_ADDR` | Não | `:8080` | Endereço em que o servidor HTTP escuta, no formato `host:porta` |
 | `DATABASE_URL` | Sim | | URL de conexão do Postgres, com o esquema `postgres` ou `postgresql`. Ela tem a senha: não fica no repositório e não é escrita no log |
 | `FIREBASE_PROJECT_ID` | Sim | | Identificador do projeto do Firebase. A API só aceita ID tokens desse projeto. No ambiente local é `demo-nupii` |
+| `INFERENCE_URL` | Sim | | Endereço do serviço de inferência, com `http://` ou `https://`. A API sobe sem o serviço responder |
 | `S3_ENDPOINT` | Sim | | Endereço do armazenamento de objetos visto pela API, com `http://` ou `https://` |
 | `S3_PUBLIC_ENDPOINT` | Não | o valor de `S3_ENDPOINT` | Endereço do armazenamento visto pelos clientes da API. Ele vai nas URLs temporárias |
 | `S3_BUCKET` | Sim | | Bucket das fotos e dos anexos |
@@ -167,6 +169,9 @@ A primeira execução baixa o `oapi-codegen` na versão fixada em `internal/api/
 | `db/queries/` | Arquivos SQL das consultas, a entrada do `sqlc` |
 | `sqlc.yaml` | Configuração do `sqlc`: qual arquivo de consultas gera qual pacote |
 | `internal/identity/` | Módulo do tutor: validação do token das requisições, regras do registro, handlers de `/v1/me`. `identitydb/` é o código gerado das consultas |
+| `internal/biometrics/` | Módulo de biometria: cadastro do focinho (RN-07 a RN-09, RN-59, RN-60), operações de `/v1/pets/{petId}/noseprints`. `biometricsdb/` é o código gerado das consultas |
+| `internal/platform/inference/` | Cliente do serviço de inferência |
+| `internal/platform/imagefile/` | Tipo de um arquivo de imagem pelo conteúdo |
 | `internal/pets/` | Módulo de pets: regras dos dados (RN-48 a RN-56), operações de `/v1/pets`. `petsdb/` é o código gerado das consultas |
 | `internal/platform/firebase/` | Validação do ID token com o Firebase Admin SDK |
 | `internal/platform/storage/` | Armazenamento de objetos por URLs pré-assinadas (ADR 0015). `storagetest/` dá a configuração para os testes de integração |

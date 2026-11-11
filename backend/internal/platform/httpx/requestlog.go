@@ -42,6 +42,13 @@ func (h logHandler) WithGroup(name string) slog.Handler {
 	return logHandler{Handler: h.Handler.WithGroup(name)}
 }
 
+// RequestID returns the identifier of the request of ctx, or an empty
+// string when ctx is not the context of a request.
+func RequestID(ctx context.Context) string {
+	id, _ := ctx.Value(requestIDKey{}).(string)
+	return id
+}
+
 // RequestLog returns a middleware that gives each request a new identifier.
 // The middleware sends the identifier in the X-Request-Id response header,
 // puts it in the context of the request and writes one log line when the

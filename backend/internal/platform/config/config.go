@@ -36,6 +36,9 @@ type Config struct {
 	// the environment by itself. The API reads it only to write a warning.
 	FirebaseAuthEmulatorHost string
 
+	// InferenceURL is the address of the inference service.
+	InferenceURL string
+
 	// StorageEndpoint is the address that the API uses to reach the
 	// object store.
 	StorageEndpoint string
@@ -58,6 +61,8 @@ func Load(getenv func(string) string) (Config, error) {
 
 		FirebaseProjectID:        getenv("FIREBASE_PROJECT_ID"),
 		FirebaseAuthEmulatorHost: getenv("FIREBASE_AUTH_EMULATOR_HOST"),
+
+		InferenceURL: getenv("INFERENCE_URL"),
 
 		StorageEndpoint:        getenv("S3_ENDPOINT"),
 		StoragePublicEndpoint:  getenv("S3_PUBLIC_ENDPOINT"),
@@ -86,6 +91,9 @@ func Load(getenv func(string) string) (Config, error) {
 		return Config{}, fmt.Errorf(
 			"FIREBASE_AUTH_EMULATOR_HOST: the emulator needs a FIREBASE_PROJECT_ID that starts with %q",
 			_demoProjectPrefix)
+	}
+	if err := validateHTTPURL(cfg.InferenceURL); err != nil {
+		return Config{}, fmt.Errorf("INFERENCE_URL %q: %w", cfg.InferenceURL, err)
 	}
 	if cfg.StoragePublicEndpoint == "" {
 		cfg.StoragePublicEndpoint = cfg.StorageEndpoint

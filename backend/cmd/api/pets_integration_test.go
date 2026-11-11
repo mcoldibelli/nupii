@@ -199,6 +199,12 @@ func TestPetsNeedARegisteredOwner(t *testing.T) {
 // validates the response against the contract.
 func (a testAPI) uploadPhoto(token, path string, content []byte) *httptest.ResponseRecorder {
 	a.t.Helper()
+	return a.upload(http.MethodPut, token, path, content)
+}
+
+// upload sends content as the part "file" of a multipart body.
+func (a testAPI) upload(method, token, path string, content []byte) *httptest.ResponseRecorder {
+	a.t.Helper()
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	part, err := writer.CreateFormFile("file", "photo")
@@ -211,7 +217,7 @@ func (a testAPI) uploadPhoto(token, path string, content []byte) *httptest.Respo
 	if err := writer.Close(); err != nil {
 		a.t.Fatalf("close the multipart body: %v", err)
 	}
-	req := httptest.NewRequest(http.MethodPut, path, &body)
+	req := httptest.NewRequest(method, path, &body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()

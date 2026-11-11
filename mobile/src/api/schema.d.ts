@@ -108,6 +108,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/pets/{petId}/noseprints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cadastra o focinho de um pet do tutor com uma foto.
+         * @description Só um cachorro tem cadastro biométrico. O cadastro novo passa a ser o principal do pet.
+         *     Uma foto recusada não é gravada.
+         */
+        post: operations["registerNoseprint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets/{petId}/noseprint": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        /** Devolve o cadastro biométrico principal de um pet do tutor. */
+        get: operations["getNoseprint"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -171,6 +215,22 @@ export interface components {
          * @enum {string}
          */
         Size: "small" | "medium" | "large";
+        /** @description Cadastro biométrico de um pet, a foto do focinho com o vetor dela. */
+        Noseprint: {
+            /** Format: uuid */
+            id: string;
+            /** @description URL temporária da foto do focinho. Vale por 900 segundos. */
+            imageUrl: string;
+            /**
+             * Format: double
+             * @description Nitidez da foto, de 0 a 1.
+             */
+            quality: number;
+            /** @description Versão do modelo que gerou o vetor. */
+            modelVersion: string;
+            /** Format: date-time */
+            capturedAt: string;
+        };
         /** @description O tutor. Pessoa com conta, responsável por pets. */
         Owner: {
             /** @description Identificador do tutor, um UUID. */
@@ -208,7 +268,7 @@ export interface components {
          *     Um código novo entra nesta lista antes de entrar no código do servidor.
          * @enum {string}
          */
-        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found" | "pet_not_found";
+        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found" | "pet_not_found" | "noseprint_not_found" | "species_not_supported" | "image_low_quality" | "image_framing";
     };
     responses: {
         /** @description O corpo ou um parâmetro é inválido. O código do erro é `invalid_request`. */
@@ -234,6 +294,29 @@ export interface components {
          *     Ou a conta ainda não registrou o tutor, com o código `owner_not_found`.
          */
         PetNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /**
+         * @description A foto do focinho foi recusada. O código do erro diz o motivo:
+         *     `species_not_supported` quando o pet não é um cachorro,
+         *     `image_low_quality` quando a foto não tem nitidez,
+         *     `image_framing` quando a foto não mostra um focinho.
+         */
+        NosePhotoRefused: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Uma parte do sistema que a operação usa não responde. O código do erro é `unavailable`. */
+        Unavailable: {
             headers: {
                 [name: string]: unknown;
             };
@@ -543,6 +626,83 @@ export interface operations {
             400: components["responses"]["InvalidRequest"];
             401: components["responses"]["Unauthenticated"];
             404: components["responses"]["PetNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    registerNoseprint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description Foto do focinho. Imagem JPEG, PNG ou WebP, com no máximo 8 MB.
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description O cadastro biométrico criado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Noseprint"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["PetNotFound"];
+            422: components["responses"]["NosePhotoRefused"];
+            503: components["responses"]["Unavailable"];
+            default: components["responses"]["Error"];
+        };
+    };
+    getNoseprint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O cadastro biométrico principal do pet. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Noseprint"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            /**
+             * @description O pet não tem cadastro biométrico, com o código `noseprint_not_found`.
+             *     Ou o pet não existe para este tutor, com o código `pet_not_found`.
+             *     Ou a conta ainda não registrou o tutor, com o código `owner_not_found`.
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             default: components["responses"]["Error"];
         };
     };

@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/mcoldibelli/nupii/backend/internal/api"
+	"github.com/mcoldibelli/nupii/backend/internal/biometrics"
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/pets"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
@@ -28,14 +29,22 @@ const (
 	// _maxPhotoBodyBytes is the maximum size of the body of a photo
 	// upload: the 5 MB of the photo (RN-54) and the multipart envelope.
 	_maxPhotoBodyBytes = 6 << 20
+	// _maxNosePhotoBodyBytes is the maximum size of the body of an upload
+	// of the photo of a nose: the 8 MB of the photo (RN-59) and the
+	// multipart envelope.
+	_maxNosePhotoBodyBytes = 9 << 20
 )
 
 // bodyLimit returns the maximum size of the body of the request.
 func bodyLimit(r *http.Request) int64 {
-	if r.Pattern == "PUT /v1/pets/{petId}/photo" {
+	switch r.Pattern {
+	case "PUT /v1/pets/{petId}/photo":
 		return _maxPhotoBodyBytes
+	case "POST /v1/pets/{petId}/noseprints":
+		return _maxNosePhotoBodyBytes
+	default:
+		return _maxBodyBytes
 	}
-	return _maxBodyBytes
 }
 
 // pinger tells if the database responds. *pgxpool.Pool implements it.
@@ -43,11 +52,12 @@ type pinger interface {
 	Ping(ctx context.Context) error
 }
 
-// The handlers of two modules have the same type name. The aliases give
+// The handlers of the modules have the same type name. The aliases give
 // each embedded field of server a different name.
 type (
-	identityHandlers = identity.Handlers
-	petsHandlers     = pets.Handlers
+	identityHandlers   = identity.Handlers
+	petsHandlers       = pets.Handlers
+	biometricsHandlers = biometrics.Handlers
 )
 
 // server implements the operations of the contract. The operations of each
@@ -55,6 +65,7 @@ type (
 type server struct {
 	*identityHandlers
 	*petsHandlers
+	*biometricsHandlers
 
 	logger   *slog.Logger
 	database pinger
@@ -64,13 +75,21 @@ var _ api.StrictServerInterface = server{}
 
 // newServer connects the modules: each module gets the connection pool and
 // the modules it depends on.
-func newServer(logger *slog.Logger, pool *pgxpool.Pool, photos *storage.Store) server {
+func newServer(
+	logger *slog.Logger,
+	pool *pgxpool.Pool,
+	photos *storage.Store,
+	embedder biometrics.Embedder,
+) server {
 	owners := identity.NewService(pool)
+	petService := pets.NewService(pool, owners, photos, logger)
+	noseprints := biometrics.NewService(pool, petService, embedder, photos, logger)
 	return server{
-		identityHandlers: identity.NewHandlers(owners),
-		petsHandlers:     pets.NewHandlers(pets.NewService(pool, owners, photos, logger)),
-		logger:           logger,
-		database:         pool,
+		identityHandlers:   identity.NewHandlers(owners),
+		petsHandlers:       pets.NewHandlers(petService),
+		biometricsHandlers: biometrics.NewHandlers(noseprints, logger),
+		logger:             logger,
+		database:           pool,
 	}
 }
 

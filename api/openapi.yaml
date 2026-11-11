@@ -247,6 +247,78 @@ paths:
           $ref: "#/components/responses/PetNotFound"
         default:
           $ref: "#/components/responses/Error"
+  /v1/pets/{petId}/noseprints:
+    parameters:
+      - $ref: "#/components/parameters/PetId"
+    post:
+      operationId: registerNoseprint
+      tags: [biometrics]
+      summary: Cadastra o focinho de um pet do tutor com uma foto.
+      description: |
+        Só um cachorro tem cadastro biométrico. O cadastro novo passa a ser o principal do pet.
+        Uma foto recusada não é gravada.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Foto do focinho. Imagem JPEG, PNG ou WebP, com no máximo 8 MB.
+      responses:
+        "201":
+          description: O cadastro biométrico criado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Noseprint"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/PetNotFound"
+        "422":
+          $ref: "#/components/responses/NosePhotoRefused"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/pets/{petId}/noseprint:
+    parameters:
+      - $ref: "#/components/parameters/PetId"
+    get:
+      operationId: getNoseprint
+      tags: [biometrics]
+      summary: Devolve o cadastro biométrico principal de um pet do tutor.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: O cadastro biométrico principal do pet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Noseprint"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          description: |
+            O pet não tem cadastro biométrico, com o código `noseprint_not_found`.
+            Ou o pet não existe para este tutor, com o código `pet_not_found`.
+            Ou a conta ainda não registrou o tutor, com o código `owner_not_found`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     bearerAuth:
@@ -347,6 +419,29 @@ components:
       type: string
       description: Porte do pet.
       enum: [small, medium, large]
+    Noseprint:
+      type: object
+      description: Cadastro biométrico de um pet, a foto do focinho com o vetor dela.
+      required: [id, imageUrl, quality, modelVersion, capturedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        imageUrl:
+          type: string
+          description: URL temporária da foto do focinho. Vale por 900 segundos.
+        quality:
+          type: number
+          format: double
+          description: Nitidez da foto, de 0 a 1.
+          minimum: 0
+          maximum: 1
+        modelVersion:
+          type: string
+          description: Versão do modelo que gerou o vetor.
+        capturedAt:
+          type: string
+          format: date-time
     Owner:
       type: object
       description: O tutor. Pessoa com conta, responsável por pets.
@@ -412,6 +507,10 @@ components:
         - invalid_request
         - owner_not_found
         - pet_not_found
+        - noseprint_not_found
+        - species_not_supported
+        - image_low_quality
+        - image_framing
   responses:
     InvalidRequest:
       description: O corpo ou um parâmetro é inválido. O código do erro é `invalid_request`.
@@ -429,6 +528,22 @@ components:
       description: |
         O pet não existe para este tutor, com o código `pet_not_found`.
         Ou a conta ainda não registrou o tutor, com o código `owner_not_found`.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NosePhotoRefused:
+      description: |
+        A foto do focinho foi recusada. O código do erro diz o motivo:
+        `species_not_supported` quando o pet não é um cachorro,
+        `image_low_quality` quando a foto não tem nitidez,
+        `image_framing` quando a foto não mostra um focinho.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unavailable:
+      description: Uma parte do sistema que a operação usa não responde. O código do erro é `unavailable`.
       content:
         application/json:
           schema:

@@ -20,6 +20,8 @@ func envFor(srv *httptest.Server) func(string) string {
 			return "demo-test"
 		case "S3_ENDPOINT":
 			return "http://s3.test:8333"
+		case "INFERENCE_URL":
+			return "http://inference.test:8000"
 		case "S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY":
 			return "value-for-the-test"
 		default:
