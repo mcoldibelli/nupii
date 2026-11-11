@@ -33,6 +33,7 @@ Ainda não há o que executar. A fatia 0 entrega o `docker compose` e o conteúd
 | [0007](docs/adr/0007-inferencia-python-onnx.md) | Inferência em serviço Python separado, sem torch | aceito |
 | [0008](docs/adr/0008-autenticacao-firebase.md) | Autenticação com Firebase Authentication | aceito |
 | [0009](docs/adr/0009-idioma.md) | Código em inglês, documentação em português | aceito |
+| [0010](docs/adr/0010-ferramentas-de-teste.md) | Ferramentas de teste | aceito |
 
 ## Regras do projeto
 
