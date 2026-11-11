@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"regexp"
 	"strings"
 	"testing"
@@ -31,6 +32,7 @@ func TestShareLinkLifecycle(t *testing.T) {
 	testAPI.createEvent("token-ana", pet, `{"type": "vaccine", "date": "`+dateText(-30)+`", "name": "V10", "batch": "L1", "nextDoseDate": "`+dateText(335)+`"}`)
 	testAPI.createEvent("token-ana", pet, `{"type": "vaccine", "date": "`+dateText(-3)+`", "name": "Raiva"}`)
 	testAPI.createEvent("token-ana", pet, `{"type": "medication", "date": "`+dateText(-10)+`", "name": "Bravecto", "medicationCategory": "flea", "intervalDays": 90}`)
+	testAPI.createEvent("token-ana", pet, `{"type": "medication", "date": "`+dateText(-40)+`", "name": "Drontal", "medicationCategory": "deworm"}`)
 	testAPI.createEvent("token-ana", pet, `{"type": "medication", "date": "`+dateText(-1)+`", "name": "Antibiótico", "medicationCategory": "medication"}`)
 	testAPI.createEvent("token-ana", pet, `{"type": "exam", "date": "`+dateText(0)+`", "name": "Hemograma"}`)
 	path := "/v1/pets/" + pet.Id.String() + "/share-links"
@@ -78,9 +80,10 @@ func TestShareLinkLifecycle(t *testing.T) {
 		*card.Vaccines[1].Batch != "L1" {
 		t.Errorf("vaccines = %+v, want Raiva and V10, the newest first", card.Vaccines)
 	}
-	if len(card.ParasiteControl) != 1 || card.ParasiteControl[0].Name != "Bravecto" ||
-		card.ParasiteControl[0].Category != api.HealthCardMedicationCategoryFlea {
-		t.Errorf("parasite control = %+v, want only Bravecto", card.ParasiteControl)
+	if len(card.ParasiteControl) != 2 || card.ParasiteControl[0].Name != "Bravecto" ||
+		card.ParasiteControl[0].Category != api.HealthCardMedicationCategoryFlea ||
+		card.ParasiteControl[1].Name != "Drontal" {
+		t.Errorf("parasite control = %+v, want Bravecto and Drontal, the newest first", card.ParasiteControl)
 	}
 	// RN-83: sem dados do tutor, sem IDs internos e sem anexos. The key of
 	// the photo in its temporary URL has the ID of the pet.
@@ -91,11 +94,14 @@ func TestShareLinkLifecycle(t *testing.T) {
 		}
 	}
 
-	// RN-40: o tutor vê os links ativos com as aberturas.
+	// RN-40: o tutor vê os links ativos com as aberturas, do mais novo para
+	// o mais antigo.
 	testAPI.openCard(link.Token)
+	newer := decode[api.CreatedShareLink](t, testAPI.call(http.MethodPost, path, "token-ana", ""))
 	list := decode[api.ShareLinkList](t, testAPI.call(http.MethodGet, path, "token-ana", ""))
-	if len(list.Links) != 1 || list.Links[0].Id != link.Id || list.Links[0].Opens != 2 {
-		t.Fatalf("links = %+v, want the link with 2 opens", list.Links)
+	if len(list.Links) != 2 || list.Links[0].Id != newer.Id || list.Links[1].Id != link.Id ||
+		list.Links[1].Opens != 2 {
+		t.Fatalf("links = %+v, want the new link, then the link with 2 opens", list.Links)
 	}
 	if strings.Contains(testAPI.call(http.MethodGet, path, "token-ana", "").Body.String(), link.Token) {
 		t.Error("the list has the token (RN-39)")
@@ -118,8 +124,8 @@ func TestShareLinkLifecycle(t *testing.T) {
 		t.Errorf("open a revoked link: status = %d, body %s, want 404 share_link_not_found", status, body)
 	}
 	list = decode[api.ShareLinkList](t, testAPI.call(http.MethodGet, path, "token-ana", ""))
-	if len(list.Links) != 0 {
-		t.Errorf("links = %+v, want none after the revoke", list.Links)
+	if len(list.Links) != 1 || list.Links[0].Id != newer.Id {
+		t.Errorf("links = %+v, want only the new link after the revoke", list.Links)
 	}
 	if rec := testAPI.call(http.MethodDelete, path+"/"+link.Id.String(), "token-ana", ""); rec.Code != http.StatusNoContent {
 		t.Errorf("DELETE a revoked link: status = %d, want 204", rec.Code)
@@ -149,22 +155,52 @@ func TestShareLinkNotFound(t *testing.T) {
 	}
 	unknown := base64.RawURLEncoding.EncodeToString(make([]byte, 32))
 
+	revoked := create(rex)
+	revokePath := "/v1/pets/" + rex.Id.String() + "/share-links/" + revoked.Id.String()
+	if rec := testAPI.call(http.MethodDelete, revokePath, "token-ana", ""); rec.Code != http.StatusNoContent {
+		t.Fatalf("DELETE share link: status = %d", rec.Code)
+	}
+	_, want := testAPI.openCard(unknown)
 	for name, token := range map[string]string{
 		"unknown": unknown, "expired": expired.Token, "of a deleted pet": ofDeletedPet.Token,
+		"revoked": revoked.Token,
 	} {
-		if status, _ := testAPI.openCard(token); status != http.StatusNotFound {
-			t.Errorf("open a link %s: status = %d, want 404", name, status)
+		// RN-41: a mesma resposta 404 para todos os casos.
+		if status, body := testAPI.openCard(token); status != http.StatusNotFound || string(body) != string(want) {
+			t.Errorf("open a link %s: status = %d, body %s, want 404 and %s", name, status, body, want)
 		}
 	}
-	// RN-40: um link vencido não vem na lista.
+	// RN-40: um link vencido ou revogado não vem na lista.
 	list := decode[api.ShareLinkList](t, testAPI.call(http.MethodGet, "/v1/pets/"+rex.Id.String()+"/share-links", "token-ana", ""))
 	if len(list.Links) != 0 {
-		t.Errorf("links = %+v, want none: the only link is expired", list.Links)
+		t.Errorf("links = %+v, want none: the links are expired or revoked", list.Links)
 	}
 	// An open that fails does not count.
 	var opens int
 	const count = `SELECT opens FROM share_links WHERE id = $1`
 	if err := testAPI.pool.QueryRow(t.Context(), count, expired.Id).Scan(&opens); err != nil || opens != 0 {
 		t.Errorf("opens of the expired link = %d (%v), want 0", opens, err)
+	}
+}
+
+// RN-43: um endpoint público aceita no máximo 10 POST por minuto, por IP e
+// por caminho. The open of the card is a public POST.
+func TestShareLinkOpeningHasARateLimit(t *testing.T) {
+	testAPI := petsAPI(t)
+	post := func() int {
+		req := httptest.NewRequest(http.MethodPost, "/v1/share-links/opening", strings.NewReader(`{"token": "x"}`))
+		req.Header.Set("Content-Type", "application/json")
+		req.RemoteAddr = "203.0.113.10:4000"
+		rec := httptest.NewRecorder()
+		testAPI.handler.ServeHTTP(rec, req)
+		return rec.Code
+	}
+	for i := range 10 {
+		if status := post(); status != http.StatusNotFound {
+			t.Fatalf("request %d: status = %d, want 404", i+1, status)
+		}
+	}
+	if status := post(); status != http.StatusTooManyRequests {
+		t.Errorf("request 11: status = %d, want 429", status)
 	}
 }

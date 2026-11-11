@@ -16,7 +16,8 @@ export default function ShareCard() {
   const { petId, petName } = useLocalSearchParams<{ petId: string; petName: string }>();
   const { idToken } = useSession();
   const [links, setLinks] = useState<ShareLink[]>([]);
-  const [url, setUrl] = useState<string | null>(null);
+  // The address of the link created now: only the answer of the creation has the token.
+  const [created, setCreated] = useState<{ id: string; url: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -56,7 +57,7 @@ export default function ShareCard() {
     setBusy(false);
     if (link !== null) {
       // RN-39: the token is only in this answer, so the address is shown now.
-      setUrl(cardLink(webUrl, link.token));
+      setCreated({ id: link.id, url: cardLink(webUrl, link.token) });
       await load();
     }
   }
@@ -66,7 +67,7 @@ export default function ShareCard() {
     const done = await withToken((token) => revokeShareLink(apiUrl, token, petId, link.id));
     setBusy(false);
     if (done !== null) {
-      setUrl(null);
+      setCreated((current) => (current?.id === link.id ? null : current));
       await load();
     }
   }
@@ -83,13 +84,13 @@ export default function ShareCard() {
           {error}
         </Text>
       )}
-      {url !== null && (
+      {created !== null && (
         <View style={local.link}>
-          <QrCode text={url} />
+          <QrCode text={created.url} />
           <Text testID="share-url" selectable style={local.url}>
-            {url}
+            {created.url}
           </Text>
-          <Pressable testID="share-send" accessibilityRole="button" style={styles.button} onPress={() => void Share.share({ message: url })}>
+          <Pressable testID="share-send" accessibilityRole="button" style={styles.button} onPress={() => void Share.share({ message: created.url })}>
             <Text style={styles.buttonText}>Compartilhar</Text>
           </Pressable>
         </View>

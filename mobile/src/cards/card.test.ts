@@ -23,6 +23,8 @@ describe("health card texts", () => {
 
   it("RN-40: shows when the link expires and how many times it was opened", () => {
     expect(linkText({ id: "l", expiresAt: "2026-12-11T19:36:01Z", opens: 1, createdAt: "x" })).toBe("Vence em 11/12/2026. 1 abertura.");
+    // The date is the date of the device, not of the offset of the API.
+    expect(linkText({ id: "l", expiresAt: "2026-12-12T23:30:00-03:00", opens: 0, createdAt: "x" }, "UTC")).toBe("Vence em 13/12/2026. 0 aberturas.");
     expect(linkText({ id: "l", expiresAt: "2026-12-11T19:36:01Z", opens: 3, createdAt: "x" })).toBe("Vence em 11/12/2026. 3 aberturas.");
   });
 

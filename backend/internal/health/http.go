@@ -488,7 +488,6 @@ func (h *Handlers) OpenShareLink(
 		},
 		Vaccines:        make([]api.HealthCardVaccine, 0, len(card.Vaccines)),
 		ParasiteControl: make([]api.HealthCardMedication, 0, len(card.ParasiteControl)),
-		ExpiresAt:       pet.ExpiresAt,
 	}
 	if pet.BirthDate != nil {
 		converted.Pet.BirthDate = &types.Date{Time: *pet.BirthDate}

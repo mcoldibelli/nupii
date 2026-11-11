@@ -479,9 +479,6 @@ type HealthAttachmentList struct {
 
 // HealthCard A carteirinha do pet (RN-83). Sem dados do tutor, sem IDs internos e sem anexos.
 type HealthCard struct {
-	// ExpiresAt Quando o link vence.
-	ExpiresAt time.Time `json:"expiresAt"`
-
 	// ParasiteControl As medicações antipulgas e vermífugo, da mais nova para a mais antiga.
 	ParasiteControl []HealthCardMedication `json:"parasiteControl"`
 	Pet             HealthCardPet          `json:"pet"`

@@ -1917,7 +1917,7 @@ components:
     HealthCard:
       type: object
       description: A carteirinha do pet (RN-83). Sem dados do tutor, sem IDs internos e sem anexos.
-      required: [pet, vaccines, parasiteControl, expiresAt]
+      required: [pet, vaccines, parasiteControl]
       properties:
         pet:
           $ref: "#/components/schemas/HealthCardPet"
@@ -1931,10 +1931,6 @@ components:
           description: As medicações antipulgas e vermífugo, da mais nova para a mais antiga.
           items:
             $ref: "#/components/schemas/HealthCardMedication"
-        expiresAt:
-          type: string
-          format: date-time
-          description: Quando o link vence.
     HealthCardPet:
       type: object
       required: [name, species]

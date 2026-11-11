@@ -47,10 +47,14 @@ export function medicationLine(medication: CardMedication): string {
   return medication.intervalDays ? `${line}, a cada ${medication.intervalDays} dias` : line;
 }
 
-/** The text of an active link: when it expires and its opens (RN-40). */
-export function linkText(link: ShareLink): string {
+/**
+ * The text of an active link: when it expires, in the time zone of the
+ * device, and its opens (RN-40). A test gives the time zone.
+ */
+export function linkText(link: ShareLink, timeZone?: string): string {
   const opens = link.opens === 1 ? "1 abertura" : `${link.opens} aberturas`;
-  return `Vence em ${dateText(link.expiresAt.slice(0, 10))}. ${opens}.`;
+  const date = new Intl.DateTimeFormat("pt-BR", { timeZone }).format(new Date(link.expiresAt));
+  return `Vence em ${date}. ${opens}.`;
 }
 
 /** Message for a card that does not open (RN-41). */

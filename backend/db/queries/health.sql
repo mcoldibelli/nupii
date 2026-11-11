@@ -148,7 +148,7 @@ UPDATE share_links AS l SET opens = l.opens + 1
 FROM pets AS p
 WHERE l.token_hash = sqlc.arg(token_hash) AND l.revoked_at IS NULL AND l.expires_at > now()
     AND p.id = l.pet_id AND p.deleted_at IS NULL
-RETURNING l.pet_id, l.expires_at, p.name, p.species, p.breed, p.sex, p.birth_date,
+RETURNING l.pet_id, p.name, p.species, p.breed, p.sex, p.birth_date,
     p.weight_kg, p.neutered, p.photo_key, p.vet_name, p.vet_clinic, p.vet_phone;
 
 -- name: ListCardVaccines :many
