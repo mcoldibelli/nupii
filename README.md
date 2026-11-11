@@ -4,7 +4,7 @@ Plataforma para tutores de pets, com três partes: saúde do pet, mural de perdi
 
 ## Estado
 
-As fatias 0 e 1 do [roteiro](docs/roteiro.md) estão prontas. O ambiente local sobe com um comando e o CI confere a API, o app e a integração. O tutor cria a conta e entra pelo app, e a API valida o token e registra o tutor com o aceite dos termos. O andamento de cada fatia está nos milestones do GitHub.
+As fatias 0, 1 e 2 do [roteiro](docs/roteiro.md) estão prontas. O ambiente local sobe com um comando e o CI confere a API, o app, a integração e o serviço de inferência. O tutor cria a conta e entra pelo app, e cadastra os pets dele com foto de perfil. A fatia 3 está em andamento: o serviço de inferência transforma a foto de um focinho em um vetor. O andamento de cada fatia está nos milestones do GitHub.
 
 ## Como executar
 
@@ -58,6 +58,8 @@ Se você mudar a senha do banco depois da primeira subida, apague os dados com `
 Para desenvolver a API, suba só o banco e o servidor S3 e execute a API com `go run`. Os comandos estão no README do [backend](backend/README.md).
 
 Para executar o app, veja o README do [mobile](mobile/README.md).
+
+Para executar o serviço de inferência, veja o README do [inference](inference/README.md).
 
 O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app no projeto real, execute `./deploy/firebase-setup.sh`: ele guia os passos do console e guarda cada valor fora do git.
 
