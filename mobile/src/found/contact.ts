@@ -5,6 +5,9 @@ export type ContactForm = { name: string; phone: string; message: string };
 
 export type ContactResult = { ok: true; contact: Contact } | { ok: false; message: string };
 
+/** RN-63: tamanhos máximos dos textos do contato, em caracteres. */
+export const CONTACT_LIMITS = { name: 120, phone: 30, message: 500 } as const;
+
 // RN-63: o telefone tem de 8 a 30 caracteres: dígitos, espaço, +, -, ( e ).
 const phonePattern = /^[0-9()+\- ]{8,30}$/;
 
@@ -17,7 +20,7 @@ export function toContact(form: ContactForm): ContactResult {
     return invalid("Informe o seu nome.");
   }
   // The API counts characters, and the length of a string counts UTF-16 units.
-  if ([...name].length > 120) {
+  if ([...name].length > CONTACT_LIMITS.name) {
     return invalid("O nome pode ter no máximo 120 caracteres.");
   }
   const phone = form.phone.trim();
@@ -25,7 +28,7 @@ export function toContact(form: ContactForm): ContactResult {
     return invalid("Informe um telefone com DDD, de 8 a 30 caracteres.");
   }
   const message = form.message.trim();
-  if ([...message].length > 500) {
+  if ([...message].length > CONTACT_LIMITS.message) {
     return invalid("A mensagem pode ter no máximo 500 caracteres.");
   }
   return { ok: true, contact: message === "" ? { name, phone } : { name, phone, message } };

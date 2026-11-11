@@ -85,8 +85,11 @@ func (s *Store) Delete(ctx context.Context, key string) error {
 	return s.do(req, key, http.StatusNoContent)
 }
 
-// Get returns the content of the object key. It returns an error when the
-// object does not exist or has more than maxBytes.
+// ErrNotFound means that the object does not exist.
+var ErrNotFound = errors.New("object not found")
+
+// Get returns the content of the object key. It returns ErrNotFound when
+// the object does not exist, and an error when it has more than maxBytes.
 func (s *Store) Get(ctx context.Context, key string, maxBytes int64) (data []byte, err error) {
 	signed, err := s.presign(http.MethodGet, s.cfg.Endpoint, key, time.Now(), _requestExpiry)
 	if err != nil {
@@ -110,6 +113,9 @@ func (s *Store) Get(ctx context.Context, key string, maxBytes int64) (data []byt
 			err = fmt.Errorf("close answer of GET object %q: %w", key, cerr)
 		}
 	}()
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("GET object %q: %w", key, ErrNotFound)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GET object %q: status %d", key, resp.StatusCode)
 	}

@@ -1,30 +1,13 @@
 import { useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { confirmIdentification, identifyNose, type Identification, type Location } from "../src/api/found";
+import { confirmIdentification, identifyNose, type Identification } from "../src/api/found";
 import type { LocalFile } from "../src/api/pets";
 import { apiUrl } from "../src/config";
-import { foundFailureMessage, similarityLabel, toContact } from "../src/found/contact";
+import { CONTACT_LIMITS, foundFailureMessage, similarityLabel, toContact } from "../src/found/contact";
+import { currentLocation } from "../src/found/location";
 import { filePart, NOSE_PHOTO_QUALITY, pickPhoto } from "../src/pets/pickPhoto";
 import { styles } from "../src/screens/styles";
-
-/**
- * Asks the browser for the position of the device. Returns null when the
- * device has no position, or the visitor does not allow it (RN-61).
- */
-function currentLocation(): Promise<Location | null> {
-  return new Promise((resolve) => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      resolve(null);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
-      () => resolve(null),
-      { timeout: 5000 },
-    );
-  });
-}
 
 /**
  * The public page "encontrei um pet": a visitor with no account sends the
@@ -167,7 +150,7 @@ export default function Found() {
             testID="found-name-input"
             accessibilityLabel="Seu nome"
             style={styles.input}
-            maxLength={120}
+            maxLength={CONTACT_LIMITS.name}
             value={contact.name}
             onChangeText={(name) => setContact((current) => ({ ...current, name }))}
           />
@@ -177,7 +160,7 @@ export default function Found() {
             accessibilityLabel="Telefone com DDD"
             style={styles.input}
             keyboardType="phone-pad"
-            maxLength={30}
+            maxLength={CONTACT_LIMITS.phone}
             value={contact.phone}
             onChangeText={(phone) => setContact((current) => ({ ...current, phone }))}
           />
@@ -187,7 +170,7 @@ export default function Found() {
             accessibilityLabel="Mensagem"
             style={[styles.input, local.message]}
             multiline
-            maxLength={500}
+            maxLength={CONTACT_LIMITS.message}
             value={contact.message}
             onChangeText={(message) => setContact((current) => ({ ...current, message }))}
           />

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"errors"
 	"io"
 	"net/http"
 	"testing"
@@ -120,7 +121,7 @@ func TestGet(t *testing.T) {
 	if _, err := store.Get(ctx, key, int64(len(content))-1); err == nil {
 		t.Error("Get of an object larger than the limit: no error")
 	}
-	if _, err := store.Get(ctx, "test/"+rand.Text()+"/no object.jpg", 1024); err == nil {
-		t.Error("Get of an object that does not exist: no error")
+	if _, err := store.Get(ctx, "test/"+rand.Text()+"/no object.jpg", 1024); !errors.Is(err, storage.ErrNotFound) {
+		t.Errorf("Get of an object that does not exist: error = %v, want ErrNotFound", err)
 	}
 }

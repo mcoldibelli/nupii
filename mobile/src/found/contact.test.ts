@@ -1,4 +1,4 @@
-import { foundFailureMessage, similarityLabel, toContact } from "./contact";
+import { CONTACT_LIMITS, foundFailureMessage, similarityLabel, toContact } from "./contact";
 
 describe("toContact", () => {
   it("RN-63: accepts the name and the phone, without the spaces around them", () => {
@@ -42,5 +42,11 @@ describe("foundFailureMessage", () => {
 describe("similarityLabel", () => {
   it("shows the similarity as a percentage", () => {
     expect(similarityLabel(0.9149)).toBe("91% de semelhança");
+  });
+});
+
+describe("CONTACT_LIMITS", () => {
+  it("RN-63: has the limits of the rule", () => {
+    expect(CONTACT_LIMITS).toEqual({ name: 120, phone: 30, message: 500 });
   });
 });

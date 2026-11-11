@@ -102,15 +102,15 @@ JOIN identifications AS i ON i.id = c.identification_id
 WHERE c.id = sqlc.arg(candidate_id) AND i.id = sqlc.arg(identification_id)
 FOR UPDATE OF i;
 
--- name: SetIdentificationContact :one
--- RN-65: confirmar de novo muda só o contato. A foto fica a da primeira vez.
+-- name: SetIdentificationContact :exec
+-- RN-65: confirmar de novo muda só o contato. A foto fica a da primeira
+-- confirmação que envia uma foto.
 UPDATE identifications
 SET contact_name = sqlc.arg(contact_name),
     contact_phone = sqlc.arg(contact_phone),
     contact_message = sqlc.narg(contact_message),
     photo_key = COALESCE(photo_key, sqlc.narg(photo_key))
-WHERE id = sqlc.arg(id)
-RETURNING photo_key;
+WHERE id = sqlc.arg(id);
 
 -- name: ConfirmCandidate :exec
 -- RN-65: a data da confirmação fica a da primeira vez.

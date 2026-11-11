@@ -105,7 +105,7 @@ O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app n
 | [0019](docs/adr/0019-dados-do-teste-de-igualdade.md) | Dados do teste de igualdade da inferência | aceito |
 | [0020](docs/adr/0020-leitura-de-objeto-pelo-backend.md) | Leitura de um objeto do armazenamento pelo backend | aceito |
 | [0021](docs/adr/0021-vetor-como-texto-nas-consultas.md) | Vetor como texto nas consultas, sem a biblioteca pgvector-go | aceito |
-| [0022](docs/adr/0022-web-publica-no-alvo-web-do-expo.md) | Web pública no alvo web do mesmo projeto Expo | aceito (mapa: medida na fatia 5) |
+| [0022](docs/adr/0022-web-publica-no-alvo-web-do-expo.md) | Web pública no alvo web do mesmo projeto Expo | aceito |
 
 ## Regras do projeto
 

@@ -124,6 +124,7 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `src/api/owner.ts`, `src/api/pets.ts`, `src/api/biometrics.ts`, `src/api/found.ts` | Chamadas da API, com testes |
 | `src/biometrics/messages.ts` | Mensagens das recusas da foto do focinho, com testes |
 | `src/found/contact.ts` | Regras do contato de quem encontrou um cão (RN-63), com testes |
+| `src/found/location.ts` | Posição do aparelho no navegador (RN-61), com testes |
 | `src/pets/form.ts` | Regras do formulário do pet (RN-48, RN-50, RN-51, RN-56), com testes |
 | `src/pets/save.ts` | Salva os dados do pet e depois envia a foto, com testes |
 | `src/pets/PetFormView.tsx` | O formulário do pet |

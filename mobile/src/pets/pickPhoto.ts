@@ -29,7 +29,7 @@ function localFile(asset: ImagePicker.ImagePickerAsset): LocalFile {
 }
 
 /**
- * Opens the camera of the device. Returns the photo, null when the owner
+ * Opens the camera of the device for the photo of a nose. Returns the photo, null when the owner
  * cancels, or "denied" when the app has no permission to use the camera.
  */
 export async function takePhoto(): Promise<LocalFile | null | "denied"> {
@@ -37,6 +37,9 @@ export async function takePhoto(): Promise<LocalFile | null | "denied"> {
   if (!permission.granted) {
     return "denied";
   }
+  // The camera compresses the photo one time, from the sensor. This is not
+  // a new compression of a file, and quality 1 gives a file that can pass
+  // the 8 MB of RN-59.
   const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.9 });
   if (result.canceled || result.assets.length === 0) {
     return null;
