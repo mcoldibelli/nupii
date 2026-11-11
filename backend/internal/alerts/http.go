@@ -111,3 +111,42 @@ func (h *Handlers) MarkNotificationRead(
 		return nil, fmt.Errorf("mark notification read: %w", err)
 	}
 }
+
+// RegisterDevice registers a device of the owner that made the request.
+func (h *Handlers) RegisterDevice(
+	ctx context.Context,
+	request api.RegisterDeviceRequestObject,
+) (api.RegisterDeviceResponseObject, error) {
+	err := h.service.RegisterDevice(ctx, request.Body.Token, string(request.Body.Platform))
+	var validation *ValidationError
+	switch {
+	case err == nil:
+		return api.RegisterDevice204Response{}, nil
+	case errors.As(err, &validation):
+		return api.RegisterDevice400JSONResponse{
+			InvalidRequestJSONResponse: api.InvalidRequestJSONResponse{
+				Error: api.ErrorCodeInvalidRequest, Message: validation.Message,
+			},
+		}, nil
+	case errors.Is(err, identity.ErrOwnerNotFound):
+		return api.RegisterDevice404JSONResponse{OwnerNotFoundJSONResponse: _ownerNotFound}, nil
+	default:
+		return nil, fmt.Errorf("register device: %w", err)
+	}
+}
+
+// RemoveDevice removes a device of the owner that made the request.
+func (h *Handlers) RemoveDevice(
+	ctx context.Context,
+	request api.RemoveDeviceRequestObject,
+) (api.RemoveDeviceResponseObject, error) {
+	err := h.service.RemoveDevice(ctx, request.Token)
+	switch {
+	case err == nil:
+		return api.RemoveDevice204Response{}, nil
+	case errors.Is(err, identity.ErrOwnerNotFound):
+		return api.RemoveDevice404JSONResponse{OwnerNotFoundJSONResponse: _ownerNotFound}, nil
+	default:
+		return nil, fmt.Errorf("remove device: %w", err)
+	}
+}

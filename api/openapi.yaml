@@ -728,6 +728,55 @@ paths:
           $ref: "#/components/responses/OwnerNotFound"
         default:
           $ref: "#/components/responses/Error"
+  /v1/me/devices:
+    put:
+      operationId: registerDevice
+      tags: [alerts]
+      summary: Registra o dispositivo do tutor para receber push.
+      description: Um token de outro tutor passa para o tutor que chama (RN-31).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Device"
+      responses:
+        "204":
+          description: O dispositivo está registrado.
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/OwnerNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/me/devices/{token}:
+    parameters:
+      - name: token
+        in: path
+        required: true
+        description: O token de push do dispositivo.
+        schema:
+          type: string
+    delete:
+      operationId: removeDevice
+      tags: [alerts]
+      summary: Remove um dispositivo do tutor.
+      description: Um token de outro tutor fica como está, com a mesma resposta (RN-31).
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: O dispositivo não recebe mais push deste tutor.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/OwnerNotFound"
+        default:
+          $ref: "#/components/responses/Error"
   /v1/notifications:
     get:
       operationId: listNotifications
@@ -1131,6 +1180,16 @@ components:
         longitude:
           type: number
           format: double
+    Device:
+      type: object
+      required: [token, platform]
+      properties:
+        token:
+          type: string
+          description: Token de push do Firebase Cloud Messaging, com no máximo 4.096 caracteres.
+        platform:
+          type: string
+          enum: [android, ios, web]
     NotificationKind:
       type: string
       description: |

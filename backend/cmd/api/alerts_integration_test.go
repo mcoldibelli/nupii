@@ -17,7 +17,13 @@ import (
 // API does after the start.
 func (a testAPI) runJobs() {
 	a.t.Helper()
-	runner := jobs.NewRunner(a.pool, slog.New(slog.DiscardHandler), alerts.JobHandlers())
+	a.runJobsWith(nil)
+}
+
+// runJobsWith runs the jobs that are due with pusher as the push service.
+func (a testAPI) runJobsWith(pusher alerts.Pusher) {
+	a.t.Helper()
+	runner := jobs.NewRunner(a.pool, slog.New(slog.DiscardHandler), alerts.JobHandlers(pusher))
 	for {
 		worked, err := runner.Work(a.t.Context())
 		if err != nil {

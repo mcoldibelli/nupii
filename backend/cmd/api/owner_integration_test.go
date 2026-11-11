@@ -91,7 +91,7 @@ func deleteOwners(t *testing.T, pool *pgxpool.Pool, uids []string) {
 	ctx := context.WithoutCancel(t.Context())
 	const ownedPets = "SELECT p.id FROM pets AS p JOIN owners AS o ON o.id = p.owner_id WHERE o.firebase_uid = ANY($1)"
 	const ownerIDs = "SELECT id FROM owners WHERE firebase_uid = ANY($1)"
-	for _, table := range []string{"notifications", "owner_locations"} {
+	for _, table := range []string{"notifications", "owner_locations", "devices"} {
 		if _, err := pool.Exec(ctx, "DELETE FROM "+table+" WHERE owner_id IN ("+ownerIDs+")", uids); err != nil {
 			t.Errorf("delete the %s of the test: %v", table, err)
 		}

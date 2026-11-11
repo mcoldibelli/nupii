@@ -3,6 +3,7 @@ package alerts
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 
@@ -18,6 +19,7 @@ const (
 	_jobLostReport = "notify_lost_report"
 	_jobSighting   = "notify_sighting"
 	_jobFound      = "notify_found"
+	_jobPush       = "send_push"
 )
 
 const (
@@ -80,13 +82,30 @@ func EnqueueFound(ctx context.Context, tx pgx.Tx, found Found) error {
 	return jobs.Enqueue(ctx, tx, _jobFound, found)
 }
 
-// JobHandlers returns the job handlers of this module.
-func JobHandlers() map[string]jobs.Handler {
+// JobHandlers returns the job handlers of this module. pusher is nil when
+// the API has no credential of Firebase Cloud Messaging (RN-36).
+func JobHandlers(pusher Pusher) map[string]jobs.Handler {
+	push := pushJob{pusher: pusher}
 	return map[string]jobs.Handler{
 		_jobLostReport: notifyLostReport,
 		_jobSighting:   notifySighting,
 		_jobFound:      notifyFound,
+		_jobPush:       push.run,
 	}
+}
+
+// notify creates a notification and, in the same transaction, the job that
+// sends it by push (RF-26). It does nothing for a notification that exists.
+func notify(ctx context.Context, tx pgx.Tx, params alertsdb.CreateNotificationParams) error {
+	id, err := alertsdb.New(tx).CreateNotification(ctx, params)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// A job that runs two times does not repeat the notification.
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("create the %s notification: %w", params.Kind, err)
+	}
+	return jobs.Enqueue(ctx, tx, _jobPush, pushPayload{NotificationID: id})
 }
 
 const lostNearbyTitle = "Pet desaparecido perto de você"
@@ -130,8 +149,7 @@ func notifyLostReport(ctx context.Context, tx pgx.Tx, payload json.RawMessage) e
 	if err := json.Unmarshal(payload, &report); err != nil {
 		return fmt.Errorf("decode the lost report: %w", err)
 	}
-	queries := alertsdb.New(tx)
-	owners, err := queries.ListNearbyOwners(ctx, alertsdb.ListNearbyOwnersParams{
+	owners, err := alertsdb.New(tx).ListNearbyOwners(ctx, alertsdb.ListNearbyOwnersParams{
 		Latitude:  report.Latitude,
 		Longitude: report.Longitude,
 		RadiusM:   _alertRadiusMeters,
@@ -145,7 +163,7 @@ func notifyLostReport(ctx context.Context, tx pgx.Tx, payload json.RawMessage) e
 	for _, owner := range owners {
 		// The distance is at most 3.000 m, so it fits an int32.
 		distance := int32(math.Round(owner.DistanceM))
-		err := queries.CreateNotification(ctx, alertsdb.CreateNotificationParams{
+		err := notify(ctx, tx, alertsdb.CreateNotificationParams{
 			OwnerID:   owner.OwnerID,
 			Kind:      KindLostNearby,
 			SourceID:  report.ReportID,
@@ -155,7 +173,7 @@ func notifyLostReport(ctx context.Context, tx pgx.Tx, payload json.RawMessage) e
 			DistanceM: &distance,
 		})
 		if err != nil {
-			return fmt.Errorf("create the notification of a nearby owner: %w", err)
+			return err
 		}
 	}
 	return nil
@@ -166,7 +184,7 @@ func notifySighting(ctx context.Context, tx pgx.Tx, payload json.RawMessage) err
 	if err := json.Unmarshal(payload, &sighting); err != nil {
 		return fmt.Errorf("decode the sighting: %w", err)
 	}
-	err := alertsdb.New(tx).CreateNotification(ctx, alertsdb.CreateNotificationParams{
+	return notify(ctx, tx, alertsdb.CreateNotificationParams{
 		OwnerID:  sighting.OwnerID,
 		Kind:     KindSighting,
 		SourceID: sighting.SightingID,
@@ -174,10 +192,6 @@ func notifySighting(ctx context.Context, tx pgx.Tx, payload json.RawMessage) err
 		Title:    sightingTitle(sighting),
 		Body:     sightingBody(sighting),
 	})
-	if err != nil {
-		return fmt.Errorf("create the notification of a sighting: %w", err)
-	}
-	return nil
 }
 
 func notifyFound(ctx context.Context, tx pgx.Tx, payload json.RawMessage) error {
@@ -185,15 +199,11 @@ func notifyFound(ctx context.Context, tx pgx.Tx, payload json.RawMessage) error 
 	if err := json.Unmarshal(payload, &found); err != nil {
 		return fmt.Errorf("decode the found pet: %w", err)
 	}
-	err := alertsdb.New(tx).CreateNotification(ctx, alertsdb.CreateNotificationParams{
+	return notify(ctx, tx, alertsdb.CreateNotificationParams{
 		OwnerID:  found.OwnerID,
 		Kind:     KindFound,
 		SourceID: found.CandidateID,
 		Title:    foundTitle(found),
 		Body:     foundBody(found),
 	})
-	if err != nil {
-		return fmt.Errorf("create the notification of a found pet: %w", err)
-	}
-	return nil
 }

@@ -19,6 +19,27 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for DevicePlatform.
+const (
+	DevicePlatformAndroid DevicePlatform = "android"
+	DevicePlatformIos     DevicePlatform = "ios"
+	DevicePlatformWeb     DevicePlatform = "web"
+)
+
+// Valid indicates whether the value is a known member of the DevicePlatform enum.
+func (e DevicePlatform) Valid() bool {
+	switch e {
+	case DevicePlatformAndroid:
+		return true
+	case DevicePlatformIos:
+		return true
+	case DevicePlatformWeb:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ErrorCode.
 const (
 	ErrorCodeIdentificationNotFound ErrorCode = "identification_not_found"
@@ -231,6 +252,17 @@ func (e TermsVersion) Valid() bool {
 		return false
 	}
 }
+
+// Device defines model for Device.
+type Device struct {
+	Platform DevicePlatform `json:"platform"`
+
+	// Token Token de push do Firebase Cloud Messaging, com no máximo 4.096 caracteres.
+	Token string `json:"token"`
+}
+
+// DevicePlatform defines model for Device.Platform.
+type DevicePlatform string
 
 // Error Formato único de erro. Todo erro da API usa este formato.
 type Error struct {
@@ -663,6 +695,9 @@ type ConfirmIdentificationMultipartRequestBody ConfirmIdentificationMultipartBod
 // RegisterMeJSONRequestBody defines body for RegisterMe for application/json ContentType.
 type RegisterMeJSONRequestBody = RegisterOwnerRequest
 
+// RegisterDeviceJSONRequestBody defines body for RegisterDevice for application/json ContentType.
+type RegisterDeviceJSONRequestBody = Device
+
 // SetMyLocationJSONRequestBody defines body for SetMyLocation for application/json ContentType.
 type SetMyLocationJSONRequestBody = Location
 
@@ -710,6 +745,12 @@ type ServerInterface interface {
 	// RegisterMe Registra o tutor da conta, com o aceite dos termos de uso.
 	// (POST /v1/me)
 	RegisterMe(w http.ResponseWriter, r *http.Request)
+	// RegisterDevice Registra o dispositivo do tutor para receber push.
+	// (PUT /v1/me/devices)
+	RegisterDevice(w http.ResponseWriter, r *http.Request)
+	// RemoveDevice Remove um dispositivo do tutor.
+	// (DELETE /v1/me/devices/{token})
+	RemoveDevice(w http.ResponseWriter, r *http.Request, token string)
 	// SetMyLocation Guarda a última localização do tutor.
 	// (PUT /v1/me/location)
 	SetMyLocation(w http.ResponseWriter, r *http.Request)
@@ -865,6 +906,46 @@ func (siw *ServerInterfaceWrapper) RegisterMe(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RegisterMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RegisterDevice operation middleware
+func (siw *ServerInterfaceWrapper) RegisterDevice(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RegisterDevice(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveDevice operation middleware
+func (siw *ServerInterfaceWrapper) RemoveDevice(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "token" -------------
+	var token string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "token", r.PathValue("token"), &token, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "token", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveDevice(w, r, token)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1434,6 +1515,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reports/{reportId}/code-resolution", wrapper.ResolveFoundReport)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me/reports", wrapper.ListMyReports)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/me/location", wrapper.SetMyLocation)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/me/devices", wrapper.RegisterDevice)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/v1/me/devices/{token}", wrapper.RemoveDevice)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/notifications", wrapper.ListNotifications)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/notifications/{notificationId}/read", wrapper.MarkNotificationRead)
 
@@ -1883,6 +1966,142 @@ type RegisterMedefaultJSONResponse struct {
 }
 
 func (response RegisterMedefaultJSONResponse) VisitRegisterMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterDeviceRequestObject struct {
+	Body *RegisterDeviceJSONRequestBody
+}
+
+type RegisterDeviceResponseObject interface {
+	VisitRegisterDeviceResponse(w http.ResponseWriter) error
+}
+
+type RegisterDevice204Response struct {
+}
+
+func (response RegisterDevice204Response) VisitRegisterDeviceResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RegisterDevice400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response RegisterDevice400JSONResponse) VisitRegisterDeviceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterDevice401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response RegisterDevice401JSONResponse) VisitRegisterDeviceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterDevice404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response RegisterDevice404JSONResponse) VisitRegisterDeviceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterDevicedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response RegisterDevicedefaultJSONResponse) VisitRegisterDeviceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveDeviceRequestObject struct {
+	Token string `json:"token"`
+}
+
+type RemoveDeviceResponseObject interface {
+	VisitRemoveDeviceResponse(w http.ResponseWriter) error
+}
+
+type RemoveDevice204Response struct {
+}
+
+func (response RemoveDevice204Response) VisitRemoveDeviceResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RemoveDevice401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response RemoveDevice401JSONResponse) VisitRemoveDeviceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveDevice404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response RemoveDevice404JSONResponse) VisitRemoveDeviceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveDevicedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response RemoveDevicedefaultJSONResponse) VisitRemoveDeviceResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -3381,6 +3600,12 @@ type StrictServerInterface interface {
 	// RegisterMe Registra o tutor da conta, com o aceite dos termos de uso.
 	// (POST /v1/me)
 	RegisterMe(ctx context.Context, request RegisterMeRequestObject) (RegisterMeResponseObject, error)
+	// RegisterDevice Registra o dispositivo do tutor para receber push.
+	// (PUT /v1/me/devices)
+	RegisterDevice(ctx context.Context, request RegisterDeviceRequestObject) (RegisterDeviceResponseObject, error)
+	// RemoveDevice Remove um dispositivo do tutor.
+	// (DELETE /v1/me/devices/{token})
+	RemoveDevice(ctx context.Context, request RemoveDeviceRequestObject) (RemoveDeviceResponseObject, error)
 	// SetMyLocation Guarda a última localização do tutor.
 	// (PUT /v1/me/location)
 	SetMyLocation(ctx context.Context, request SetMyLocationRequestObject) (SetMyLocationResponseObject, error)
@@ -3639,6 +3864,63 @@ func (sh *strictHandler) RegisterMe(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RegisterMeResponseObject); ok {
 		if err := validResponse.VisitRegisterMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RegisterDevice operation middleware
+func (sh *strictHandler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
+	var request RegisterDeviceRequestObject
+
+	var body RegisterDeviceJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RegisterDevice(ctx, request.(RegisterDeviceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RegisterDevice")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RegisterDeviceResponseObject); ok {
+		if err := validResponse.VisitRegisterDeviceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RemoveDevice operation middleware
+func (sh *strictHandler) RemoveDevice(w http.ResponseWriter, r *http.Request, token string) {
+	var request RemoveDeviceRequestObject
+
+	request.Token = token
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RemoveDevice(ctx, request.(RemoveDeviceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RemoveDevice")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RemoveDeviceResponseObject); ok {
+		if err := validResponse.VisitRemoveDeviceResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

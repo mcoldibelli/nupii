@@ -137,3 +137,46 @@ func (s *Service) MarkRead(ctx context.Context, id string) error {
 	}
 	return nil
 }
+
+// _maxTokenLength is more than the length of a token of Firebase Cloud
+// Messaging.
+const _maxTokenLength = 4096
+
+// RegisterDevice registers the device token of the owner that made the
+// request, for push (RF-23). A token of another owner passes to this owner
+// (RN-31).
+func (s *Service) RegisterDevice(ctx context.Context, token, platform string) error {
+	if token == "" || len(token) > _maxTokenLength {
+		return &ValidationError{Message: "token must have from 1 to 4096 characters"}
+	}
+	switch platform {
+	case "android", "ios", "web":
+	default:
+		return &ValidationError{Message: "platform must be android, ios or web"}
+	}
+	ownerID, err := s.ownerID(ctx)
+	if err != nil {
+		return err
+	}
+	err = s.queries.SetDevice(ctx, alertsdb.SetDeviceParams{
+		Token: token, OwnerID: ownerID, Platform: platform,
+	})
+	if err != nil {
+		return fmt.Errorf("register the device: %w", err)
+	}
+	return nil
+}
+
+// RemoveDevice removes the device token of the owner that made the
+// request. A token of another owner stays (RN-31).
+func (s *Service) RemoveDevice(ctx context.Context, token string) error {
+	ownerID, err := s.ownerID(ctx)
+	if err != nil {
+		return err
+	}
+	err = s.queries.RemoveDevice(ctx, alertsdb.RemoveDeviceParams{Token: token, OwnerID: ownerID})
+	if err != nil {
+		return fmt.Errorf("remove the device: %w", err)
+	}
+	return nil
+}

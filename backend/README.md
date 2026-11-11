@@ -85,6 +85,7 @@ O processo não sobe com um valor inválido. Ele escreve o erro na saída de err
 | `HTTP_ADDR` | Não | `:8080` | Endereço em que o servidor HTTP escuta, no formato `host:porta` |
 | `DATABASE_URL` | Sim | | URL de conexão do Postgres, com o esquema `postgres` ou `postgresql`. Ela tem a senha: não fica no repositório e não é escrita no log |
 | `FIREBASE_PROJECT_ID` | Sim | | Identificador do projeto do Firebase. A API só aceita ID tokens desse projeto. No ambiente local é `demo-nupii` |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Não | | Arquivo da chave da conta de serviço do Firebase. Com ele, e sem o emulador, a API envia push (RN-36). Sem ele, a notificação fica só na lista |
 | `INFERENCE_URL` | Sim | | Endereço do serviço de inferência, com `http://` ou `https://`. A API sobe sem o serviço responder |
 | `S3_ENDPOINT` | Sim | | Endereço do armazenamento de objetos visto pela API, com `http://` ou `https://` |
 | `S3_PUBLIC_ENDPOINT` | Não | o valor de `S3_ENDPOINT` | Endereço do armazenamento visto pelos clientes da API. Ele vai nas URLs temporárias |
@@ -172,7 +173,7 @@ A primeira execução baixa o `oapi-codegen` na versão fixada em `internal/api/
 | `sqlc.yaml` | Configuração do `sqlc`: qual arquivo de consultas gera qual pacote |
 | `internal/identity/` | Módulo do tutor: validação do token das requisições, regras do registro, handlers de `/v1/me`. `identitydb/` é o código gerado das consultas |
 | `internal/biometrics/` | Módulo de biometria: cadastro do focinho (RN-07 a RN-09, RN-59, RN-60), identificação (RN-10 a RN-15, RN-61, RN-62), confirmação (RN-16, RN-63 a RN-65), avisos de encontro (RN-66) e recálculo dos vetores (RN-67). `biometricsdb/` é o código gerado das consultas |
-| `internal/alerts/` | Módulo de alertas: última localização (RN-30), notificações (RN-35, RN-74) e as tarefas que criam as notificações (RN-32 a RN-34, RN-73). `alertsdb/` é o código gerado das consultas |
+| `internal/alerts/` | Módulo de alertas: última localização (RN-30), dispositivos (RN-31), notificações (RN-35, RN-74), as tarefas que criam as notificações (RN-32 a RN-34, RN-73) e o envio de push (RN-36). `alertsdb/` é o código gerado das consultas |
 | `internal/reports/` | Módulo de ocorrências: perdido, achado, avistamento, resolver, mural e ficha (RN-24 a RN-29, RN-68 a RN-72). `reportsdb/` é o código gerado das consultas |
 | `internal/platform/inference/` | Cliente do serviço de inferência |
 | `internal/platform/jobs/` | Fila de tarefas no banco (ADR 0003, RNF-01, RNF-02) |

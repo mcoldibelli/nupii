@@ -10,13 +10,14 @@ import (
 	"time"
 )
 
-const createNotification = `-- name: CreateNotification :exec
+const createNotification = `-- name: CreateNotification :one
 INSERT INTO notifications (owner_id, kind, source_id, report_id, title, body, distance_m)
 VALUES (
     $1, $2, $3, $4,
     $5, $6, $7
 )
 ON CONFLICT ON CONSTRAINT notifications_event_key DO NOTHING
+RETURNING id
 `
 
 type CreateNotificationParams struct {
@@ -29,9 +30,10 @@ type CreateNotificationParams struct {
 	DistanceM *int32
 }
 
-// A job that runs two times does not repeat the notification.
-func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotificationParams) error {
-	_, err := q.db.Exec(ctx, createNotification,
+// A job that runs two times does not repeat the notification: the second
+// insert returns no row.
+func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotificationParams) (string, error) {
+	row := q.db.QueryRow(ctx, createNotification,
 		arg.OwnerID,
 		arg.Kind,
 		arg.SourceID,
@@ -40,7 +42,43 @@ func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotification
 		arg.Body,
 		arg.DistanceM,
 	)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
+const deactivateDevices = `-- name: DeactivateDevices :exec
+UPDATE devices SET active = false, updated_at = now() WHERE token = ANY($1::text[])
+`
+
+// RN-36: um token que o Cloud Messaging recusa é desativado.
+func (q *Queries) DeactivateDevices(ctx context.Context, tokens []string) error {
+	_, err := q.db.Exec(ctx, deactivateDevices, tokens)
 	return err
+}
+
+const listActiveDeviceTokens = `-- name: ListActiveDeviceTokens :many
+SELECT token FROM devices WHERE owner_id = $1 AND active ORDER BY token
+`
+
+func (q *Queries) ListActiveDeviceTokens(ctx context.Context, ownerID string) ([]string, error) {
+	rows, err := q.db.Query(ctx, listActiveDeviceTokens, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var token string
+		if err := rows.Scan(&token); err != nil {
+			return nil, err
+		}
+		items = append(items, token)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listNearbyOwners = `-- name: ListNearbyOwners :many
@@ -144,6 +182,36 @@ func (q *Queries) ListNotifications(ctx context.Context, ownerID string) ([]List
 	return items, nil
 }
 
+const lockNotificationForPush = `-- name: LockNotificationForPush :one
+SELECT owner_id, kind, report_id, title, body, push_status
+FROM notifications
+WHERE id = $1
+FOR UPDATE
+`
+
+type LockNotificationForPushRow struct {
+	OwnerID    string
+	Kind       string
+	ReportID   *string
+	Title      string
+	Body       string
+	PushStatus string
+}
+
+func (q *Queries) LockNotificationForPush(ctx context.Context, id string) (LockNotificationForPushRow, error) {
+	row := q.db.QueryRow(ctx, lockNotificationForPush, id)
+	var i LockNotificationForPushRow
+	err := row.Scan(
+		&i.OwnerID,
+		&i.Kind,
+		&i.ReportID,
+		&i.Title,
+		&i.Body,
+		&i.PushStatus,
+	)
+	return i, err
+}
+
 const markNotificationRead = `-- name: MarkNotificationRead :execrows
 UPDATE notifications
 SET read_at = COALESCE(read_at, now())
@@ -162,6 +230,40 @@ func (q *Queries) MarkNotificationRead(ctx context.Context, arg MarkNotification
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const removeDevice = `-- name: RemoveDevice :exec
+DELETE FROM devices WHERE token = $1 AND owner_id = $2
+`
+
+type RemoveDeviceParams struct {
+	Token   string
+	OwnerID string
+}
+
+// RN-31: o tutor remove só um token dele.
+func (q *Queries) RemoveDevice(ctx context.Context, arg RemoveDeviceParams) error {
+	_, err := q.db.Exec(ctx, removeDevice, arg.Token, arg.OwnerID)
+	return err
+}
+
+const setDevice = `-- name: SetDevice :exec
+INSERT INTO devices (token, owner_id, platform, active, updated_at)
+VALUES ($1, $2, $3, true, now())
+ON CONFLICT (token) DO UPDATE
+SET owner_id = EXCLUDED.owner_id, platform = EXCLUDED.platform, active = true, updated_at = now()
+`
+
+type SetDeviceParams struct {
+	Token    string
+	OwnerID  string
+	Platform string
+}
+
+// RN-31: registrar de novo um token de outro tutor passa o token para o tutor atual.
+func (q *Queries) SetDevice(ctx context.Context, arg SetDeviceParams) error {
+	_, err := q.db.Exec(ctx, setDevice, arg.Token, arg.OwnerID, arg.Platform)
+	return err
 }
 
 const setOwnerLocation = `-- name: SetOwnerLocation :exec
@@ -183,5 +285,19 @@ type SetOwnerLocationParams struct {
 // RN-30: o sistema guarda só a última localização do tutor.
 func (q *Queries) SetOwnerLocation(ctx context.Context, arg SetOwnerLocationParams) error {
 	_, err := q.db.Exec(ctx, setOwnerLocation, arg.OwnerID, arg.Longitude, arg.Latitude)
+	return err
+}
+
+const setPushStatus = `-- name: SetPushStatus :exec
+UPDATE notifications SET push_status = $1 WHERE id = $2
+`
+
+type SetPushStatusParams struct {
+	PushStatus string
+	ID         string
+}
+
+func (q *Queries) SetPushStatus(ctx context.Context, arg SetPushStatusParams) error {
+	_, err := q.db.Exec(ctx, setPushStatus, arg.PushStatus, arg.ID)
 	return err
 }
