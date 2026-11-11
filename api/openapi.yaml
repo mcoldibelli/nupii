@@ -38,12 +38,18 @@ components:
       required: [error, message]
       properties:
         error:
-          type: string
-          description: Código estável do erro. O cliente escolhe o texto da tela por este código.
-          examples: [internal_error]
+          $ref: "#/components/schemas/ErrorCode"
         message:
           type: string
           description: Texto para diagnóstico. O cliente não mostra este texto ao usuário.
+    ErrorCode:
+      type: string
+      description: |
+        Código estável do erro. O cliente escolhe o texto da tela por este código.
+        Um código novo entra nesta lista antes de entrar no código do servidor.
+      enum:
+        - not_found
+        - internal_error
   responses:
     Error:
       description: Erro no formato único.
