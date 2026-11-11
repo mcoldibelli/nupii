@@ -10,10 +10,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/mcoldibelli/nupii/backend/db/migrations"
+	"github.com/mcoldibelli/nupii/backend/internal/biometrics"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/config"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
@@ -116,6 +118,18 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	go func() { serveErr <- srv.Serve(listener) }()
 	logger.InfoContext(ctx, "http server started", slog.String("addr", listener.Addr().String()))
 
+	// RN-67: o recálculo dos vetores é executado na subida da API.
+	// The goroutine ends when the recompute ends or when its context is
+	// cancelled: each call of the recompute stops with the context. run
+	// cancels the context and waits for the goroutine before it returns.
+	backgroundCtx, cancelBackground := context.WithCancel(ctx)
+	var background sync.WaitGroup
+	background.Go(func() { reembedNoseprints(backgroundCtx, logger, operations.noseprints) })
+	defer func() {
+		cancelBackground()
+		background.Wait()
+	}()
+
 	select {
 	case err := <-serveErr:
 		return fmt.Errorf("serve http: %w", err)
@@ -129,6 +143,25 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 		return fmt.Errorf("shut down http server: %w", err)
 	}
 	return nil
+}
+
+// reembedNoseprints makes the vectors of the noseprints of another model
+// version, and writes the result to the log. A failure does not stop the
+// API: the noseprints that are left stay for the next start.
+func reembedNoseprints(ctx context.Context, logger *slog.Logger, noseprints *biometrics.Service) {
+	result, err := noseprints.Reembed(ctx)
+	counts := []any{
+		slog.String("model_version", result.ModelVersion),
+		slog.Int("pending", result.Pending),
+		slog.Int("updated", result.Updated),
+		slog.Int("skipped", result.Skipped),
+	}
+	if err != nil {
+		logger.WarnContext(ctx, "recompute of the noseprint vectors stopped",
+			append(counts, slog.Any("error", err))...)
+		return
+	}
+	logger.InfoContext(ctx, "recompute of the noseprint vectors ended", counts...)
 }
 
 // healthcheck calls GET /v1/health of the API that runs on this machine,

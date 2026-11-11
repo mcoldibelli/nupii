@@ -96,3 +96,31 @@ func TestPutFailsWithAWrongSecret(t *testing.T) {
 		t.Errorf("the error has the secret or the signature: %v", err)
 	}
 }
+
+// ADR 0020: o backend lê o conteúdo de um objeto.
+func TestGet(t *testing.T) {
+	ctx := t.Context()
+	store := storage.New(storagetest.Config(t))
+	key := "test/" + rand.Text() + "/photo of a nose.jpg"
+	content := []byte("the content of the object " + rand.Text())
+	t.Cleanup(func() {
+		if err := store.Delete(context.WithoutCancel(ctx), key); err != nil {
+			t.Errorf("delete the object of the test: %v", err)
+		}
+	})
+	if err := store.Put(ctx, key, "image/jpeg", bytes.NewReader(content), int64(len(content))); err != nil {
+		t.Fatalf("Put: %v", err)
+	}
+
+	got, err := store.Get(ctx, key, int64(len(content)))
+	if err != nil || !bytes.Equal(got, content) {
+		t.Errorf("Get = %d bytes, %v, want the %d bytes stored", len(got), err, len(content))
+	}
+
+	if _, err := store.Get(ctx, key, int64(len(content))-1); err == nil {
+		t.Error("Get of an object larger than the limit: no error")
+	}
+	if _, err := store.Get(ctx, "test/"+rand.Text()+"/no object.jpg", 1024); err == nil {
+		t.Error("Get of an object that does not exist: no error")
+	}
+}

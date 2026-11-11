@@ -19,6 +19,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/mcoldibelli/nupii/backend/internal/api"
+	"github.com/mcoldibelli/nupii/backend/internal/biometrics"
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/inference"
@@ -34,12 +35,19 @@ type testAPI struct {
 	pool    *pgxpool.Pool
 	// embedder is in the place of the inference service.
 	embedder *fakeEmbedder
+	// noseprints is the biometrics service of the server.
+	noseprints *biometrics.Service
 }
 
 // fakeEmbedder is in the place of the inference service. A test sets embed
 // to choose the answer for a photo.
 type fakeEmbedder struct {
-	embed func(image []byte) (inference.Embedding, error)
+	embed        func(image []byte) (inference.Embedding, error)
+	modelVersion func() (string, error)
+}
+
+func (f *fakeEmbedder) ModelVersion(context.Context) (string, error) {
+	return f.modelVersion()
 }
 
 func (f *fakeEmbedder) Embed(_ context.Context, image []byte) (inference.Embedding, error) {
@@ -62,11 +70,20 @@ func newTestAPI(t *testing.T, verifier identity.TokenVerifier, uids ...string) t
 	t.Cleanup(func() { deleteOwners(t, pool, uids) })
 	logger := slog.New(slog.DiscardHandler)
 	photos := storage.New(storagetest.Config(t))
-	embedder := &fakeEmbedder{embed: func([]byte) (inference.Embedding, error) {
-		return inference.Embedding{Vector: unitVector(0), ModelVersion: "test-model", Quality: 0.9}, nil
-	}}
-	handler := newHandler(logger, newServer(logger, pool, photos, embedder), verifier)
-	return testAPI{t: t, handler: handler, pool: pool, embedder: embedder}
+	embedder := &fakeEmbedder{
+		embed: func([]byte) (inference.Embedding, error) {
+			return inference.Embedding{Vector: unitVector(0), ModelVersion: "test-model", Quality: 0.9}, nil
+		},
+		modelVersion: func() (string, error) { return "test-model", nil },
+	}
+	operations := newServer(logger, pool, photos, embedder)
+	return testAPI{
+		t:          t,
+		handler:    newHandler(logger, operations, verifier),
+		pool:       pool,
+		embedder:   embedder,
+		noseprints: operations.noseprints,
+	}
 }
 
 func deleteOwners(t *testing.T, pool *pgxpool.Pool, uids []string) {

@@ -118,6 +118,7 @@ Concorrência, declarada por regra:
 - Cada worker para quando o contexto é cancelado e termina a tarefa em curso antes de sair.
 - Uma tarefa que falha volta para a fila com espera crescente. Depois do limite de tentativas ela fica marcada como falha.
 - Toda tarefa precisa ser segura para executar duas vezes.
+- O recálculo dos vetores (RN-67) é uma goroutine que nasce em `main` depois de o servidor HTTP subir. Ela termina quando o recálculo termina ou quando o contexto é cancelado, e `main` espera por ela antes de sair. Se o serviço de inferência não responde, ela escreve um aviso no log e para: os cadastros que faltam ficam para a subida seguinte.
 
 ## Dados
 

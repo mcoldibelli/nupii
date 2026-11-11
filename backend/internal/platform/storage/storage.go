@@ -85,6 +85,45 @@ func (s *Store) Delete(ctx context.Context, key string) error {
 	return s.do(req, key, http.StatusNoContent)
 }
 
+// Get returns the content of the object key. It returns an error when the
+// object does not exist or has more than maxBytes.
+func (s *Store) Get(ctx context.Context, key string, maxBytes int64) (data []byte, err error) {
+	signed, err := s.presign(http.MethodGet, s.cfg.Endpoint, key, time.Now(), _requestExpiry)
+	if err != nil {
+		return nil, fmt.Errorf("sign get of %q: %w", key, err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, signed, nil)
+	if err != nil {
+		return nil, fmt.Errorf("build get of %q: %w", key, err)
+	}
+	resp, err := s.client.Do(req)
+	if err != nil {
+		// The error of the client has the URL with the signature. Only its
+		// cause is wrapped.
+		if urlErr, ok := errors.AsType[*url.Error](err); ok {
+			err = urlErr.Err
+		}
+		return nil, fmt.Errorf("GET object %q: %w", key, err)
+	}
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("close answer of GET object %q: %w", key, cerr)
+		}
+	}()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("GET object %q: status %d", key, resp.StatusCode)
+	}
+	// One byte over the limit is enough to know that the object is too big.
+	data, err = io.ReadAll(io.LimitReader(resp.Body, maxBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("read object %q: %w", key, err)
+	}
+	if int64(len(data)) > maxBytes {
+		return nil, fmt.Errorf("object %q has more than %d bytes", key, maxBytes)
+	}
+	return data, nil
+}
+
 // SignedURL returns a URL that reads the object key with no credential,
 // until expires passes. The URL has the public address of the store.
 func (s *Store) SignedURL(key string, expires time.Duration) (string, error) {
