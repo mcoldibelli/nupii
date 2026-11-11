@@ -44,6 +44,8 @@ Se você mudar a senha do banco depois da primeira subida, apague os dados com `
 
 Para desenvolver a API, suba só o banco e o servidor S3 e execute a API com `go run`. Os comandos estão no README do [backend](backend/README.md).
 
+Para executar o app, veja o README do [mobile](mobile/README.md).
+
 ## Documentos
 
 | Documento | O que tem |
