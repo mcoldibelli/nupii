@@ -42,10 +42,135 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/pets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista os pets do tutor, em ordem de nome. */
+        get: operations["listPets"];
+        put?: never;
+        /** Cria um pet do tutor. */
+        post: operations["createPet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets/{petId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        /** Devolve um pet do tutor. */
+        get: operations["getPet"];
+        /**
+         * Troca todos os dados de um pet do tutor.
+         * @description Um dado opcional que não vem no corpo fica vazio no pet.
+         */
+        put: operations["updatePet"];
+        post?: never;
+        /** Exclui um pet do tutor. */
+        delete: operations["deletePet"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets/{petId}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Envia a foto de perfil de um pet do tutor.
+         * @description A foto nova substitui a anterior.
+         */
+        put: operations["setPetPhoto"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Dados de um pet que o tutor informa. */
+        PetInput: {
+            /** @description Nome do pet. Não pode ser vazio. */
+            name: string;
+            species: components["schemas"]["Species"];
+            /** @description Raça, em texto livre. */
+            breed?: string;
+            sex?: components["schemas"]["Sex"];
+            size?: components["schemas"]["Size"];
+            /**
+             * Format: date
+             * @description Data de nascimento. Não pode ser uma data futura.
+             */
+            birthDate?: string;
+            /**
+             * Format: double
+             * @description Peso em quilos, com no máximo 2 casas decimais.
+             */
+            weightKg?: number;
+            /** @description Informa se o pet é castrado. */
+            neutered?: boolean;
+            /** @description Nome do veterinário. */
+            vetName?: string;
+            /** @description Clínica do veterinário. */
+            vetClinic?: string;
+            /** @description Telefone do veterinário. */
+            vetPhone?: string;
+        };
+        /** @description Um pet do tutor. */
+        Pet: components["schemas"]["PetInput"] & {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: uri
+             * @description URL temporária da foto de perfil, válida por 15 minutos.
+             *     O campo não vem quando o pet não tem foto.
+             */
+            photoUrl?: string;
+        };
+        PetList: {
+            pets: components["schemas"]["Pet"][];
+        };
+        /**
+         * @description Espécie do pet.
+         * @enum {string}
+         */
+        Species: "dog" | "cat" | "other";
+        /**
+         * @description Sexo do pet.
+         * @enum {string}
+         */
+        Sex: "male" | "female" | "unknown";
+        /**
+         * @description Porte do pet.
+         * @enum {string}
+         */
+        Size: "small" | "medium" | "large";
         /** @description O tutor. Pessoa com conta, responsável por pets. */
         Owner: {
             /** @description Identificador do tutor, um UUID. */
@@ -83,9 +208,39 @@ export interface components {
          *     Um código novo entra nesta lista antes de entrar no código do servidor.
          * @enum {string}
          */
-        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found";
+        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found" | "pet_not_found";
     };
     responses: {
+        /** @description O corpo ou um parâmetro é inválido. O código do erro é `invalid_request`. */
+        InvalidRequest: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description A conta ainda não registrou o tutor. O código do erro é `owner_not_found`. */
+        OwnerNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /**
+         * @description O pet não existe para este tutor, com o código `pet_not_found`.
+         *     Ou a conta ainda não registrou o tutor, com o código `owner_not_found`.
+         */
+        PetNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
         /** @description A chamada não tem token, ou o token é inválido ou está vencido. O código do erro é `unauthenticated`. */
         Unauthenticated: {
             headers: {
@@ -105,7 +260,10 @@ export interface components {
             };
         };
     };
-    parameters: never;
+    parameters: {
+        /** @description Identificador do pet. */
+        PetId: string;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -214,6 +372,177 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthenticated"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listPets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os pets do tutor que não foram excluídos. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PetList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    createPet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PetInput"];
+            };
+        };
+        responses: {
+            /** @description O pet foi criado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pet"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    getPet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O pet. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pet"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["PetNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    updatePet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PetInput"];
+            };
+        };
+        responses: {
+            /** @description O pet com os dados novos. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pet"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["PetNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    deletePet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O pet foi excluído. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["PetNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    setPetPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description Imagem JPEG, PNG ou WebP, com no máximo 5 MB.
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description O pet, com a URL temporária da foto nova. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pet"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["PetNotFound"];
             default: components["responses"]["Error"];
         };
     };

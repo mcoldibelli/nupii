@@ -16,6 +16,9 @@ const (
 	// _demoProjectPrefix is the prefix of a Firebase project that exists
 	// only in the emulators.
 	_demoProjectPrefix = "demo-"
+	// _defaultStorageRegion is the region for an object store that has no
+	// regions. The signature of the requests needs a region name.
+	_defaultStorageRegion = "us-east-1"
 )
 
 // Config is the configuration of the API process.
@@ -32,6 +35,18 @@ type Config struct {
 	// emulator, or empty. The Firebase Admin SDK reads this variable from
 	// the environment by itself. The API reads it only to write a warning.
 	FirebaseAuthEmulatorHost string
+
+	// StorageEndpoint is the address that the API uses to reach the
+	// object store.
+	StorageEndpoint string
+	// StoragePublicEndpoint is the address that the clients of the API use
+	// to reach the object store. The default is StorageEndpoint.
+	StoragePublicEndpoint string
+	StorageBucket         string
+	StorageRegion         string
+	StorageAccessKeyID    string
+	// StorageSecretAccessKey is a secret. It must not be written to the log.
+	StorageSecretAccessKey string
 }
 
 // Load reads the configuration with getenv and validates it. The caller
@@ -43,6 +58,13 @@ func Load(getenv func(string) string) (Config, error) {
 
 		FirebaseProjectID:        getenv("FIREBASE_PROJECT_ID"),
 		FirebaseAuthEmulatorHost: getenv("FIREBASE_AUTH_EMULATOR_HOST"),
+
+		StorageEndpoint:        getenv("S3_ENDPOINT"),
+		StoragePublicEndpoint:  getenv("S3_PUBLIC_ENDPOINT"),
+		StorageBucket:          getenv("S3_BUCKET"),
+		StorageRegion:          getenv("S3_REGION"),
+		StorageAccessKeyID:     getenv("S3_ACCESS_KEY_ID"),
+		StorageSecretAccessKey: getenv("S3_SECRET_ACCESS_KEY"),
 	}
 	if addr := getenv("HTTP_ADDR"); addr != "" {
 		cfg.HTTPAddr = addr
@@ -65,7 +87,44 @@ func Load(getenv func(string) string) (Config, error) {
 			"FIREBASE_AUTH_EMULATOR_HOST: the emulator needs a FIREBASE_PROJECT_ID that starts with %q",
 			_demoProjectPrefix)
 	}
+	if cfg.StoragePublicEndpoint == "" {
+		cfg.StoragePublicEndpoint = cfg.StorageEndpoint
+	}
+	if cfg.StorageRegion == "" {
+		cfg.StorageRegion = _defaultStorageRegion
+	}
+	if err := validateHTTPURL(cfg.StorageEndpoint); err != nil {
+		return Config{}, fmt.Errorf("S3_ENDPOINT %q: %w", cfg.StorageEndpoint, err)
+	}
+	if err := validateHTTPURL(cfg.StoragePublicEndpoint); err != nil {
+		return Config{}, fmt.Errorf("S3_PUBLIC_ENDPOINT %q: %w", cfg.StoragePublicEndpoint, err)
+	}
+	required := []struct {
+		name  string
+		value string
+	}{
+		{name: "S3_BUCKET", value: cfg.StorageBucket},
+		{name: "S3_ACCESS_KEY_ID", value: cfg.StorageAccessKeyID},
+		{name: "S3_SECRET_ACCESS_KEY", value: cfg.StorageSecretAccessKey},
+	}
+	for _, variable := range required {
+		if variable.value == "" {
+			return Config{}, fmt.Errorf("%s: the variable is not set", variable.name)
+		}
+	}
 	return cfg, nil
+}
+
+// validateHTTPURL checks that raw is an http or https address with a host.
+func validateHTTPURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("parse URL: %w", err)
+	}
+	if (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return errors.New(`the value must be an address that starts with "http://" or "https://"`)
+	}
+	return nil
 }
 
 func validateAddr(addr string) error {

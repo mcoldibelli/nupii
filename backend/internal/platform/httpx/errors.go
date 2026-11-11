@@ -39,12 +39,12 @@ func WriteInternalError(ctx context.Context, logger *slog.Logger, w http.Respons
 }
 
 // LimitBody returns a middleware that stops the read of a request body
-// after maxBytes. The read then fails, and the handler answers with the
-// error of an invalid request.
-func LimitBody(maxBytes int64) func(http.Handler) http.Handler {
+// after the number of bytes that maxBytes gives for the request. The read
+// then fails, and the handler answers with the error of an invalid request.
+func LimitBody(maxBytes func(*http.Request) int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+			r.Body = http.MaxBytesReader(w, r.Body, maxBytes(r))
 			next.ServeHTTP(w, r)
 		})
 	}

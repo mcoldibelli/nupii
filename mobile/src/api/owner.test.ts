@@ -21,7 +21,7 @@ describe("getMe", () => {
 
     const result = await getMe(baseUrl, "the-token", fetchFn);
 
-    expect(result).toEqual({ ok: true, owner });
+    expect(result).toEqual({ ok: true, value: owner });
     expect(fetchFn).toHaveBeenCalledWith("http://api.test/v1/me", {
       method: "GET",
       headers: { Authorization: "Bearer the-token" },
@@ -53,7 +53,7 @@ describe("registerMe", () => {
 
     const result = await registerMe(baseUrl, "the-token", "Ana", fetchFn);
 
-    expect(result).toEqual({ ok: true, owner });
+    expect(result).toEqual({ ok: true, value: owner });
     expect(fetchFn).toHaveBeenCalledWith("http://api.test/v1/me", {
       method: "POST",
       headers: { Authorization: "Bearer the-token", "Content-Type": "application/json" },

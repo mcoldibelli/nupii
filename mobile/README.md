@@ -42,7 +42,10 @@ Para usar o projeto real do Firebase no lugar do emulador, execute `./deploy/fir
 
 1. Tela de entrada: entrar ou criar conta, com e-mail e senha de no mínimo 8 caracteres.
 2. No primeiro acesso: o tutor informa o nome e aceita os termos de uso. O app registra o tutor na API.
-3. Tela inicial: mostra o nome do tutor e a ação de sair.
+3. Lista de pets: a tela inicial. Mostra a foto, o nome e a espécie de cada pet, e a ação de sair.
+4. Novo pet e editar pet: o formulário com os dados do pet e a foto de perfil, escolhida na galeria do aparelho. A tela de editar tem a ação de excluir.
+
+As fotos vêm do armazenamento por uma URL temporária. No emulador Android, o `deploy/.env` precisa de `S3_PUBLIC_ENDPOINT=http://10.0.2.2:8333`, para o aparelho alcançar o armazenamento da sua máquina.
 
 A sessão continua depois de fechar o app. As contas do emulador somem quando o container do emulador reinicia: nesse caso a API recusa a sessão antiga e o app volta para a tela de entrada.
 
@@ -89,11 +92,21 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 
 | Caminho | O que tem |
 |---|---|
-| `App.tsx` | O estado do app: carregando, sem conta, primeiro acesso, pronto ou falha. Escolhe a tela |
+| `app/` | As telas. Cada arquivo é uma rota do Expo Router |
+| `app/_layout.tsx` | Layout raiz: cria a sessão e libera as telas pelo estado dela (sem conta, primeiro acesso, pronto) |
+| `app/index.tsx` | Lista de pets |
+| `app/pets/new.tsx`, `app/pets/[id].tsx` | Novo pet e editar pet |
+| `app/sign-in.tsx`, `app/complete-profile.tsx` | Entrada e primeiro acesso |
+| `src/session/SessionContext.tsx` | A conta e o tutor, para todas as telas |
 | `src/config.ts` | Leitura das variáveis de ambiente |
 | `src/terms.ts` | Versão e texto dos termos de uso que o app mostra |
 | `src/auth/firebase.ts` | O único arquivo que importa o SDK do Firebase: entrar, criar conta, sair, token |
-| `src/auth/validation.ts` | Regras dos formulários (RN-01, RN-44, RN-45), com testes |
+| `src/auth/validation.ts` | Regras dos formulários da conta (RN-01, RN-44, RN-45), com testes |
 | `src/api/schema.d.ts` | Tipos gerados do contrato |
-| `src/api/owner.ts` | Chamadas de `GET /v1/me` e `POST /v1/me`, com testes |
-| `src/screens/` | Telas: entrada, primeiro acesso e inicial |
+| `src/api/http.ts` | Envio de uma requisição com o token e leitura da resposta |
+| `src/api/owner.ts`, `src/api/pets.ts` | Chamadas da API, com testes |
+| `src/pets/form.ts` | Regras do formulário do pet (RN-48, RN-50, RN-51, RN-56), com testes |
+| `src/pets/save.ts` | Salva os dados do pet e depois envia a foto, com testes |
+| `src/pets/PetFormView.tsx` | O formulário do pet |
+| `src/pets/pickPhoto.ts` | O único arquivo que importa a galeria e o sistema de arquivos do aparelho |
+| `src/screens/` | Telas de entrada e de primeiro acesso, e os estilos comuns |

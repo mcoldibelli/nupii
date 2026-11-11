@@ -20,11 +20,11 @@ flowchart LR
 
 | Parte | Responsabilidade | ADR |
 |---|---|---|
-| App mobile | Tudo que o tutor faz: conta, pets, saúde, focinho, ocorrências, alertas. | [0006](adr/0006-mobile-expo-web-publica.md) |
+| App mobile | Tudo que o tutor faz: conta, pets, saúde, focinho, ocorrências, alertas. | [0006](adr/0006-mobile-expo-web-publica.md), [0016](adr/0016-navegacao-e-foto-no-app.md), [0017](adr/0017-arquivo-do-aparelho-no-app.md) |
 | Web pública | O que o visitante faz sem instalar nada: mural, ficha, "encontrei um pet", avistamento, carteirinha por link. | [0006](adr/0006-mobile-expo-web-publica.md) |
 | API Go | Um binário. Regras de negócio, acesso ao banco, tarefas em segundo plano. | [0002](adr/0002-backend-go-monolito-modular.md) |
 | Postgres | Único estado: dados, busca geográfica, busca por vetor, fila de tarefas. | [0003](adr/0003-estado-postgres-fila-no-banco.md) |
-| Armazenamento S3 | Fotos e anexos. SeaweedFS no ambiente local. | [0003](adr/0003-estado-postgres-fila-no-banco.md), [0012](adr/0012-servidor-s3-local.md) |
+| Armazenamento S3 | Fotos e anexos. SeaweedFS no ambiente local. | [0003](adr/0003-estado-postgres-fila-no-banco.md), [0012](adr/0012-servidor-s3-local.md), [0015](adr/0015-cliente-de-armazenamento.md) |
 | Inferência Python | Foto do focinho para vetor. Sem estado. | [0007](adr/0007-inferencia-python-onnx.md) |
 | Firebase Authentication | Identidade do tutor: senha, sessão, login com Google, redefinição de senha. No ambiente local e no CI, o emulador. | [0008](adr/0008-autenticacao-firebase.md), [0013](adr/0013-firebase-no-app.md), [0014](adr/0014-emulador-do-firebase-auth.md) |
 
@@ -139,8 +139,12 @@ Concorrência, declarada por regra:
 - Endpoints públicos têm limite de tentativas por IP (RN-43).
 - Autenticação: uma operação do contrato sem `security` é pública. Toda outra operação pede o ID token do Firebase no cabeçalho `Authorization: Bearer`. Sem token válido, a resposta é 401 com o código `unauthenticated` (RN-46). A conferência do token acontece antes da leitura do corpo.
 - O módulo `identity` depende da interface `TokenVerifier`. A implementação com o Firebase Admin SDK fica em `platform/firebase`, e `cmd/api` liga as duas.
-- Um corpo ou um parâmetro que não pode ser lido recebe 400 com o código `invalid_request`.
-- O corpo de uma requisição tem no máximo 1 MiB. Um corpo maior recebe a mesma resposta 400.
+- Um corpo ou um parâmetro que não pode ser lido recebe 400 com o código `invalid_request`. Um dado que quebra uma regra de negócio recebe a mesma resposta, com a regra na mensagem.
+- Um recurso de outro tutor não existe para quem chama: a resposta é 404, igual à de um recurso que nunca existiu (RN-52).
+- Uma conta sem tutor registrado recebe 404 com o código `owner_not_found` nas operações que precisam do tutor.
+- O corpo de uma requisição JSON tem no máximo 1 MiB, e o de um envio de foto tem no máximo 6 MiB. Um corpo maior recebe a mesma resposta 400.
+- Um arquivo enviado tem o tipo conferido pelos bytes do arquivo, não pelo que o cliente declara (RN-54).
+- A URL temporária de uma foto é assinada com o endereço público do armazenamento (`S3_PUBLIC_ENDPOINT`).
 - O emulador do Authentication só é aceito com um projeto de demonstração (`FIREBASE_PROJECT_ID` com o prefixo `demo-`). Com outro projeto, a API não sobe.
 - Toda resposta tem o cabeçalho `X-Request-Id`, com o identificador que aparece nas linhas de log da requisição (RNF-07).
 
@@ -211,6 +215,15 @@ O código usa o termo em inglês. A documentação e as telas usam o termo em po
 | termos de uso | terms | Texto que o tutor aceita no registro, com uma versão |
 | visitante | visitor | Pessoa sem conta |
 | pet | pet | Animal cadastrado |
+| espécie | species | Cachorro, gato ou outro |
+| raça | breed | Texto livre |
+| sexo | sex | Macho, fêmea ou não informado |
+| porte | size | Pequeno, médio ou grande |
+| castrado | neutered | Sim ou não |
+| data de nascimento | birth date | Data sem hora |
+| peso | weight | Peso do pet em quilos |
+| veterinário | vet | Nome, clínica e telefone de quem atende o pet |
+| foto de perfil | profile photo | A foto que identifica o pet nas listas |
 | focinho | nose | Região usada na biometria |
 | cadastro biométrico | noseprint | Foto do focinho com o vetor |
 | identificação | identification | Busca de um focinho no acervo |
