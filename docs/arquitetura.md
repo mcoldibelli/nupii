@@ -20,11 +20,11 @@ flowchart LR
 
 | Parte | Responsabilidade | ADR |
 |---|---|---|
-| App mobile | Tudo que o tutor faz: conta, pets, saúde, focinho, ocorrências, alertas. | [0006](adr/0006-mobile-expo-web-publica.md) |
+| App mobile | Tudo que o tutor faz: conta, pets, saúde, focinho, ocorrências, alertas. | [0006](adr/0006-mobile-expo-web-publica.md), [0016](adr/0016-navegacao-e-foto-no-app.md) |
 | Web pública | O que o visitante faz sem instalar nada: mural, ficha, "encontrei um pet", avistamento, carteirinha por link. | [0006](adr/0006-mobile-expo-web-publica.md) |
 | API Go | Um binário. Regras de negócio, acesso ao banco, tarefas em segundo plano. | [0002](adr/0002-backend-go-monolito-modular.md) |
 | Postgres | Único estado: dados, busca geográfica, busca por vetor, fila de tarefas. | [0003](adr/0003-estado-postgres-fila-no-banco.md) |
-| Armazenamento S3 | Fotos e anexos. SeaweedFS no ambiente local. | [0003](adr/0003-estado-postgres-fila-no-banco.md), [0012](adr/0012-servidor-s3-local.md) |
+| Armazenamento S3 | Fotos e anexos. SeaweedFS no ambiente local. | [0003](adr/0003-estado-postgres-fila-no-banco.md), [0012](adr/0012-servidor-s3-local.md), [0015](adr/0015-cliente-de-armazenamento.md) |
 | Inferência Python | Foto do focinho para vetor. Sem estado. | [0007](adr/0007-inferencia-python-onnx.md) |
 | Firebase Authentication | Identidade do tutor: senha, sessão, login com Google, redefinição de senha. No ambiente local e no CI, o emulador. | [0008](adr/0008-autenticacao-firebase.md), [0013](adr/0013-firebase-no-app.md), [0014](adr/0014-emulador-do-firebase-auth.md) |
 
@@ -211,6 +211,11 @@ O código usa o termo em inglês. A documentação e as telas usam o termo em po
 | termos de uso | terms | Texto que o tutor aceita no registro, com uma versão |
 | visitante | visitor | Pessoa sem conta |
 | pet | pet | Animal cadastrado |
+| espécie | species | Cachorro, gato ou outro |
+| raça | breed | Texto livre |
+| porte | size | Pequeno, médio ou grande |
+| castrado | neutered | Sim ou não |
+| foto de perfil | profile photo | A foto que identifica o pet nas listas |
 | focinho | nose | Região usada na biometria |
 | cadastro biométrico | noseprint | Foto do focinho com o vetor |
 | identificação | identification | Busca de um focinho no acervo |

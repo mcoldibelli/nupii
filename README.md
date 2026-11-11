@@ -89,6 +89,8 @@ O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app n
 | [0012](docs/adr/0012-servidor-s3-local.md) | SeaweedFS como servidor S3 do ambiente local | aceito |
 | [0013](docs/adr/0013-firebase-no-app.md) | SDK JavaScript do Firebase no app | aceito |
 | [0014](docs/adr/0014-emulador-do-firebase-auth.md) | Emulador do Firebase Authentication no ambiente local e no CI | aceito |
+| [0015](docs/adr/0015-cliente-de-armazenamento.md) | Cliente do armazenamento de objetos com a biblioteca padrão | aceito |
+| [0016](docs/adr/0016-navegacao-e-foto-no-app.md) | Navegação com Expo Router e seleção de foto com Expo Image Picker | aceito |
 
 ## Regras do projeto
 
