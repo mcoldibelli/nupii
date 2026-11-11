@@ -37,6 +37,15 @@ type Location struct {
 	Longitude float64
 }
 
+// valid tells if the location is a point of the Earth.
+//
+// RN-61: a latitude e a longitude são de um ponto da Terra.
+func (l Location) valid() bool {
+	// A value that is not a number (NaN) fails each comparison, so the
+	// check says what is accepted.
+	return l.Latitude >= -90 && l.Latitude <= 90 && l.Longitude >= -180 && l.Longitude <= 180
+}
+
 // Identification is the result of the search of one nose in the gallery.
 type Identification struct {
 	ID string
@@ -90,9 +99,7 @@ func (s *Service) Identify(
 	if _, _, err := checkPhoto(photo); err != nil {
 		return Identification{}, err
 	}
-	// RN-61: a latitude e a longitude são de um ponto da Terra.
-	if location != nil && (location.Latitude < -90 || location.Latitude > 90 ||
-		location.Longitude < -180 || location.Longitude > 180) {
+	if location != nil && !location.valid() {
 		return Identification{}, &ValidationError{
 			Message: "latitude must be from -90 to 90, and longitude from -180 to 180",
 		}
@@ -251,8 +258,21 @@ func (s *Service) Confirm(
 		}
 	}
 
-	// storedKey is the key of the object that this call stored, or empty.
-	var storedKey string
+	// The photo goes to the store before the transaction, so the
+	// transaction does not hold the lock of the identification and a
+	// connection of the pool during a call to the store.
+	var storedKey *string
+	if len(photo) > 0 {
+		key := "identifications/" + identificationID + "/" +
+			strings.ToLower(rand.Text()) + "." + extension
+		err := s.photos.Put(ctx, key, contentType, bytes.NewReader(photo), int64(len(photo)))
+		if err != nil {
+			return fmt.Errorf("store the photo of the identification: %w", err)
+		}
+		storedKey = &key
+	}
+
+	photoUsed := false
 	err = s.inTx(ctx, "confirmation", func(tx pgx.Tx) error {
 		queries := s.queries.WithTx(tx)
 		row, err := queries.LockCandidate(ctx, biometricsdb.LockCandidateParams{
@@ -265,25 +285,18 @@ func (s *Service) Confirm(
 		if err != nil {
 			return fmt.Errorf("lock the candidate of the confirmation: %w", err)
 		}
-		params := biometricsdb.SetIdentificationContactParams{
+		// RN-65: a foto fica a da primeira confirmação que envia uma foto.
+		// The identification is locked, so no other confirmation sets a
+		// photo between this check and the update.
+		photoUsed = storedKey != nil && row.PhotoKey == nil
+		err = queries.SetIdentificationContact(ctx, biometricsdb.SetIdentificationContactParams{
 			ID:             identificationID,
 			ContactName:    &contact.Name,
 			ContactPhone:   &contact.Phone,
 			ContactMessage: contact.Message,
-		}
-		// The identification is locked, so no other confirmation stores
-		// a photo between this check and the update.
-		if len(photo) > 0 && row.PhotoKey == nil {
-			storedKey = "identifications/" + identificationID + "/" +
-				strings.ToLower(rand.Text()) + "." + extension
-			err := s.photos.Put(ctx, storedKey, contentType, bytes.NewReader(photo), int64(len(photo)))
-			if err != nil {
-				storedKey = ""
-				return fmt.Errorf("store the photo of the identification: %w", err)
-			}
-			params.PhotoKey = &storedKey
-		}
-		if _, err := queries.SetIdentificationContact(ctx, params); err != nil {
+			PhotoKey:       storedKey,
+		})
+		if err != nil {
 			return fmt.Errorf("set the contact of the identification: %w", err)
 		}
 		if err := queries.ConfirmCandidate(ctx, row.ID); err != nil {
@@ -291,12 +304,12 @@ func (s *Service) Confirm(
 		}
 		return nil
 	})
-	if err != nil && storedKey != "" {
-		// The transaction did not end, so no identification points to the
-		// object. The delete continues when the client ends the request.
-		if derr := s.photos.Delete(context.WithoutCancel(ctx), storedKey); derr != nil {
-			s.logger.ErrorContext(ctx, "delete the photo of a confirmation that was not recorded",
-				slog.String("key", storedKey), slog.Any("error", derr))
+	if storedKey != nil && (err != nil || !photoUsed) {
+		// No identification points to the object. The delete continues
+		// when the client ends the request.
+		if derr := s.photos.Delete(context.WithoutCancel(ctx), *storedKey); derr != nil {
+			s.logger.ErrorContext(ctx, "delete the photo of a confirmation that does not use it",
+				slog.String("key", *storedKey), slog.Any("error", derr))
 		}
 	}
 	return err

@@ -8,6 +8,7 @@ import (
 
 	"github.com/mcoldibelli/nupii/backend/internal/biometrics/biometricsdb"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/inference"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/storage"
 )
 
 // ReembedResult says what one recompute of the vectors did.
@@ -19,7 +20,7 @@ type ReembedResult struct {
 	// Updated is the number of noseprints that got the vector of ModelVersion.
 	Updated int
 	// Skipped is the number of noseprints that keep the old vector: the
-	// model refused the stored photo, or the photo could not be read.
+	// model refused the stored photo, or the photo does not exist.
 	Skipped int
 }
 
@@ -29,7 +30,8 @@ type ReembedResult struct {
 // another version.
 //
 // It stops and returns inference.ErrUnavailable when the inference service
-// does not respond. The noseprints that are left stay for the next run.
+// does not respond, and stops with another error when the object store or
+// the database fails. The noseprints that are left stay for the next run.
 func (s *Service) Reembed(ctx context.Context) (ReembedResult, error) {
 	version, err := s.embedder.ModelVersion(ctx)
 	if err != nil {
@@ -72,12 +74,12 @@ func (s *Service) reembed(
 	noseprint biometricsdb.ListNoseprintsOfOtherVersionsRow,
 ) (updated bool, err error) {
 	photo, err := s.photos.Get(ctx, noseprint.ImageKey, _maxPhotoBytes)
-	if err != nil {
-		// A cancelled request is not a problem of the photo.
-		if ctx.Err() != nil {
-			return false, fmt.Errorf("read the stored photo: %w", err)
-		}
+	if errors.Is(err, storage.ErrNotFound) {
 		return false, fmt.Errorf("%w: %w", errPhotoNotUsable, err)
+	}
+	if err != nil {
+		// The store does not respond: the next photos would fail too.
+		return false, fmt.Errorf("read the stored photo: %w", err)
 	}
 	embedding, err := s.embedder.Embed(ctx, photo)
 	switch {

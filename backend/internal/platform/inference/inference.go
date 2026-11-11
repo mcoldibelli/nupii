@@ -117,6 +117,10 @@ func (c *Client) call(
 	}
 	resp, err := c.http.Do(req)
 	if err != nil {
+		// The caller ended the request: this is not a failure of the service.
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return fmt.Errorf("%s %s: %w", method, path, ctxErr)
+		}
 		return fmt.Errorf("%w: %s %s: %w", ErrUnavailable, method, path, err)
 	}
 	defer func() {

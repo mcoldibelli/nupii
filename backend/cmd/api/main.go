@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -33,6 +34,15 @@ const (
 	_healthcheckTimeout = 3 * time.Second
 	// _readHeaderTimeout is the time a client has to send the request headers.
 	_readHeaderTimeout = 10 * time.Second
+	// _readTimeout is the time a client has to send one request. A photo
+	// of 8 MB on a slow mobile network (200 KB per second) takes 45 seconds.
+	_readTimeout = 2 * time.Minute
+	// _writeTimeout is the time from the end of the request headers to the
+	// end of the answer. It is more than _readTimeout plus the time of one
+	// call to the inference service.
+	_writeTimeout = 3 * time.Minute
+	// _idleTimeout is the time a connection stays open with no request.
+	_idleTimeout = 2 * time.Minute
 	// _shutdownTimeout is the time the requests in progress have to end
 	// after the process gets a stop signal.
 	_shutdownTimeout = 10 * time.Second
@@ -110,6 +120,9 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	srv := &http.Server{
 		Handler:           newHandler(logger, operations, tokenVerifier{firebase: verifier}),
 		ReadHeaderTimeout: _readHeaderTimeout,
+		ReadTimeout:       _readTimeout,
+		WriteTimeout:      _writeTimeout,
+		IdleTimeout:       _idleTimeout,
 	}
 
 	// The goroutine ends when Serve returns: after a failure, or after
@@ -157,7 +170,13 @@ func reembedNoseprints(ctx context.Context, logger *slog.Logger, noseprints *bio
 		slog.Int("skipped", result.Skipped),
 	}
 	if err != nil {
-		logger.WarnContext(ctx, "recompute of the noseprint vectors stopped",
+		// The inference service can be off when the API starts. Another
+		// failure is an error of the system.
+		level := slog.LevelError
+		if errors.Is(err, inference.ErrUnavailable) || ctx.Err() != nil {
+			level = slog.LevelWarn
+		}
+		logger.Log(ctx, level, "recompute of the noseprint vectors stopped",
 			append(counts, slog.Any("error", err))...)
 		return
 	}

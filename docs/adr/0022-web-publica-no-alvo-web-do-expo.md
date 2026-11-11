@@ -1,6 +1,6 @@
 # ADR 0022: Web pública no alvo web do mesmo projeto Expo
 
-Data: 2026-11-11. Estado: aceito para a foto e para o peso da página. O critério do mapa fica para a fatia 5. Este ADR aprova duas dependências no app: `react-native-web` e `@expo/metro-runtime`.
+Data: 2026-11-11. Estado: aceito. O critério do mapa é medido na fatia 5 (item 2 da decisão). Este ADR aprova duas dependências no app: `react-native-web` e `@expo/metro-runtime`.
 
 ## Contexto
 

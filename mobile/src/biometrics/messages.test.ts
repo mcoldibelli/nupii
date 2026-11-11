@@ -1,4 +1,4 @@
-import { formatDateTime, noseprintFailureMessage, qualityLabel } from "./messages";
+import { formatDateTime, mapUrl, noseprintFailureMessage, phoneUrl, qualityLabel } from "./messages";
 
 describe("noseprintFailureMessage", () => {
   it.each([
@@ -31,5 +31,18 @@ describe("formatDateTime", () => {
     const instant = new Date(2026, 10, 11, 15, 4).toISOString();
 
     expect(formatDateTime(instant)).toBe("11/11/2026 15:04");
+  });
+});
+
+describe("mapUrl", () => {
+  it("opens the map app of the device, with no web site of a third party", () => {
+    expect(mapUrl("android", -23.55, -46.63)).toBe("geo:-23.55,-46.63?q=-23.55,-46.63");
+    expect(mapUrl("ios", -23.55, -46.63)).toBe("maps:?q=-23.55,-46.63");
+  });
+});
+
+describe("phoneUrl", () => {
+  it("keeps only the digits and the plus sign", () => {
+    expect(phoneUrl("+55 (11) 98888-7777")).toBe("tel:+5511988887777");
   });
 });

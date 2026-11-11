@@ -1,6 +1,7 @@
 package inference
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -142,5 +143,18 @@ func TestCallSendsTheRequestIDOfTheAPI(t *testing.T) {
 
 	if want := rec.Header().Get(httpx.RequestIDHeader); gotID == "" || gotID != want {
 		t.Errorf("the service got the request id %q, want %q", gotID, want)
+	}
+}
+
+// A request that the client of the API cancelled is not a failure of the
+// inference service.
+func TestEmbedOfACancelledRequestIsNotUnavailable(t *testing.T) {
+	client := serviceThatAnswers(t, 200, embeddingBody(512))
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	_, err := client.Embed(ctx, []byte("photo"))
+	if !errors.Is(err, context.Canceled) || errors.Is(err, ErrUnavailable) {
+		t.Errorf("Embed error = %v, want context.Canceled and not ErrUnavailable", err)
 	}
 }

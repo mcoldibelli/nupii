@@ -1,11 +1,11 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { FlatList, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { listFoundNotices, type FoundNotice } from "../src/api/biometrics";
 import { failureMessage, SESSION_FAILURE } from "../src/api/http";
 import { apiUrl } from "../src/config";
-import { formatDateTime } from "../src/biometrics/messages";
+import { formatDateTime, mapUrl, phoneUrl } from "../src/biometrics/messages";
 import { styles } from "../src/screens/styles";
 import { useSession } from "../src/session/SessionContext";
 
@@ -57,16 +57,14 @@ export default function FoundNotices() {
             <Text style={local.title}>Alguém encontrou {item.petName}</Text>
             <Text style={local.line}>{formatDateTime(item.confirmedAt)}</Text>
             <Text style={local.line}>Contato: {item.contactName}</Text>
-            <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(`tel:${item.contactPhone}`)}>
+            <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(phoneUrl(item.contactPhone))}>
               <Text style={[local.line, styles.linkText]}>{item.contactPhone}</Text>
             </Pressable>
             {item.message !== undefined && <Text style={local.line}>{item.message}</Text>}
             {item.latitude !== undefined && item.longitude !== undefined && (
               <Pressable
                 accessibilityRole="link"
-                onPress={() =>
-                  void Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`)
-                }
+                onPress={() => void Linking.openURL(mapUrl(Platform.OS, item.latitude as number, item.longitude as number))}
               >
                 <Text style={[local.line, styles.linkText]}>Ver o local no mapa</Text>
               </Pressable>

@@ -402,14 +402,13 @@ func (q *Queries) SearchNoseprints(ctx context.Context, arg SearchNoseprintsPara
 	return items, nil
 }
 
-const setIdentificationContact = `-- name: SetIdentificationContact :one
+const setIdentificationContact = `-- name: SetIdentificationContact :exec
 UPDATE identifications
 SET contact_name = $1,
     contact_phone = $2,
     contact_message = $3,
     photo_key = COALESCE(photo_key, $4)
 WHERE id = $5
-RETURNING photo_key
 `
 
 type SetIdentificationContactParams struct {
@@ -420,18 +419,17 @@ type SetIdentificationContactParams struct {
 	ID             string
 }
 
-// RN-65: confirmar de novo muda só o contato. A foto fica a da primeira vez.
-func (q *Queries) SetIdentificationContact(ctx context.Context, arg SetIdentificationContactParams) (*string, error) {
-	row := q.db.QueryRow(ctx, setIdentificationContact,
+// RN-65: confirmar de novo muda só o contato. A foto fica a da primeira
+// confirmação que envia uma foto.
+func (q *Queries) SetIdentificationContact(ctx context.Context, arg SetIdentificationContactParams) error {
+	_, err := q.db.Exec(ctx, setIdentificationContact,
 		arg.ContactName,
 		arg.ContactPhone,
 		arg.ContactMessage,
 		arg.PhotoKey,
 		arg.ID,
 	)
-	var photo_key *string
-	err := row.Scan(&photo_key)
-	return photo_key, err
+	return err
 }
 
 const updateNoseprintEmbedding = `-- name: UpdateNoseprintEmbedding :execrows

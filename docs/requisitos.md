@@ -132,13 +132,13 @@
 | RN-16 | A foto da consulta só é gravada quando há confirmação. O tutor do pet confirmado recebe uma notificação. A notificação entra na fatia 6. Até lá, o tutor vê o aviso de encontro na lista (RF-14). | RF-13 | estável |
 | RN-59 | A foto do focinho, no cadastro e na identificação, é uma imagem JPEG, PNG ou WebP de até 8 MB (RN-17). | RF-11, RF-12 | estável |
 | RN-60 | O cadastro que a API devolve para um pet é o principal (RN-09). | RF-11 | estável |
-| RN-61 | A identificação aceita a latitude e a longitude de quem encontrou. As duas são opcionais e vêm juntas. | RF-12 | estável |
+| RN-61 | A identificação aceita a latitude e a longitude de quem encontrou. As duas são opcionais e vêm juntas. A latitude vai de -90 a 90 e a longitude vai de -180 a 180. Um valor que não é um número é recusado. | RF-12 | estável |
 | RN-62 | O resultado da identificação não tem dado do tutor. Cada candidato tem o nome e a foto de perfil do pet, a similaridade e a marca de correspondência forte. | RF-12 | estável |
 | RN-63 | A confirmação tem o candidato, o nome (obrigatório, até 120 caracteres), o telefone (obrigatório, de 8 a 30 caracteres: dígitos, espaço, `+`, `-`, `(` e `)`) e a mensagem (opcional, até 500 caracteres). Os espaços do começo e do fim são removidos. | RF-13 | estável |
 | RN-64 | O candidato da confirmação é da mesma identificação. Uma identificação ou um candidato que não existe recebe 404. | RF-13 | estável |
-| RN-65 | Confirmar de novo o mesmo candidato muda só o contato. A data da confirmação e a foto da consulta ficam as da primeira vez. | RF-13 | estável |
+| RN-65 | Confirmar de novo o mesmo candidato muda só o contato. A data da confirmação fica a da primeira vez. A foto da consulta é a da primeira confirmação que envia uma foto. O contato é da identificação: a confirmação de outro candidato da mesma identificação muda o contato dos avisos dela. | RF-13 | estável |
 | RN-66 | O aviso de encontro mostra ao tutor o pet, o nome, o telefone e a mensagem de quem encontrou, o ponto da identificação e a data da confirmação. Os avisos vêm do mais novo para o mais antigo. | RF-14 | estável |
-| RN-67 | O recálculo de RF-15 é executado na subida da API. Ele lê a foto guardada de cada cadastro de outra versão do modelo e grava o vetor novo. Uma foto que a versão nova recusa fica com o vetor antigo, fora da busca. | RF-15 | estável |
+| RN-67 | O recálculo de RF-15 é executado na subida da API. Ele lê a foto guardada de cada cadastro de outra versão do modelo, de pets não excluídos, e grava o vetor novo. Uma foto que a versão nova recusa, ou que não existe mais no armazenamento, fica com o vetor antigo, fora da busca. O recálculo para quando o serviço de inferência, o armazenamento ou o banco falha, e continua na subida seguinte. | RF-15 | estável |
 
 Limiares de correspondência forte (RN-15):
 

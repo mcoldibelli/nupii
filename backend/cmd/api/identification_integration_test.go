@@ -224,6 +224,10 @@ func TestIdentificationRefusals(t *testing.T) {
 			file: g.queryPhoto(), wantStatus: http.StatusBadRequest, wantCode: api.ErrorCodeInvalidRequest},
 		{name: "RN-61 latitude out of the Earth", fields: map[string]string{"latitude": "90.5", "longitude": "1"},
 			file: g.queryPhoto(), wantStatus: http.StatusBadRequest, wantCode: api.ErrorCodeInvalidRequest},
+		{name: "RN-61 latitude NaN", fields: map[string]string{"latitude": "NaN", "longitude": "1"},
+			file: g.queryPhoto(), wantStatus: http.StatusBadRequest, wantCode: api.ErrorCodeInvalidRequest},
+		{name: "RN-59 image with more than 8 MB", file: append(nosePhoto(), make([]byte, 8<<20)...),
+			wantStatus: http.StatusBadRequest, wantCode: api.ErrorCodeInvalidRequest},
 		{name: "RN-20 photo with no sharpness", file: nosePhoto(), refusal: inference.ErrLowQuality,
 			wantStatus: http.StatusUnprocessableEntity, wantCode: api.ErrorCodeImageLowQuality},
 		{name: "RN-21 photo with no nose", file: nosePhoto(), refusal: inference.ErrFraming,
@@ -345,6 +349,63 @@ func TestConfirmationAndFoundNotices(t *testing.T) {
 	}
 	if got := testAPI.foundNotices("token-bia"); len(got) != 1 || got[0].PetName != "Bob" {
 		t.Errorf("found notices of Bia = %+v, want one notice of Bob", got)
+	}
+	// RN-65: o contato é da identificação. A confirmação de outro candidato
+	// muda o contato dos avisos dela.
+	contact["name"] = "Caio Reis Filho"
+	if rec := testAPI.public(confirmation, contact, nil); rec.Code != http.StatusNoContent {
+		t.Fatalf("new contact with the second candidate: status = %d, body %s", rec.Code, rec.Body)
+	}
+	if got := testAPI.foundNotices("token-ana"); len(got) != 1 || got[0].ContactName != "Caio Reis Filho" {
+		t.Errorf("found notices of Ana = %+v, want the new contact of the identification", got)
+	}
+}
+
+// RN-66: os avisos vêm do mais novo para o mais antigo.
+// RN-65: a foto da consulta é a da primeira confirmação que envia uma foto.
+func TestFoundNoticesOrderAndLatePhoto(t *testing.T) {
+	testAPI := petsAPI(t)
+	g := newGallery(testAPI)
+	testAPI.dogWithNoses(g, "token-ana", "Rex", 10, 0.90)
+	testAPI.dogWithNoses(g, "token-ana", "Mel", 20, 0.60)
+	found := decode[api.Identification](t, testAPI.public("/v1/identifications", nil, g.queryPhoto()))
+	if len(found.Candidates) != 2 {
+		t.Fatalf("%d candidates, want Rex and Mel", len(found.Candidates))
+	}
+	path := "/v1/identifications/" + found.Id.String() + "/confirmation"
+	photoKey := func() *string {
+		var key *string
+		const read = "SELECT photo_key FROM identifications WHERE id = $1"
+		if err := testAPI.pool.QueryRow(t.Context(), read, found.Id.String()).Scan(&key); err != nil {
+			t.Fatalf("read the identification: %v", err)
+		}
+		return key
+	}
+	confirm := func(candidate api.IdentificationCandidate, photo []byte) {
+		t.Helper()
+		fields := map[string]string{"candidateId": candidate.Id.String(), "name": "Caio", "phone": "11 98888-7777"}
+		if rec := testAPI.public(path, fields, photo); rec.Code != http.StatusNoContent {
+			t.Fatalf("confirmation of %s: status = %d, body %s", candidate.PetName, rec.Code, rec.Body)
+		}
+	}
+
+	confirm(found.Candidates[0], nil) // Rex, with no photo.
+	if key := photoKey(); key != nil {
+		t.Errorf("the identification has the photo %q after a confirmation with no photo", *key)
+	}
+	confirm(found.Candidates[1], nosePhoto()) // Mel, with the first photo.
+	first := photoKey()
+	if first == nil {
+		t.Fatal("the identification has no photo after the first confirmation with a photo")
+	}
+	confirm(found.Candidates[1], nosePhoto())
+	if key := photoKey(); key == nil || *key != *first {
+		t.Errorf("the photo changed after another confirmation with a photo")
+	}
+
+	notices := testAPI.foundNotices("token-ana")
+	if len(notices) != 2 || notices[0].PetName != "Mel" || notices[1].PetName != "Rex" {
+		t.Errorf("found notices = %+v, want Mel (the newest) and then Rex", notices)
 	}
 }
 

@@ -43,7 +43,7 @@ backend/
     alerts/             localização, dispositivos, notificações, push
     health/             eventos de saúde, anexos, carteirinha compartilhada
     api/                código gerado do contrato (tipos e interface do servidor), não editado à mão
-    platform/           postgres, storage, jobs, httpx (middleware), config, firebase, inference
+    platform/           postgres, storage, jobs, httpx (middleware), config, firebase, inference, imagefile
   db/migrations/        SQL das migrations
   db/queries/           SQL das consultas (entrada do sqlc)
 api/openapi.yaml        contrato da API
@@ -93,7 +93,7 @@ Leituras com `JOIN` entre módulos, conhecidas pelos requisitos:
 
 | Consulta | Módulo dono | Lê também | Requisito |
 |---|---|---|---|
-| Busca dos focinhos mais parecidos | `biometrics` | `pets` (pet não excluído), `identity` (conta ativa) | RN-10, RN-11 |
+| Busca dos focinhos mais parecidos | `biometrics` | `pets` (pet não excluído). A leitura de `identity` (conta ativa) entra na fatia 9 | RN-10, RN-11 |
 | Trava do pet durante o cadastro do focinho | `biometrics` | `pets` (linha do pet, com `FOR UPDATE`, sem escrita) | RN-09 |
 | Nome e foto de perfil dos candidatos | `biometrics` | `pets` | RN-62 |
 | Avisos de encontro do tutor | `biometrics` | `pets` (pets do tutor, não excluídos) | RN-66 |
@@ -158,6 +158,9 @@ Concorrência, declarada por regra:
 - Um arquivo enviado tem o tipo conferido pelos bytes do arquivo, não pelo que o cliente declara (RN-54).
 - A URL temporária de uma foto é assinada com o endereço público do armazenamento (`S3_PUBLIC_ENDPOINT`).
 - O emulador do Authentication só é aceito com um projeto de demonstração (`FIREBASE_PROJECT_ID` com o prefixo `demo-`). Com outro projeto, a API não sobe.
+- O servidor HTTP dá 2 minutos para o cliente enviar uma requisição e 3 minutos para a resposta terminar. Uma foto de 8 MB em uma rede móvel lenta leva cerca de 45 segundos.
+- No app e na página pública, a foto de focinho escolhida da galeria vai para a API sem nova compressão. A foto tirada pela câmera é comprimida uma vez, com qualidade 0,9.
+- A confirmação grava a foto no armazenamento antes da transação. A transação que trava a identificação não chama o armazenamento. Se a foto não for usada, ela é apagada.
 - Toda resposta tem o cabeçalho `X-Request-Id`, com o identificador que aparece nas linhas de log da requisição (RNF-07).
 
 ## Serviço de inferência
