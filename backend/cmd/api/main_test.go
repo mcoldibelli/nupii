@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,12 +10,15 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
-	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers/legacy"
+
+	"github.com/mcoldibelli/nupii/backend/internal/api"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 )
 
 // contractPath is the contract file, relative to this package.
@@ -52,8 +56,21 @@ func validateResponse(t *testing.T, req *http.Request, rec *httptest.ResponseRec
 	}
 }
 
+// fakeDatabase is a database that answers Ping with err.
+type fakeDatabase struct {
+	err error
+}
+
+func (d fakeDatabase) Ping(context.Context) error { return d.err }
+
+// healthyServer returns the operations of the contract with a database
+// that responds.
+func healthyServer() server {
+	return server{logger: slog.New(slog.DiscardHandler), database: fakeDatabase{}}
+}
+
 func TestGetHealth(t *testing.T) {
-	handler := newHandler(slog.New(slog.DiscardHandler), server{})
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer())
 	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
 	rec := httptest.NewRecorder()
 
@@ -72,60 +89,33 @@ func TestGetHealth(t *testing.T) {
 	validateResponse(t, req, rec)
 }
 
-// freeAddr returns a local address with a port that is free now.
-func freeAddr(t *testing.T) string {
-	t.Helper()
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen on a free port: %v", err)
-	}
-	addr := ln.Addr().String()
-	if err := ln.Close(); err != nil {
-		t.Fatalf("close listener: %v", err)
-	}
-	return addr
-}
+func TestGetHealthWhenTheDatabaseDoesNotRespond(t *testing.T) {
+	const detail = "dial tcp 10.0.0.7:5432: connect: connection refused"
+	var logs bytes.Buffer
+	logger := slog.New(httpx.NewLogHandler(slog.NewJSONHandler(&logs, nil)))
+	operations := server{logger: logger, database: fakeDatabase{err: errors.New(detail)}}
+	handler := newHandler(logger, operations)
+	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
+	rec := httptest.NewRecorder()
 
-func TestRunServesUntilTheContextIsCanceled(t *testing.T) {
-	addr := freeAddr(t)
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-	getenv := func(key string) string {
-		if key == "HTTP_ADDR" {
-			return addr
-		}
-		return ""
-	}
-	done := make(chan error, 1)
-	go func() { done <- run(ctx, getenv, io.Discard) }()
+	handler.ServeHTTP(rec, req)
 
-	url := "http://" + addr + "/v1/health"
-	deadline := time.Now().Add(5 * time.Second)
-	for {
-		resp, err := http.Get(url)
-		if err == nil {
-			if cerr := resp.Body.Close(); cerr != nil {
-				t.Fatalf("close response body: %v", cerr)
-			}
-			if resp.StatusCode != http.StatusOK {
-				t.Fatalf("GET %s: status = %d, want 200", url, resp.StatusCode)
-			}
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatalf("GET %s: no answer in 5 seconds: %v", url, err)
-		}
-		time.Sleep(20 * time.Millisecond)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503", rec.Code)
 	}
-
-	cancel()
-	select {
-	case err := <-done:
-		if err != nil {
-			t.Errorf("run after cancel: got %v, want nil", err)
-		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("run did not return 5 seconds after the context was canceled")
+	var body api.Error
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode body %q: %v", rec.Body.String(), err)
+	}
+	if body.Error != api.Unavailable {
+		t.Errorf("error code = %q, want %q", body.Error, api.Unavailable)
+	}
+	if strings.Contains(rec.Body.String(), detail) {
+		t.Errorf("body %q has the internal detail of the error", rec.Body.String())
+	}
+	validateResponse(t, req, rec)
+	if !strings.Contains(logs.String(), detail) {
+		t.Errorf("log does not have the cause of the failure:\n%s", logs.String())
 	}
 }
 

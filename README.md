@@ -24,10 +24,12 @@ Requisitos: Docker com o Compose, e Go 1.26 ou mais novo.
    docker compose -f deploy/compose.yaml up -d --wait
    ```
 
-3. Suba a API:
+3. Suba a API. Ela lê o endereço do banco da variável `DATABASE_URL`:
 
    ```bash
    cd backend
+   set -a; . ../deploy/.env; set +a
+   export DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432/$POSTGRES_DB?sslmode=disable"
    go run ./cmd/api
    ```
 

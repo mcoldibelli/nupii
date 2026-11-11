@@ -17,6 +17,7 @@ import (
 const (
 	InternalError ErrorCode = "internal_error"
 	NotFound      ErrorCode = "not_found"
+	Unavailable   ErrorCode = "unavailable"
 )
 
 // Valid indicates whether the value is a known member of the ErrorCode enum.
@@ -25,6 +26,8 @@ func (e ErrorCode) Valid() bool {
 	case InternalError:
 		return true
 	case NotFound:
+		return true
+	case Unavailable:
 		return true
 	default:
 		return false
@@ -70,7 +73,7 @@ type HealthStatus string
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// GetHealth Informa se o serviço está em execução.
+	// GetHealth Informa se o serviço está pronto para atender requisições.
 	// (GET /v1/health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
 }
@@ -246,6 +249,20 @@ func (response GetHealth200JSONResponse) VisitGetHealthResponse(w http.ResponseW
 	return err
 }
 
+type GetHealth503JSONResponse Error
+
+func (response GetHealth503JSONResponse) VisitGetHealthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetHealthdefaultJSONResponse struct {
 	Body       Error
 	StatusCode int
@@ -265,7 +282,7 @@ func (response GetHealthdefaultJSONResponse) VisitGetHealthResponse(w http.Respo
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// GetHealth Informa se o serviço está em execução.
+	// GetHealth Informa se o serviço está pronto para atender requisições.
 	// (GET /v1/health)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
 }

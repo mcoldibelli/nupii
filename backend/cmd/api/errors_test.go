@@ -36,7 +36,7 @@ func validateErrorBody(t *testing.T, body []byte) {
 }
 
 func TestUnknownRouteGetsNotFoundInTheErrorFormat(t *testing.T) {
-	handler := newHandler(slog.New(slog.DiscardHandler), server{})
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer())
 	tests := []struct {
 		name   string
 		method string

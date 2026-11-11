@@ -117,6 +117,8 @@ Concorrência, declarada por regra:
 
 - PostgreSQL com PostGIS (distância) e pgvector (vetores com índice HNSW e cosseno).
 - O esquema nasce das migrations de `backend/db/migrations/`. As migrations são a fonte do modelo de dados.
+- A API aplica as migrations pendentes quando sobe, antes de aceitar requisições. A primeira migration cria as extensões PostGIS e pgvector.
+- `GET /v1/health` responde 503 com o código `unavailable` quando o banco não responde.
 - Nomes de tabelas e colunas em inglês ([ADR 0009](adr/0009-idioma.md)).
 - Chaves primárias UUID.
 
