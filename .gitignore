@@ -1,0 +1,4 @@
+# Local configuration with credentials. Only the .env.example files are versioned.
+.env
+.env.*
+!.env.example
