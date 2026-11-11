@@ -69,6 +69,10 @@ As fotos vêm do armazenamento por uma URL temporária. No emulador Android, o `
 
 A sessão continua depois de fechar o app. As contas do emulador somem quando o container do emulador reinicia: nesse caso a API recusa a sessão antiga e o app volta para a tela de entrada.
 
+## Conta
+
+A tela "Meu perfil" altera o nome, troca a senha e exclui a conta. A troca da senha e a exclusão pedem a senha atual. "Esqueci a senha", na tela de entrada, envia o link de redefinição pelo Firebase. O emulador do Authentication não envia e-mail: o link fica em `http://127.0.0.1:9099/emulator/v1/projects/demo-nupii/oobCodes`.
+
 ## Como testar
 
 ```bash

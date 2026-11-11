@@ -69,6 +69,7 @@ function Screens() {
         <Stack.Screen name="noseprint/[petId]" options={{ title: "Focinho" }} />
         <Stack.Screen name="found-notices" options={{ title: "Avisos de encontro" }} />
         <Stack.Screen name="share/[petId]" options={{ title: "Carteirinha" }} />
+        <Stack.Screen name="profile" options={{ title: "Meu perfil" }} />
         <Stack.Screen name="notifications" options={{ title: "Notificações" }} />
         <Stack.Screen name="health/[petId]" options={{ title: "Saúde" }} />
         <Stack.Screen name="health/event" options={{ title: "Evento de saúde" }} />
@@ -81,6 +82,7 @@ function Screens() {
       </Stack.Protected>
       <Stack.Protected guard={state.kind === "signedOut"}>
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+        <Stack.Screen name="forgot-password" options={{ title: "Esqueci a senha" }} />
       </Stack.Protected>
       {/* The public page is for the browser. In the app, a route with no
           guard would be the screen that the app shows after the sign-out. */}

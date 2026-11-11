@@ -22,3 +22,13 @@ export function registerMe(
   const body: components["schemas"]["RegisterOwnerRequest"] = { name, acceptedTermsVersion: TERMS_VERSION };
   return request<Owner>(fetchFn, `${baseUrl}/v1/me`, idToken, json("POST", body));
 }
+
+/** Calls PATCH /v1/me to change the name of the owner (RF-06). It does not throw. */
+export function updateMe(baseUrl: string, idToken: string, name: string, fetchFn: typeof fetch = fetch): Promise<ApiResult<Owner>> {
+  return request<Owner>(fetchFn, `${baseUrl}/v1/me`, idToken, json("PATCH", { name }));
+}
+
+/** Calls DELETE /v1/me to delete the account (RF-08). It does not throw. */
+export function deleteMe(baseUrl: string, idToken: string, fetchFn: typeof fetch = fetch): Promise<ApiResult<void>> {
+  return request<void>(fetchFn, `${baseUrl}/v1/me`, idToken, { method: "DELETE" });
+}

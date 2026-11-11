@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { failureMessage, SESSION_FAILURE } from "../api/http";
-import { getMe, registerMe, type Owner } from "../api/owner";
-import { currentIdToken, signOutAccount, subscribeToAccount } from "../auth/firebase";
+import { deleteMe, getMe, registerMe, updateMe, type Owner } from "../api/owner";
+import { confirmPassword, currentIdToken, signOutAccount, subscribeToAccount } from "../auth/firebase";
 import { apiUrl, missingConfig } from "../config";
 
 export type SessionState =
@@ -19,6 +19,10 @@ type Session = {
   reload: () => Promise<void>;
   /** Registers the owner. Returns null, or the message of the failure. */
   register: (name: string) => Promise<string | null>;
+  /** Changes the name of the owner (RF-06). Returns null, or the message of the failure. */
+  rename: (name: string) => Promise<string | null>;
+  /** Checks the password and deletes the account (RF-08). Returns null, or the message of the failure. */
+  deleteAccount: (password: string) => Promise<string | null>;
   signOut: () => void;
   /** Returns the ID token for a call of the API, or null when it cannot get one. */
   idToken: () => Promise<string | null>;
@@ -103,10 +107,50 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [idToken],
   );
 
+  const rename = useCallback(
+    async (name: string): Promise<string | null> => {
+      const token = await idToken();
+      if (token === null) {
+        return SESSION_FAILURE;
+      }
+      const result = await updateMe(apiUrl, token, name);
+      if (!result.ok) {
+        return result.code === "invalid_request" ? "Informe um nome com até 100 caracteres." : failureMessage(result);
+      }
+      setState({ kind: "ready", owner: result.value });
+      return null;
+    },
+    [idToken],
+  );
+
+  const deleteAccount = useCallback(
+    async (password: string): Promise<string | null> => {
+      const wrong = await confirmPassword(password);
+      if (wrong !== null) {
+        return wrong;
+      }
+      const token = await idToken();
+      if (token === null) {
+        return SESSION_FAILURE;
+      }
+      const result = await deleteMe(apiUrl, token);
+      if (!result.ok) {
+        return failureMessage(result);
+      }
+      // RN-04: the API refuses the token now. The app signs out.
+      await signOutAccount();
+      return null;
+    },
+    [idToken],
+  );
+
   const signOut = useCallback(() => {
     void signOutAccount();
   }, []);
 
-  const session = useMemo(() => ({ state, reload, register, signOut, idToken }), [state, reload, register, signOut, idToken]);
+  const session = useMemo(
+    () => ({ state, reload, register, rename, deleteAccount, signOut, idToken }),
+    [state, reload, register, rename, deleteAccount, signOut, idToken],
+  );
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
 }
