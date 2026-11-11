@@ -7,7 +7,7 @@ import { reportLost } from "../../src/api/reports";
 import { apiUrl } from "../../src/config";
 import type { MapPoint } from "../../src/map/mapHtml";
 import { MapView } from "../../src/map/MapView";
-import { REPORT_LIMITS, reportFailureMessage, toDetails } from "../../src/reports/form";
+import { REPORT_LIMITS, reportFailureMessage, toDetails, toOccurredAt } from "../../src/reports/form";
 import { styles } from "../../src/screens/styles";
 import { useSession } from "../../src/session/SessionContext";
 
@@ -16,7 +16,7 @@ export default function NewLostReport() {
   const { petId, petName } = useLocalSearchParams<{ petId: string; petName: string }>();
   const { idToken } = useSession();
   const [point, setPoint] = useState<MapPoint | null>(null);
-  const [form, setForm] = useState({ place: "", description: "" });
+  const [form, setForm] = useState({ place: "", description: "", occurredAt: "" });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -31,10 +31,15 @@ export default function NewLostReport() {
       setError(details.message);
       return;
     }
+    const occurred = toOccurredAt(form.occurredAt);
+    if (!occurred.ok) {
+      setError(occurred.message);
+      return;
+    }
     setBusy(true);
     setError(null);
     const token = await idToken();
-    const result = token === null ? null : await reportLost(apiUrl, token, { petId, ...point, ...details.details });
+    const result = token === null ? null : await reportLost(apiUrl, token, { petId, ...point, ...details.details, occurredAt: occurred.value });
     setBusy(false);
     if (result === null) {
       setError(SESSION_FAILURE);
@@ -52,6 +57,17 @@ export default function NewLostReport() {
       <Text testID="lost-point" style={local.point}>
         {point === null ? "Nenhum ponto escolhido." : "Ponto escolhido."}
       </Text>
+      <Text style={styles.label}>Data do desaparecimento (DD/MM/AAAA, opcional)</Text>
+      <TextInput
+        testID="lost-date-input"
+        accessibilityLabel="Data do desaparecimento"
+        style={styles.input}
+        keyboardType="numbers-and-punctuation"
+        maxLength={10}
+        placeholder="Hoje"
+        value={form.occurredAt}
+        onChangeText={(occurredAt) => setForm((current) => ({ ...current, occurredAt }))}
+      />
       <Text style={styles.label}>Local (opcional)</Text>
       <TextInput
         testID="lost-place-input"

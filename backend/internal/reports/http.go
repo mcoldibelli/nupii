@@ -119,9 +119,24 @@ func (h *Handlers) ReportLost(
 	request api.ReportLostRequestObject,
 ) (api.ReportLostResponseObject, error) {
 	body := request.Body
+	invalid := func(message string) api.ReportLostResponseObject {
+		return api.ReportLost400JSONResponse{
+			InvalidRequestJSONResponse: api.InvalidRequestJSONResponse{
+				Error: api.ErrorCodeInvalidRequest, Message: message,
+			},
+		}
+	}
+	// A JSON body without petId decodes to the zero UUID.
+	if body.PetId == (types.UUID{}) {
+		return invalid("petId is required"), nil
+	}
+	// RN-70: o desaparecimento tem latitude e longitude obrigatórias.
+	if body.Latitude == nil || body.Longitude == nil {
+		return invalid("latitude and longitude are required"), nil
+	}
 	report, err := h.service.ReportLost(ctx, LostInput{
 		PetID:      body.PetId.String(),
-		Point:      Point{Latitude: body.Latitude, Longitude: body.Longitude},
+		Point:      Point{Latitude: *body.Latitude, Longitude: *body.Longitude},
 		Details:    Details{Place: body.Place, Description: body.Description},
 		OccurredAt: body.OccurredAt,
 	})
@@ -355,7 +370,8 @@ func reportToAPI(report Report) (api.Report, error) {
 	if report.PetID != nil {
 		var petID types.UUID
 		if err := petID.UnmarshalText([]byte(*report.PetID)); err != nil {
-			return api.Report{}, fmt.Errorf("parse the pet id of the report %q: %w", report.ID, err)
+			return api.Report{}, fmt.Errorf("parse the pet id of the report %q: %w",
+				report.ID, err)
 		}
 		species := api.Species(*report.PetSpecies)
 		hasNoseprint := report.PetHasNoseprint

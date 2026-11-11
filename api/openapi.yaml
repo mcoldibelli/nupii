@@ -455,6 +455,7 @@ paths:
           schema:
             type: integer
             minimum: 1
+            maximum: 100000
             default: 1
       responses:
         "200":
@@ -566,6 +567,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Report"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
         "404":
           $ref: "#/components/responses/ReportNotFound"
         default:
@@ -633,6 +636,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Report"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "404":
@@ -898,7 +903,10 @@ components:
       enum: [open, resolved]
     LostReportInput:
       type: object
-      required: [petId, latitude, longitude]
+      description: |
+        A latitude e a longitude são obrigatórias. Sem uma delas, a resposta é 400 `invalid_request`.
+        O esquema não as marca como obrigatórias para o servidor saber quando uma delas falta.
+      required: [petId]
       properties:
         petId:
           type: string
