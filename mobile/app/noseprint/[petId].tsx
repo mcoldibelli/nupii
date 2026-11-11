@@ -7,7 +7,7 @@ import { failureMessage, SESSION_FAILURE } from "../../src/api/http";
 import type { LocalFile } from "../../src/api/pets";
 import { apiUrl } from "../../src/config";
 import { formatDateTime, noseprintFailureMessage, qualityLabel } from "../../src/biometrics/messages";
-import { filePart, pickPhoto, takePhoto } from "../../src/pets/pickPhoto";
+import { filePart, NOSE_PHOTO_QUALITY, pickPhoto, takePhoto } from "../../src/pets/pickPhoto";
 import { styles } from "../../src/screens/styles";
 import { useSession } from "../../src/session/SessionContext";
 
@@ -69,7 +69,7 @@ export default function NoseprintScreen() {
   }
 
   async function fromGallery() {
-    const photo = await pickPhoto();
+    const photo = await pickPhoto(NOSE_PHOTO_QUALITY);
     if (photo !== null) {
       await register(photo);
     }

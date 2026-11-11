@@ -44,6 +44,20 @@ Para usar o projeto real do Firebase no lugar do emulador, execute `./deploy/fir
 2. No primeiro acesso: o tutor informa o nome e aceita os termos de uso. O app registra o tutor na API.
 3. Lista de pets: a tela inicial. Mostra a foto, o nome e a espécie de cada pet, e a ação de sair.
 4. Novo pet e editar pet: o formulário com os dados do pet e a foto de perfil, escolhida na galeria do aparelho. A tela de editar tem a ação de excluir.
+5. Focinho: na tela de editar de um cachorro, a ação "Focinho do pet" abre o cadastro do focinho, com a câmera ou a galeria. A tela mostra o motivo quando a foto é recusada.
+6. Avisos de encontro: a lista dos contatos de quem encontrou um pet do tutor.
+
+## Web pública
+
+A página "encontrei um pet" é a rota `/found` do mesmo projeto, no alvo web ([ADR 0022](../docs/adr/0022-web-publica-no-alvo-web-do-expo.md)). Ela não pede conta.
+
+No navegador da sua máquina, a API fica em `localhost`, e não no endereço do emulador Android. Suba a web com o endereço certo:
+
+```bash
+EXPO_PUBLIC_API_URL=http://localhost:8080 npm run web
+```
+
+Abra `http://localhost:8081/found`. Para medir o JavaScript da página: `npx expo export -p web`. O orçamento é de 500 KB com gzip.
 
 As fotos vêm do armazenamento por uma URL temporária. No emulador Android, o `deploy/.env` precisa de `S3_PUBLIC_ENDPOINT=http://10.0.2.2:8333`, para o aparelho alcançar o armazenamento da sua máquina.
 
@@ -96,6 +110,9 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `app/_layout.tsx` | Layout raiz: cria a sessão e libera as telas pelo estado dela (sem conta, primeiro acesso, pronto) |
 | `app/index.tsx` | Lista de pets |
 | `app/pets/new.tsx`, `app/pets/[id].tsx` | Novo pet e editar pet |
+| `app/noseprint/[petId].tsx` | Cadastro do focinho de um cachorro |
+| `app/found-notices.tsx` | Avisos de encontro |
+| `app/found.tsx` | Página pública "encontrei um pet" |
 | `app/sign-in.tsx`, `app/complete-profile.tsx` | Entrada e primeiro acesso |
 | `src/session/SessionContext.tsx` | A conta e o tutor, para todas as telas |
 | `src/config.ts` | Leitura das variáveis de ambiente |
@@ -103,8 +120,10 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `src/auth/firebase.ts` | O único arquivo que importa o SDK do Firebase: entrar, criar conta, sair, token |
 | `src/auth/validation.ts` | Regras dos formulários da conta (RN-01, RN-44, RN-45), com testes |
 | `src/api/schema.d.ts` | Tipos gerados do contrato |
-| `src/api/http.ts` | Envio de uma requisição com o token e leitura da resposta |
-| `src/api/owner.ts`, `src/api/pets.ts` | Chamadas da API, com testes |
+| `src/api/http.ts` | Envio de uma requisição, com o token ou sem token, e leitura da resposta |
+| `src/api/owner.ts`, `src/api/pets.ts`, `src/api/biometrics.ts`, `src/api/found.ts` | Chamadas da API, com testes |
+| `src/biometrics/messages.ts` | Mensagens das recusas da foto do focinho, com testes |
+| `src/found/contact.ts` | Regras do contato de quem encontrou um cão (RN-63), com testes |
 | `src/pets/form.ts` | Regras do formulário do pet (RN-48, RN-50, RN-51, RN-56), com testes |
 | `src/pets/save.ts` | Salva os dados do pet e depois envia a foto, com testes |
 | `src/pets/PetFormView.tsx` | O formulário do pet |

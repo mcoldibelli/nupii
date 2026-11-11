@@ -53,7 +53,7 @@ deploy/                 compose e arquivos de publicação
 docs/                   este diretório
 ```
 
-Nota: a forma da web pública é decidida na fatia 4 ([ADR 0006](adr/0006-mobile-expo-web-publica.md)). Até lá, a hipótese é o alvo web do mesmo projeto Expo.
+Nota: a web pública é o alvo web do mesmo projeto Expo ([ADR 0022](adr/0022-web-publica-no-alvo-web-do-expo.md)). Uma página pública é uma rota fora da proteção de sessão, e tem um orçamento de 500 KB de JavaScript com gzip.
 
 O módulo Go fica em `backend/` e não na raiz. Motivo: `go build ./...` na raiz entra em `mobile/node_modules`.
 
@@ -146,6 +146,7 @@ Concorrência, declarada por regra:
 - Um erro devolvido por uma operação, ou um panic em um handler, recebe 500 com o código `internal_error`. O detalhe do erro vai só para o log, com o identificador da requisição.
 - Rotas em inglês, com versão no caminho: `/v1/...`.
 - Endpoints públicos têm limite de tentativas por IP (RN-43). O IP é o endereço da conexão, e a rota é o padrão do contrato, não o caminho com os identificadores. Acima do limite, a resposta é 429 com o código `rate_limited`. Atrás de um proxy, o endereço da conexão é o do proxy: a fatia 10 decide de onde a API lê o endereço do cliente.
+- Uma rota pública responde com `Access-Control-Allow-Origin: *`, para a página pública ler a resposta de outra origem. As rotas com token não têm esse cabeçalho.
 - Autenticação: uma operação do contrato sem `security` é pública. Toda outra operação pede o ID token do Firebase no cabeçalho `Authorization: Bearer`. Sem token válido, a resposta é 401 com o código `unauthenticated` (RN-46). A conferência do token acontece antes da leitura do corpo.
 - O módulo `identity` depende da interface `TokenVerifier`. A implementação com o Firebase Admin SDK fica em `platform/firebase`, e `cmd/api` liga as duas.
 - Um corpo ou um parâmetro que não pode ser lido recebe 400 com o código `invalid_request`. Um dado que quebra uma regra de negócio recebe a mesma resposta, com a regra na mensagem.

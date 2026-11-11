@@ -4,6 +4,7 @@ import { FirebaseError, initializeApp } from "firebase/app";
 import {
   connectAuthEmulator,
   createUserWithEmailAndPassword,
+  getAuth,
   getReactNativePersistence,
   initializeAuth,
   onAuthStateChanged,
@@ -11,6 +12,8 @@ import {
   signOut,
   type Auth,
 } from "firebase/auth";
+
+import { Platform } from "react-native";
 
 import { authEmulatorUrl, firebaseConfig } from "../config";
 
@@ -25,8 +28,12 @@ function auth(): Auth {
   if (instance === null) {
     const app = initializeApp(firebaseConfig);
     // The session stays in the storage of the device, so it continues
-    // after the app is closed (RF-02).
-    instance = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
+    // after the app is closed (RF-02). In the browser, the SDK keeps the
+    // session by itself, and the storage of React Native does not exist.
+    instance =
+      Platform.OS === "web"
+        ? getAuth(app)
+        : initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
     if (authEmulatorUrl !== "") {
       connectAuthEmulator(instance, authEmulatorUrl, { disableWarnings: true });
     }

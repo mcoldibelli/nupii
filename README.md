@@ -4,7 +4,7 @@ Plataforma para tutores de pets, com três partes: saúde do pet, mural de perdi
 
 ## Estado
 
-As fatias 0, 1, 2 e 3 do [roteiro](docs/roteiro.md) estão prontas. O ambiente local sobe com um comando e o CI confere a API, o app, a integração e o serviço de inferência. O tutor cria a conta e entra pelo app, e cadastra os pets dele com foto de perfil. O serviço de inferência transforma a foto de um focinho em um vetor. A fatia 4 está em andamento: a API já cadastra o focinho de um cachorro, identifica um cão pela foto do focinho, guarda o contato de quem encontrou e calcula de novo os vetores quando a versão do modelo muda. Faltam as telas do app e a página pública. O andamento de cada fatia está nos milestones do GitHub.
+As fatias 0, 1, 2 e 3 do [roteiro](docs/roteiro.md) estão prontas. O ambiente local sobe com um comando e o CI confere a API, o app, a integração e o serviço de inferência. O tutor cria a conta e entra pelo app, e cadastra os pets dele com foto de perfil. O serviço de inferência transforma a foto de um focinho em um vetor. A fatia 4 está pronta: o tutor cadastra o focinho de um cachorro pelo app, e quem encontra um cão envia a foto do focinho pela página pública, vê os pets parecidos e deixa o contato para o tutor. O andamento de cada fatia está nos milestones do GitHub.
 
 ## Como executar
 
@@ -89,7 +89,7 @@ O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app n
 | [0003](docs/adr/0003-estado-postgres-fila-no-banco.md) | Postgres como único estado, sem Redis, fila de tarefas no banco | aceito (servidor S3 local: ver o 0012) |
 | [0004](docs/adr/0004-acesso-a-dados.md) | pgx e sqlc para consultas, goose para migrations | aceito (tipo vetor: ver o 0021) |
 | [0005](docs/adr/0005-contrato-openapi.md) | Contrato da API em OpenAPI, escrito antes do código | aceito |
-| [0006](docs/adr/0006-mobile-expo-web-publica.md) | App em React Native com Expo, web pública mínima | aceito (a forma da web: decisão na fatia 4) |
+| [0006](docs/adr/0006-mobile-expo-web-publica.md) | App em React Native com Expo, web pública mínima | aceito (a forma da web: ver o 0022) |
 | [0007](docs/adr/0007-inferencia-python-onnx.md) | Inferência em serviço Python separado, sem torch | aceito |
 | [0008](docs/adr/0008-autenticacao-firebase.md) | Autenticação com Firebase Authentication | aceito |
 | [0009](docs/adr/0009-idioma.md) | Código em inglês, documentação em português | aceito |
@@ -105,6 +105,7 @@ O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app n
 | [0019](docs/adr/0019-dados-do-teste-de-igualdade.md) | Dados do teste de igualdade da inferência | aceito |
 | [0020](docs/adr/0020-leitura-de-objeto-pelo-backend.md) | Leitura de um objeto do armazenamento pelo backend | aceito |
 | [0021](docs/adr/0021-vetor-como-texto-nas-consultas.md) | Vetor como texto nas consultas, sem a biblioteca pgvector-go | aceito |
+| [0022](docs/adr/0022-web-publica-no-alvo-web-do-expo.md) | Web pública no alvo web do mesmo projeto Expo | aceito (mapa: medida na fatia 5) |
 
 ## Regras do projeto
 
