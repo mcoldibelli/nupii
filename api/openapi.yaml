@@ -441,6 +441,263 @@ paths:
           $ref: "#/components/responses/OwnerNotFound"
         default:
           $ref: "#/components/responses/Error"
+  /v1/reports:
+    get:
+      operationId: listReports
+      tags: [reports]
+      summary: O mural, as ocorrências abertas dos tipos perdido e achado.
+      description: Operação pública. 20 ocorrências por página, da mais nova para a mais antiga.
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: Número da página, a partir de 1.
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        "200":
+          description: Uma página do mural, com as contagens.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportPage"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/reports/lost:
+    post:
+      operationId: reportLost
+      tags: [reports]
+      summary: Registra o desaparecimento de um pet do tutor.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LostReportInput"
+      responses:
+        "201":
+          description: O desaparecimento registrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/PetNotFound"
+        "409":
+          description: O pet já tem um desaparecimento aberto. O código do erro é `lost_report_open`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/reports/found:
+    post:
+      operationId: reportFound
+      tags: [reports]
+      summary: Publica um achado, com a foto do focinho.
+      description: |
+        Operação pública. A resposta tem o código que resolve o achado. O código aparece só nesta resposta.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, latitude, longitude]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: A foto do focinho usada na identificação. JPEG, PNG ou WebP, com no máximo 8 MB.
+                latitude:
+                  type: number
+                  format: double
+                longitude:
+                  type: number
+                  format: double
+                place:
+                  type: string
+                  description: Nome do local, com no máximo 200 caracteres.
+                description:
+                  type: string
+                  description: Recado, com no máximo 1.000 caracteres.
+      responses:
+        "201":
+          description: O achado publicado, com o código que resolve o achado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FoundReportCreated"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/reports/{reportId}:
+    parameters:
+      - name: reportId
+        in: path
+        required: true
+        description: Identificador da ocorrência.
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getReport
+      tags: [reports]
+      summary: A ficha de uma ocorrência.
+      description: Operação pública. A ficha de um desaparecimento tem os avistamentos.
+      responses:
+        "200":
+          description: A ocorrência.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "404":
+          $ref: "#/components/responses/ReportNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/reports/{reportId}/sightings:
+    parameters:
+      - name: reportId
+        in: path
+        required: true
+        description: Identificador da ocorrência.
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: reportSighting
+      tags: [reports]
+      summary: Registra um avistamento em um desaparecimento aberto.
+      description: Operação pública. Sem latitude e longitude, vale o ponto do desaparecimento.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SightingInput"
+      responses:
+        "201":
+          description: O avistamento registrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sighting"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "404":
+          $ref: "#/components/responses/ReportNotFound"
+        "409":
+          description: A ocorrência não é um desaparecimento aberto. O código do erro é `report_not_open`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/reports/{reportId}/resolution:
+    parameters:
+      - name: reportId
+        in: path
+        required: true
+        description: Identificador da ocorrência.
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: resolveReport
+      tags: [reports]
+      summary: O autor resolve uma ocorrência dele.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: A ocorrência resolvida.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/ReportNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/reports/{reportId}/code-resolution:
+    parameters:
+      - name: reportId
+        in: path
+        required: true
+        description: Identificador da ocorrência.
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: resolveFoundReport
+      tags: [reports]
+      summary: Resolve um achado com o código da criação.
+      description: Operação pública. Um código errado recebe a mesma resposta de um achado que não existe.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+      responses:
+        "200":
+          description: O achado resolvido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "404":
+          $ref: "#/components/responses/ReportNotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/me/reports:
+    get:
+      operationId: listMyReports
+      tags: [reports]
+      summary: Os desaparecimentos registrados pelo tutor, abertos e resolvidos.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: As ocorrências do tutor, da mais nova para a mais antiga.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportList"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/OwnerNotFound"
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     bearerAuth:
@@ -633,6 +890,154 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/FoundNotice"
+    ReportType:
+      type: string
+      enum: [lost, found]
+    ReportStatus:
+      type: string
+      enum: [open, resolved]
+    LostReportInput:
+      type: object
+      required: [petId, latitude, longitude]
+      properties:
+        petId:
+          type: string
+          format: uuid
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        place:
+          type: string
+          description: Nome do local, com no máximo 200 caracteres.
+        description:
+          type: string
+          description: Recado, com no máximo 1.000 caracteres.
+        occurredAt:
+          type: string
+          format: date-time
+          description: Quando o pet desapareceu. Não é futura. Sem valor, vale o momento do registro.
+    SightingInput:
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        place:
+          type: string
+          description: Nome do local, com no máximo 200 caracteres.
+        description:
+          type: string
+          description: Recado, com no máximo 1.000 caracteres.
+    Sighting:
+      type: object
+      description: Um avistamento. Não tem dado de quem avistou.
+      required: [id, latitude, longitude, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        place:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    Report:
+      type: object
+      description: Uma ocorrência. Não tem dado do autor.
+      required: [id, type, status, latitude, longitude, occurredAt, createdAt, sightings]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/ReportType"
+        status:
+          $ref: "#/components/schemas/ReportStatus"
+        petId:
+          type: string
+          format: uuid
+          description: O pet de um desaparecimento.
+        petName:
+          type: string
+        petSpecies:
+          $ref: "#/components/schemas/Species"
+        petHasNoseprint:
+          type: boolean
+          description: O pet tem cadastro biométrico, e quem o encontrar pode identificá-lo pela foto do focinho.
+        photoUrl:
+          type: string
+          description: URL temporária da foto de perfil do pet, ou da foto do focinho de um achado. Vale por 900 segundos.
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        place:
+          type: string
+        description:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        sightings:
+          type: array
+          description: Os avistamentos de um desaparecimento, do mais antigo para o mais novo. Vazia nas listas.
+          items:
+            $ref: "#/components/schemas/Sighting"
+    ReportList:
+      type: object
+      required: [reports]
+      properties:
+        reports:
+          type: array
+          items:
+            $ref: "#/components/schemas/Report"
+    ReportPage:
+      type: object
+      required: [reports, page, hasNext, openLost, openFound]
+      properties:
+        reports:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/Report"
+        page:
+          type: integer
+        hasNext:
+          type: boolean
+        openLost:
+          type: integer
+          description: Número de desaparecimentos abertos no mural.
+        openFound:
+          type: integer
+          description: Número de achados abertos no mural.
+    FoundReportCreated:
+      type: object
+      required: [report, resolveCode]
+      properties:
+        report:
+          $ref: "#/components/schemas/Report"
+        resolveCode:
+          type: string
+          description: Código que resolve o achado. Ele aparece só nesta resposta.
     Owner:
       type: object
       description: O tutor. Pessoa com conta, responsável por pets.
@@ -700,6 +1105,9 @@ components:
         - pet_not_found
         - noseprint_not_found
         - identification_not_found
+        - report_not_found
+        - lost_report_open
+        - report_not_open
         - rate_limited
         - species_not_supported
         - image_low_quality
@@ -731,6 +1139,12 @@ components:
         `species_not_supported` quando o pet não é um cachorro,
         `image_low_quality` quando a foto não tem nitidez,
         `image_framing` quando a foto não mostra um focinho.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ReportNotFound:
+      description: A ocorrência não existe. O código do erro é `report_not_found`.
       content:
         application/json:
           schema:

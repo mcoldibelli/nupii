@@ -72,6 +72,7 @@ Dependências permitidas:
 ```mermaid
 flowchart TD
     reports --> pets
+    reports --> identity
     reports --> alerts
     biometrics --> pets
     biometrics --> identity
@@ -96,6 +97,7 @@ Leituras com `JOIN` entre módulos, conhecidas pelos requisitos:
 | Busca dos focinhos mais parecidos | `biometrics` | `pets` (pet não excluído). A leitura de `identity` (conta ativa) entra na fatia 9 | RN-10, RN-11 |
 | Trava do pet durante o cadastro do focinho | `biometrics` | `pets` (linha do pet, com `FOR UPDATE`, sem escrita) | RN-09 |
 | Nome e foto de perfil dos candidatos | `biometrics` | `pets` | RN-62 |
+| Mural e ficha (visão `report_views`) | `reports` | `pets` (nome, espécie, foto, pet não excluído), `biometrics` (o pet tem cadastro) | RN-24, RN-72 |
 | Avisos de encontro do tutor | `biometrics` | `pets` (pets do tutor, não excluídos) | RN-66 |
 | Tutores perto de um ponto | `alerts` | `identity` (conta ativa) | RN-32, RN-33 |
 | Mural com a foto do pet | `reports` | `pets` | RF-16 |
@@ -147,6 +149,7 @@ Concorrência, declarada por regra:
 - Rotas em inglês, com versão no caminho: `/v1/...`.
 - Endpoints públicos têm limite de tentativas por IP (RN-43). O IP é o endereço da conexão, e a rota é o padrão do contrato, não o caminho com os identificadores. Acima do limite, a resposta é 429 com o código `rate_limited`. Atrás de um proxy, o endereço da conexão é o do proxy: a fatia 10 decide de onde a API lê o endereço do cliente.
 - Uma rota pública responde com `Access-Control-Allow-Origin: *`, para a página pública ler a resposta de outra origem. As rotas com token não têm esse cabeçalho.
+- A API responde 204 à requisição `OPTIONS` de verificação que o navegador envia antes de um `POST` com JSON para uma rota pública. Uma rota com token recebe 404.
 - Autenticação: uma operação do contrato sem `security` é pública. Toda outra operação pede o ID token do Firebase no cabeçalho `Authorization: Bearer`. Sem token válido, a resposta é 401 com o código `unauthenticated` (RN-46). A conferência do token acontece antes da leitura do corpo.
 - O módulo `identity` depende da interface `TokenVerifier`. A implementação com o Firebase Admin SDK fica em `platform/firebase`, e `cmd/api` liga as duas.
 - Um corpo ou um parâmetro que não pode ser lido recebe 400 com o código `invalid_request`. Um dado que quebra uma regra de negócio recebe a mesma resposta, com a regra na mensagem.

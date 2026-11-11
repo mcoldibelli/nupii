@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -25,11 +26,14 @@ const (
 	ErrorCodeImageLowQuality        ErrorCode = "image_low_quality"
 	ErrorCodeInternalError          ErrorCode = "internal_error"
 	ErrorCodeInvalidRequest         ErrorCode = "invalid_request"
+	ErrorCodeLostReportOpen         ErrorCode = "lost_report_open"
 	ErrorCodeNoseprintNotFound      ErrorCode = "noseprint_not_found"
 	ErrorCodeNotFound               ErrorCode = "not_found"
 	ErrorCodeOwnerNotFound          ErrorCode = "owner_not_found"
 	ErrorCodePetNotFound            ErrorCode = "pet_not_found"
 	ErrorCodeRateLimited            ErrorCode = "rate_limited"
+	ErrorCodeReportNotFound         ErrorCode = "report_not_found"
+	ErrorCodeReportNotOpen          ErrorCode = "report_not_open"
 	ErrorCodeSpeciesNotSupported    ErrorCode = "species_not_supported"
 	ErrorCodeUnauthenticated        ErrorCode = "unauthenticated"
 	ErrorCodeUnavailable            ErrorCode = "unavailable"
@@ -48,6 +52,8 @@ func (e ErrorCode) Valid() bool {
 		return true
 	case ErrorCodeInvalidRequest:
 		return true
+	case ErrorCodeLostReportOpen:
+		return true
 	case ErrorCodeNoseprintNotFound:
 		return true
 	case ErrorCodeNotFound:
@@ -57,6 +63,10 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodePetNotFound:
 		return true
 	case ErrorCodeRateLimited:
+		return true
+	case ErrorCodeReportNotFound:
+		return true
+	case ErrorCodeReportNotOpen:
 		return true
 	case ErrorCodeSpeciesNotSupported:
 		return true
@@ -78,6 +88,42 @@ const (
 func (e HealthStatus) Valid() bool {
 	switch e {
 	case HealthStatusOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReportStatus.
+const (
+	ReportStatusOpen     ReportStatus = "open"
+	ReportStatusResolved ReportStatus = "resolved"
+)
+
+// Valid indicates whether the value is a known member of the ReportStatus enum.
+func (e ReportStatus) Valid() bool {
+	switch e {
+	case ReportStatusOpen:
+		return true
+	case ReportStatusResolved:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReportType.
+const (
+	ReportTypeFound ReportType = "found"
+	ReportTypeLost  ReportType = "lost"
+)
+
+// Valid indicates whether the value is a known member of the ReportType enum.
+func (e ReportType) Valid() bool {
+	switch e {
+	case ReportTypeFound:
+		return true
+	case ReportTypeLost:
 		return true
 	default:
 		return false
@@ -194,6 +240,15 @@ type FoundNoticeList struct {
 	Notices []FoundNotice `json:"notices"`
 }
 
+// FoundReportCreated defines model for FoundReportCreated.
+type FoundReportCreated struct {
+	// Report Uma ocorrência. Não tem dado do autor.
+	Report Report `json:"report"`
+
+	// ResolveCode Código que resolve o achado. Ele aparece só nesta resposta.
+	ResolveCode string `json:"resolveCode"`
+}
+
 // Health defines model for Health.
 type Health struct {
 	Status HealthStatus `json:"status"`
@@ -221,6 +276,21 @@ type IdentificationCandidate struct {
 
 	// Strong Correspondência forte, a similaridade chega ao limiar do tamanho do acervo.
 	Strong bool `json:"strong"`
+}
+
+// LostReportInput defines model for LostReportInput.
+type LostReportInput struct {
+	// Description Recado, com no máximo 1.000 caracteres.
+	Description *string `json:"description,omitempty"`
+	Latitude    float64 `json:"latitude"`
+	Longitude   float64 `json:"longitude"`
+
+	// OccurredAt Quando o pet desapareceu. Não é futura. Sem valor, vale o momento do registro.
+	OccurredAt *time.Time         `json:"occurredAt,omitempty"`
+	PetId      openapi_types.UUID `json:"petId"`
+
+	// Place Nome do local, com no máximo 200 caracteres.
+	Place *string `json:"place,omitempty"`
 }
 
 // Noseprint Cadastro biométrico de um pet, a foto do focinho com o vetor dela.
@@ -344,8 +414,82 @@ type RegisterOwnerRequest struct {
 	Name string `json:"name"`
 }
 
+// Report Uma ocorrência. Não tem dado do autor.
+type Report struct {
+	CreatedAt   time.Time          `json:"createdAt"`
+	Description *string            `json:"description,omitempty"`
+	Id          openapi_types.UUID `json:"id"`
+	Latitude    float64            `json:"latitude"`
+	Longitude   float64            `json:"longitude"`
+	OccurredAt  time.Time          `json:"occurredAt"`
+
+	// PetHasNoseprint O pet tem cadastro biométrico, e quem o encontrar pode identificá-lo pela foto do focinho.
+	PetHasNoseprint *bool `json:"petHasNoseprint,omitempty"`
+
+	// PetId O pet de um desaparecimento.
+	PetId   *openapi_types.UUID `json:"petId,omitempty"`
+	PetName *string             `json:"petName,omitempty"`
+
+	// PetSpecies Espécie do pet.
+	PetSpecies *Species `json:"petSpecies,omitempty"`
+
+	// PhotoUrl URL temporária da foto de perfil do pet, ou da foto do focinho de um achado. Vale por 900 segundos.
+	PhotoUrl *string `json:"photoUrl,omitempty"`
+	Place    *string `json:"place,omitempty"`
+
+	// Sightings Os avistamentos de um desaparecimento, do mais antigo para o mais novo. Vazia nas listas.
+	Sightings []Sighting   `json:"sightings"`
+	Status    ReportStatus `json:"status"`
+	Type      ReportType   `json:"type"`
+}
+
+// ReportList defines model for ReportList.
+type ReportList struct {
+	Reports []Report `json:"reports"`
+}
+
+// ReportPage defines model for ReportPage.
+type ReportPage struct {
+	HasNext bool `json:"hasNext"`
+
+	// OpenFound Número de achados abertos no mural.
+	OpenFound int `json:"openFound"`
+
+	// OpenLost Número de desaparecimentos abertos no mural.
+	OpenLost int      `json:"openLost"`
+	Page     int      `json:"page"`
+	Reports  []Report `json:"reports"`
+}
+
+// ReportStatus defines model for ReportStatus.
+type ReportStatus string
+
+// ReportType defines model for ReportType.
+type ReportType string
+
 // Sex Sexo do pet.
 type Sex string
+
+// Sighting Um avistamento. Não tem dado de quem avistou.
+type Sighting struct {
+	CreatedAt   time.Time          `json:"createdAt"`
+	Description *string            `json:"description,omitempty"`
+	Id          openapi_types.UUID `json:"id"`
+	Latitude    float64            `json:"latitude"`
+	Longitude   float64            `json:"longitude"`
+	Place       *string            `json:"place,omitempty"`
+}
+
+// SightingInput defines model for SightingInput.
+type SightingInput struct {
+	// Description Recado, com no máximo 1.000 caracteres.
+	Description *string  `json:"description,omitempty"`
+	Latitude    *float64 `json:"latitude,omitempty"`
+	Longitude   *float64 `json:"longitude,omitempty"`
+
+	// Place Nome do local, com no máximo 200 caracteres.
+	Place *string `json:"place,omitempty"`
+}
 
 // Size Porte do pet.
 type Size string
@@ -374,6 +518,9 @@ type PetNotFound = Error
 
 // RateLimited Formato único de erro. Todo erro da API usa este formato.
 type RateLimited = Error
+
+// ReportNotFound Formato único de erro. Todo erro da API usa este formato.
+type ReportNotFound = Error
 
 // Unauthenticated Formato único de erro. Todo erro da API usa este formato.
 type Unauthenticated = Error
@@ -423,6 +570,31 @@ type SetPetPhotoMultipartBody struct {
 	File openapi_types.File `json:"file"`
 }
 
+// ListReportsParams defines parameters for ListReports.
+type ListReportsParams struct {
+	// Page Número da página, a partir de 1.
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+}
+
+// ReportFoundMultipartBody defines parameters for ReportFound.
+type ReportFoundMultipartBody struct {
+	// Description Recado, com no máximo 1.000 caracteres.
+	Description *string `json:"description,omitempty"`
+
+	// File A foto do focinho usada na identificação. JPEG, PNG ou WebP, com no máximo 8 MB.
+	File      openapi_types.File `json:"file"`
+	Latitude  float64            `json:"latitude"`
+	Longitude float64            `json:"longitude"`
+
+	// Place Nome do local, com no máximo 200 caracteres.
+	Place *string `json:"place,omitempty"`
+}
+
+// ResolveFoundReportJSONBody defines parameters for ResolveFoundReport.
+type ResolveFoundReportJSONBody struct {
+	Code string `json:"code"`
+}
+
 // IdentifyNoseMultipartRequestBody defines body for IdentifyNose for multipart/form-data ContentType.
 type IdentifyNoseMultipartRequestBody IdentifyNoseMultipartBody
 
@@ -444,6 +616,18 @@ type RegisterNoseprintMultipartRequestBody RegisterNoseprintMultipartBody
 // SetPetPhotoMultipartRequestBody defines body for SetPetPhoto for multipart/form-data ContentType.
 type SetPetPhotoMultipartRequestBody SetPetPhotoMultipartBody
 
+// ReportFoundMultipartRequestBody defines body for ReportFound for multipart/form-data ContentType.
+type ReportFoundMultipartRequestBody ReportFoundMultipartBody
+
+// ReportLostJSONRequestBody defines body for ReportLost for application/json ContentType.
+type ReportLostJSONRequestBody = LostReportInput
+
+// ResolveFoundReportJSONRequestBody defines body for ResolveFoundReport for application/json ContentType.
+type ResolveFoundReportJSONRequestBody ResolveFoundReportJSONBody
+
+// ReportSightingJSONRequestBody defines body for ReportSighting for application/json ContentType.
+type ReportSightingJSONRequestBody = SightingInput
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// ListFoundNotices Lista os avisos de quem encontrou um pet do tutor.
@@ -464,6 +648,9 @@ type ServerInterface interface {
 	// RegisterMe Registra o tutor da conta, com o aceite dos termos de uso.
 	// (POST /v1/me)
 	RegisterMe(w http.ResponseWriter, r *http.Request)
+	// ListMyReports Os desaparecimentos registrados pelo tutor, abertos e resolvidos.
+	// (GET /v1/me/reports)
+	ListMyReports(w http.ResponseWriter, r *http.Request)
 	// ListPets Lista os pets do tutor, em ordem de nome.
 	// (GET /v1/pets)
 	ListPets(w http.ResponseWriter, r *http.Request)
@@ -488,6 +675,27 @@ type ServerInterface interface {
 	// SetPetPhoto Envia a foto de perfil de um pet do tutor.
 	// (PUT /v1/pets/{petId}/photo)
 	SetPetPhoto(w http.ResponseWriter, r *http.Request, petId PetId)
+	// ListReports O mural, as ocorrências abertas dos tipos perdido e achado.
+	// (GET /v1/reports)
+	ListReports(w http.ResponseWriter, r *http.Request, params ListReportsParams)
+	// ReportFound Publica um achado, com a foto do focinho.
+	// (POST /v1/reports/found)
+	ReportFound(w http.ResponseWriter, r *http.Request)
+	// ReportLost Registra o desaparecimento de um pet do tutor.
+	// (POST /v1/reports/lost)
+	ReportLost(w http.ResponseWriter, r *http.Request)
+	// GetReport A ficha de uma ocorrência.
+	// (GET /v1/reports/{reportId})
+	GetReport(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID)
+	// ResolveFoundReport Resolve um achado com o código da criação.
+	// (POST /v1/reports/{reportId}/code-resolution)
+	ResolveFoundReport(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID)
+	// ResolveReport O autor resolve uma ocorrência dele.
+	// (POST /v1/reports/{reportId}/resolution)
+	ResolveReport(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID)
+	// ReportSighting Registra um avistamento em um desaparecimento aberto.
+	// (POST /v1/reports/{reportId}/sightings)
+	ReportSighting(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -586,6 +794,20 @@ func (siw *ServerInterfaceWrapper) RegisterMe(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RegisterMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMyReports operation middleware
+func (siw *ServerInterfaceWrapper) ListMyReports(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMyReports(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -779,6 +1001,171 @@ func (siw *ServerInterfaceWrapper) SetPetPhoto(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// ListReports operation middleware
+func (siw *ServerInterfaceWrapper) ListReports(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListReportsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListReports(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReportFound operation middleware
+func (siw *ServerInterfaceWrapper) ReportFound(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReportFound(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReportLost operation middleware
+func (siw *ServerInterfaceWrapper) ReportLost(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReportLost(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetReport operation middleware
+func (siw *ServerInterfaceWrapper) GetReport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "reportId" -------------
+	var reportId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "reportId", r.PathValue("reportId"), &reportId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "reportId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetReport(w, r, reportId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResolveFoundReport operation middleware
+func (siw *ServerInterfaceWrapper) ResolveFoundReport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "reportId" -------------
+	var reportId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "reportId", r.PathValue("reportId"), &reportId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "reportId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResolveFoundReport(w, r, reportId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResolveReport operation middleware
+func (siw *ServerInterfaceWrapper) ResolveReport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "reportId" -------------
+	var reportId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "reportId", r.PathValue("reportId"), &reportId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "reportId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResolveReport(w, r, reportId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReportSighting operation middleware
+func (siw *ServerInterfaceWrapper) ReportSighting(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "reportId" -------------
+	var reportId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "reportId", r.PathValue("reportId"), &reportId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "reportId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReportSighting(w, r, reportId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -913,6 +1300,14 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/identifications", wrapper.IdentifyNose)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/identifications/{identificationId}/confirmation", wrapper.ConfirmIdentification)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/found-notices", wrapper.ListFoundNotices)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/reports", wrapper.ListReports)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reports/lost", wrapper.ReportLost)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reports/found", wrapper.ReportFound)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/reports/{reportId}", wrapper.GetReport)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reports/{reportId}/sightings", wrapper.ReportSighting)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reports/{reportId}/resolution", wrapper.ResolveReport)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reports/{reportId}/code-resolution", wrapper.ResolveFoundReport)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me/reports", wrapper.ListMyReports)
 
 	return m
 }
@@ -928,6 +1323,8 @@ type OwnerNotFoundJSONResponse Error
 type PetNotFoundJSONResponse Error
 
 type RateLimitedJSONResponse Error
+
+type ReportNotFoundJSONResponse Error
 
 type UnauthenticatedJSONResponse Error
 
@@ -1358,6 +1755,72 @@ type RegisterMedefaultJSONResponse struct {
 }
 
 func (response RegisterMedefaultJSONResponse) VisitRegisterMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyReportsRequestObject struct {
+}
+
+type ListMyReportsResponseObject interface {
+	VisitListMyReportsResponse(w http.ResponseWriter) error
+}
+
+type ListMyReports200JSONResponse ReportList
+
+func (response ListMyReports200JSONResponse) VisitListMyReportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyReports401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ListMyReports401JSONResponse) VisitListMyReportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyReports404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response ListMyReports404JSONResponse) VisitListMyReportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyReportsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListMyReportsdefaultJSONResponse) VisitListMyReportsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -2013,6 +2476,519 @@ func (response SetPetPhotodefaultJSONResponse) VisitSetPetPhotoResponse(w http.R
 	return err
 }
 
+type ListReportsRequestObject struct {
+	Params ListReportsParams
+}
+
+type ListReportsResponseObject interface {
+	VisitListReportsResponse(w http.ResponseWriter) error
+}
+
+type ListReports200JSONResponse ReportPage
+
+func (response ListReports200JSONResponse) VisitListReportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReports400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ListReports400JSONResponse) VisitListReportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReportsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListReportsdefaultJSONResponse) VisitListReportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportFoundRequestObject struct {
+	Body *multipart.Reader
+}
+
+type ReportFoundResponseObject interface {
+	VisitReportFoundResponse(w http.ResponseWriter) error
+}
+
+type ReportFound201JSONResponse FoundReportCreated
+
+func (response ReportFound201JSONResponse) VisitReportFoundResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportFound400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ReportFound400JSONResponse) VisitReportFoundResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportFound429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response ReportFound429JSONResponse) VisitReportFoundResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportFounddefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ReportFounddefaultJSONResponse) VisitReportFoundResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportLostRequestObject struct {
+	Body *ReportLostJSONRequestBody
+}
+
+type ReportLostResponseObject interface {
+	VisitReportLostResponse(w http.ResponseWriter) error
+}
+
+type ReportLost201JSONResponse Report
+
+func (response ReportLost201JSONResponse) VisitReportLostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportLost400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ReportLost400JSONResponse) VisitReportLostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportLost401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ReportLost401JSONResponse) VisitReportLostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportLost404JSONResponse struct{ PetNotFoundJSONResponse }
+
+func (response ReportLost404JSONResponse) VisitReportLostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportLost409JSONResponse Error
+
+func (response ReportLost409JSONResponse) VisitReportLostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportLostdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ReportLostdefaultJSONResponse) VisitReportLostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReportRequestObject struct {
+	ReportId openapi_types.UUID `json:"reportId"`
+}
+
+type GetReportResponseObject interface {
+	VisitGetReportResponse(w http.ResponseWriter) error
+}
+
+type GetReport200JSONResponse Report
+
+func (response GetReport200JSONResponse) VisitGetReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReport404JSONResponse struct{ ReportNotFoundJSONResponse }
+
+func (response GetReport404JSONResponse) VisitGetReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReportdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetReportdefaultJSONResponse) VisitGetReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveFoundReportRequestObject struct {
+	ReportId openapi_types.UUID `json:"reportId"`
+	Body     *ResolveFoundReportJSONRequestBody
+}
+
+type ResolveFoundReportResponseObject interface {
+	VisitResolveFoundReportResponse(w http.ResponseWriter) error
+}
+
+type ResolveFoundReport200JSONResponse Report
+
+func (response ResolveFoundReport200JSONResponse) VisitResolveFoundReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveFoundReport400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ResolveFoundReport400JSONResponse) VisitResolveFoundReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveFoundReport404JSONResponse struct{ ReportNotFoundJSONResponse }
+
+func (response ResolveFoundReport404JSONResponse) VisitResolveFoundReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveFoundReport429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response ResolveFoundReport429JSONResponse) VisitResolveFoundReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveFoundReportdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ResolveFoundReportdefaultJSONResponse) VisitResolveFoundReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveReportRequestObject struct {
+	ReportId openapi_types.UUID `json:"reportId"`
+}
+
+type ResolveReportResponseObject interface {
+	VisitResolveReportResponse(w http.ResponseWriter) error
+}
+
+type ResolveReport200JSONResponse Report
+
+func (response ResolveReport200JSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveReport401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ResolveReport401JSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveReport404JSONResponse struct{ ReportNotFoundJSONResponse }
+
+func (response ResolveReport404JSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveReportdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ResolveReportdefaultJSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportSightingRequestObject struct {
+	ReportId openapi_types.UUID `json:"reportId"`
+	Body     *ReportSightingJSONRequestBody
+}
+
+type ReportSightingResponseObject interface {
+	VisitReportSightingResponse(w http.ResponseWriter) error
+}
+
+type ReportSighting201JSONResponse Sighting
+
+func (response ReportSighting201JSONResponse) VisitReportSightingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportSighting400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ReportSighting400JSONResponse) VisitReportSightingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportSighting404JSONResponse struct{ ReportNotFoundJSONResponse }
+
+func (response ReportSighting404JSONResponse) VisitReportSightingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportSighting409JSONResponse Error
+
+func (response ReportSighting409JSONResponse) VisitReportSightingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportSighting429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response ReportSighting429JSONResponse) VisitReportSightingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportSightingdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ReportSightingdefaultJSONResponse) VisitReportSightingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// ListFoundNotices Lista os avisos de quem encontrou um pet do tutor.
@@ -2033,6 +3009,9 @@ type StrictServerInterface interface {
 	// RegisterMe Registra o tutor da conta, com o aceite dos termos de uso.
 	// (POST /v1/me)
 	RegisterMe(ctx context.Context, request RegisterMeRequestObject) (RegisterMeResponseObject, error)
+	// ListMyReports Os desaparecimentos registrados pelo tutor, abertos e resolvidos.
+	// (GET /v1/me/reports)
+	ListMyReports(ctx context.Context, request ListMyReportsRequestObject) (ListMyReportsResponseObject, error)
 	// ListPets Lista os pets do tutor, em ordem de nome.
 	// (GET /v1/pets)
 	ListPets(ctx context.Context, request ListPetsRequestObject) (ListPetsResponseObject, error)
@@ -2057,6 +3036,27 @@ type StrictServerInterface interface {
 	// SetPetPhoto Envia a foto de perfil de um pet do tutor.
 	// (PUT /v1/pets/{petId}/photo)
 	SetPetPhoto(ctx context.Context, request SetPetPhotoRequestObject) (SetPetPhotoResponseObject, error)
+	// ListReports O mural, as ocorrências abertas dos tipos perdido e achado.
+	// (GET /v1/reports)
+	ListReports(ctx context.Context, request ListReportsRequestObject) (ListReportsResponseObject, error)
+	// ReportFound Publica um achado, com a foto do focinho.
+	// (POST /v1/reports/found)
+	ReportFound(ctx context.Context, request ReportFoundRequestObject) (ReportFoundResponseObject, error)
+	// ReportLost Registra o desaparecimento de um pet do tutor.
+	// (POST /v1/reports/lost)
+	ReportLost(ctx context.Context, request ReportLostRequestObject) (ReportLostResponseObject, error)
+	// GetReport A ficha de uma ocorrência.
+	// (GET /v1/reports/{reportId})
+	GetReport(ctx context.Context, request GetReportRequestObject) (GetReportResponseObject, error)
+	// ResolveFoundReport Resolve um achado com o código da criação.
+	// (POST /v1/reports/{reportId}/code-resolution)
+	ResolveFoundReport(ctx context.Context, request ResolveFoundReportRequestObject) (ResolveFoundReportResponseObject, error)
+	// ResolveReport O autor resolve uma ocorrência dele.
+	// (POST /v1/reports/{reportId}/resolution)
+	ResolveReport(ctx context.Context, request ResolveReportRequestObject) (ResolveReportResponseObject, error)
+	// ReportSighting Registra um avistamento em um desaparecimento aberto.
+	// (POST /v1/reports/{reportId}/sightings)
+	ReportSighting(ctx context.Context, request ReportSightingRequestObject) (ReportSightingResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -2258,6 +3258,30 @@ func (sh *strictHandler) RegisterMe(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RegisterMeResponseObject); ok {
 		if err := validResponse.VisitRegisterMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListMyReports operation middleware
+func (sh *strictHandler) ListMyReports(w http.ResponseWriter, r *http.Request) {
+	var request ListMyReportsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMyReports(ctx, request.(ListMyReportsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMyReports")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListMyReportsResponseObject); ok {
+		if err := validResponse.VisitListMyReportsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -2490,6 +3514,212 @@ func (sh *strictHandler) SetPetPhoto(w http.ResponseWriter, r *http.Request, pet
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(SetPetPhotoResponseObject); ok {
 		if err := validResponse.VisitSetPetPhotoResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListReports operation middleware
+func (sh *strictHandler) ListReports(w http.ResponseWriter, r *http.Request, params ListReportsParams) {
+	var request ListReportsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListReports(ctx, request.(ListReportsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListReports")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListReportsResponseObject); ok {
+		if err := validResponse.VisitListReportsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReportFound operation middleware
+func (sh *strictHandler) ReportFound(w http.ResponseWriter, r *http.Request) {
+	var request ReportFoundRequestObject
+
+	if reader, err := r.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReportFound(ctx, request.(ReportFoundRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReportFound")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReportFoundResponseObject); ok {
+		if err := validResponse.VisitReportFoundResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReportLost operation middleware
+func (sh *strictHandler) ReportLost(w http.ResponseWriter, r *http.Request) {
+	var request ReportLostRequestObject
+
+	var body ReportLostJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReportLost(ctx, request.(ReportLostRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReportLost")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReportLostResponseObject); ok {
+		if err := validResponse.VisitReportLostResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetReport operation middleware
+func (sh *strictHandler) GetReport(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID) {
+	var request GetReportRequestObject
+
+	request.ReportId = reportId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetReport(ctx, request.(GetReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetReport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetReportResponseObject); ok {
+		if err := validResponse.VisitGetReportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ResolveFoundReport operation middleware
+func (sh *strictHandler) ResolveFoundReport(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID) {
+	var request ResolveFoundReportRequestObject
+
+	request.ReportId = reportId
+
+	var body ResolveFoundReportJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ResolveFoundReport(ctx, request.(ResolveFoundReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResolveFoundReport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ResolveFoundReportResponseObject); ok {
+		if err := validResponse.VisitResolveFoundReportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ResolveReport operation middleware
+func (sh *strictHandler) ResolveReport(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID) {
+	var request ResolveReportRequestObject
+
+	request.ReportId = reportId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ResolveReport(ctx, request.(ResolveReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResolveReport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ResolveReportResponseObject); ok {
+		if err := validResponse.VisitResolveReportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReportSighting operation middleware
+func (sh *strictHandler) ReportSighting(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID) {
+	var request ReportSightingRequestObject
+
+	request.ReportId = reportId
+
+	var body ReportSightingJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReportSighting(ctx, request.(ReportSightingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReportSighting")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReportSightingResponseObject); ok {
+		if err := validResponse.VisitReportSightingResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

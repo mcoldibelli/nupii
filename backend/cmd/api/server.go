@@ -18,6 +18,7 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/storage"
+	"github.com/mcoldibelli/nupii/backend/internal/reports"
 )
 
 const (
@@ -44,6 +45,7 @@ func bodyLimit(r *http.Request) int64 {
 	case "PUT /v1/pets/{petId}/photo":
 		return _maxPhotoBodyBytes
 	case "POST /v1/pets/{petId}/noseprints",
+		"POST /v1/reports/found",
 		"POST /v1/identifications",
 		"POST /v1/identifications/{identificationId}/confirmation":
 		return _maxNosePhotoBodyBytes
@@ -63,6 +65,7 @@ type (
 	identityHandlers   = identity.Handlers
 	petsHandlers       = pets.Handlers
 	biometricsHandlers = biometrics.Handlers
+	reportsHandlers    = reports.Handlers
 )
 
 // server implements the operations of the contract. The operations of each
@@ -71,6 +74,7 @@ type server struct {
 	*identityHandlers
 	*petsHandlers
 	*biometricsHandlers
+	*reportsHandlers
 
 	// noseprints runs the recompute of the vectors when the API starts.
 	noseprints *biometrics.Service
@@ -96,9 +100,11 @@ func newServer(
 		identityHandlers:   identity.NewHandlers(owners),
 		petsHandlers:       pets.NewHandlers(petService),
 		biometricsHandlers: biometrics.NewHandlers(noseprints, logger),
-		noseprints:         noseprints,
-		logger:             logger,
-		database:           pool,
+		reportsHandlers: reports.NewHandlers(
+			reports.NewService(pool, owners, petService, photos, logger)),
+		noseprints: noseprints,
+		logger:     logger,
+		database:   pool,
 	}
 }
 
@@ -127,7 +133,12 @@ func isPublic(r *http.Request) bool {
 	switch r.Pattern {
 	case "GET /v1/health",
 		"POST /v1/identifications",
-		"POST /v1/identifications/{identificationId}/confirmation":
+		"POST /v1/identifications/{identificationId}/confirmation",
+		"GET /v1/reports",
+		"GET /v1/reports/{reportId}",
+		"POST /v1/reports/found",
+		"POST /v1/reports/{reportId}/sightings",
+		"POST /v1/reports/{reportId}/code-resolution":
 		return true
 	default:
 		return false
@@ -153,6 +164,30 @@ func allowOtherOrigins(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 		}
 		next.ServeHTTP(w, r)
+	})
+}
+
+// answerPreflight answers the preflight request that a browser sends before
+// a request to another origin with a JSON body. Only a public route gets
+// the answer that allows the request. mux finds the route of the request.
+func answerPreflight(mux *http.ServeMux, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		method := r.Header.Get("Access-Control-Request-Method")
+		if r.Method != http.MethodOptions || method == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		// The route that would get the real request.
+		real := r.Clone(r.Context())
+		real.Method = method
+		if _, real.Pattern = mux.Handler(real); !isPublic(real) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", method)
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.WriteHeader(http.StatusNoContent)
 	})
 }
 
@@ -221,7 +256,7 @@ func newHandler(
 		ErrorHandlerFunc: invalidRequest,
 	})
 
-	return httpx.RequestLog(logger)(recoverPanic(logger, routes))
+	return httpx.RequestLog(logger)(recoverPanic(logger, answerPreflight(mux, routes)))
 }
 
 // recoverPanic answers with the internal error of the contract when next
