@@ -101,6 +101,15 @@ func (s *Service) Owner(ctx context.Context, who Identity) (Owner, error) {
 	return ownerFromRow(row), nil
 }
 
+// IsDeleted tells if the account of the user uid is deleted (RN-04).
+func (s *Service) IsDeleted(ctx context.Context, uid string) (bool, error) {
+	deleted, err := s.queries.IsOwnerDeleted(ctx, uid)
+	if err != nil {
+		return false, fmt.Errorf("read if the owner is deleted: %w", err)
+	}
+	return deleted, nil
+}
+
 // CurrentOwner returns the owner of the account that made the request of
 // ctx. It returns ErrOwnerNotFound when the account did not register an
 // owner. The other modules use this method to find who makes a request.

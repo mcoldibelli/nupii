@@ -71,3 +71,10 @@ WHERE r.id = sqlc.arg(id) AND r.owner_id = sqlc.arg(owner_id)
 UPDATE reports
 SET status = 'resolved', resolved_at = COALESCE(resolved_at, now())
 WHERE id = sqlc.arg(id) AND type = 'found' AND resolve_code_hash = sqlc.arg(resolve_code_hash);
+
+-- name: EraseOwnerReports :exec
+-- RN-84: um desaparecimento aberto do tutor fica resolvido, sem a descrição
+-- e sem o lugar.
+UPDATE reports
+SET status = 'resolved', resolved_at = COALESCE(resolved_at, now()), description = NULL, place = NULL
+WHERE owner_id = sqlc.arg(owner_id);

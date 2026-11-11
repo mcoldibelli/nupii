@@ -90,7 +90,7 @@ func healthyServer() server {
 }
 
 func TestGetHealth(t *testing.T) {
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{})
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{})
 	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
 	rec := httptest.NewRecorder()
 
@@ -114,7 +114,7 @@ func TestGetHealthWhenTheDatabaseDoesNotRespond(t *testing.T) {
 	var logs bytes.Buffer
 	logger := slog.New(httpx.NewLogHandler(slog.NewJSONHandler(&logs, nil)))
 	operations := server{logger: logger, database: fakeDatabase{err: errors.New(detail)}}
-	handler := newHandler(logger, operations, fakeVerifier{})
+	handler := newHandler(logger, operations, fakeVerifier{}, noDeletedAccounts{})
 	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
 	rec := httptest.NewRecorder()
 
@@ -152,3 +152,9 @@ func TestRunFailsWithInvalidConfiguration(t *testing.T) {
 		t.Errorf("run error = %v, want it to wrap the address error", err)
 	}
 }
+
+// noDeletedAccounts is the account checker of the tests with no database:
+// no account is deleted.
+type noDeletedAccounts struct{}
+
+func (noDeletedAccounts) IsDeleted(context.Context, string) (bool, error) { return false, nil }

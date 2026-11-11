@@ -10,12 +10,32 @@ import (
 
 // Handlers implements the operations of the contract for the owner.
 type Handlers struct {
-	service *Service
+	service  *Service
+	accounts *Accounts
 }
 
-// NewHandlers returns the handlers that use service.
-func NewHandlers(service *Service) *Handlers {
-	return &Handlers{service: service}
+// NewHandlers returns the handlers that use service and accounts.
+func NewHandlers(service *Service, accounts *Accounts) *Handlers {
+	return &Handlers{service: service, accounts: accounts}
+}
+
+// DeleteMe deletes the account that made the request (RF-08).
+func (h *Handlers) DeleteMe(
+	ctx context.Context,
+	_ api.DeleteMeRequestObject,
+) (api.DeleteMeResponseObject, error) {
+	err := h.accounts.Delete(ctx)
+	if errors.Is(err, ErrOwnerNotFound) {
+		return api.DeleteMe404JSONResponse{
+			OwnerNotFoundJSONResponse: api.OwnerNotFoundJSONResponse{
+				Error: api.ErrorCodeOwnerNotFound, Message: "the account has no owner yet",
+			},
+		}, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("delete the account: %w", err)
+	}
+	return api.DeleteMe204Response{}, nil
 }
 
 // GetMe returns the owner of the account that made the request.

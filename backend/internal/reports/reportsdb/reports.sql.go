@@ -145,6 +145,19 @@ func (q *Queries) CreateSighting(ctx context.Context, arg CreateSightingParams) 
 	return i, err
 }
 
+const eraseOwnerReports = `-- name: EraseOwnerReports :exec
+UPDATE reports
+SET status = 'resolved', resolved_at = COALESCE(resolved_at, now()), description = NULL, place = NULL
+WHERE owner_id = $1
+`
+
+// RN-84: um desaparecimento aberto do tutor fica resolvido, sem a descrição
+// e sem o lugar.
+func (q *Queries) EraseOwnerReports(ctx context.Context, ownerID *string) error {
+	_, err := q.db.Exec(ctx, eraseOwnerReports, ownerID)
+	return err
+}
+
 const getReport = `-- name: GetReport :one
 SELECT id, type, status, owner_id, pet_id, pet_name, pet_species, pet_has_noseprint, photo_key, latitude, longitude, place, description, occurred_at, created_at FROM report_views WHERE id = $1
 `

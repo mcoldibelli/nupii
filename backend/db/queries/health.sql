@@ -163,3 +163,25 @@ SELECT name, medication_category, date, interval_days FROM health_events
 WHERE pet_id = sqlc.arg(pet_id) AND type = 'medication'
     AND medication_category IN ('flea', 'deworm')
 ORDER BY date DESC, created_at DESC;
+
+-- name: LockOwnerHealthEvents :exec
+-- RN-84: the lock puts an upload of an attachment before the delete.
+SELECT h.id FROM health_events AS h JOIN pets AS p ON p.id = h.pet_id
+WHERE p.owner_id = sqlc.arg(owner_id)
+FOR UPDATE OF h;
+
+-- name: DeleteOwnerAttachments :many
+DELETE FROM health_attachments
+WHERE event_id IN (
+    SELECT h.id FROM health_events AS h JOIN pets AS p ON p.id = h.pet_id
+    WHERE p.owner_id = sqlc.arg(owner_id)
+)
+RETURNING key;
+
+-- name: DeleteOwnerHealthEvents :exec
+DELETE FROM health_events
+WHERE pet_id IN (SELECT id FROM pets WHERE owner_id = sqlc.arg(owner_id));
+
+-- name: DeleteOwnerShareLinks :exec
+DELETE FROM share_links
+WHERE pet_id IN (SELECT id FROM pets WHERE owner_id = sqlc.arg(owner_id));

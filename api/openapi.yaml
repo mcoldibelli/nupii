@@ -94,6 +94,24 @@ paths:
           $ref: "#/components/responses/Unauthenticated"
         default:
           $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteMe
+      tags: [identity]
+      summary: Exclui a conta do tutor (RF-08).
+      description: |
+        Anonimiza o tutor e apaga os dados dele (RN-03, RN-84). O usuário sai do provedor de
+        identidade logo depois, numa tarefa. Depois desta chamada, o token recebe 401 (RN-04).
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: A conta foi excluída.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/OwnerNotFound"
+        default:
+          $ref: "#/components/responses/Error"
   /v1/pets:
     get:
       operationId: listPets

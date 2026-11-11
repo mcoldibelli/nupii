@@ -105,6 +105,17 @@ func (q *Queries) DeletePet(ctx context.Context, arg DeletePetParams) (*string, 
 	return previous_photo_key, err
 }
 
+const eraseOwnerPets = `-- name: EraseOwnerPets :exec
+UPDATE pets
+SET deleted_at = COALESCE(deleted_at, now()), photo_key = NULL, updated_at = now()
+WHERE owner_id = $1
+`
+
+func (q *Queries) EraseOwnerPets(ctx context.Context, ownerID string) error {
+	_, err := q.db.Exec(ctx, eraseOwnerPets, ownerID)
+	return err
+}
+
 const getPet = `-- name: GetPet :one
 SELECT id, owner_id, name, species, breed, sex, size, birth_date, weight_kg, neutered,
     vet_name, vet_clinic, vet_phone, created_at, updated_at, deleted_at, photo_key
@@ -180,6 +191,37 @@ func (q *Queries) ListPets(ctx context.Context, ownerID string) ([]Pet, error) {
 			&i.DeletedAt,
 			&i.PhotoKey,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const lockOwnerPets = `-- name: LockOwnerPets :many
+SELECT id, photo_key FROM pets WHERE owner_id = $1 FOR UPDATE
+`
+
+type LockOwnerPetsRow struct {
+	ID       string
+	PhotoKey *string
+}
+
+// RN-84: the delete of an account locks the pets first. The statements
+// that read the data of the pets come after this one.
+func (q *Queries) LockOwnerPets(ctx context.Context, ownerID string) ([]LockOwnerPetsRow, error) {
+	rows, err := q.db.Query(ctx, lockOwnerPets, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LockOwnerPetsRow
+	for rows.Next() {
+		var i LockOwnerPetsRow
+		if err := rows.Scan(&i.ID, &i.PhotoKey); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

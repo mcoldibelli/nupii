@@ -57,6 +57,33 @@ func (q *Queries) DeactivateDevices(ctx context.Context, tokens []string) error 
 	return err
 }
 
+const deleteOwnerDevices = `-- name: DeleteOwnerDevices :exec
+DELETE FROM devices WHERE owner_id = $1
+`
+
+func (q *Queries) DeleteOwnerDevices(ctx context.Context, ownerID string) error {
+	_, err := q.db.Exec(ctx, deleteOwnerDevices, ownerID)
+	return err
+}
+
+const deleteOwnerLocation = `-- name: DeleteOwnerLocation :exec
+DELETE FROM owner_locations WHERE owner_id = $1
+`
+
+func (q *Queries) DeleteOwnerLocation(ctx context.Context, ownerID string) error {
+	_, err := q.db.Exec(ctx, deleteOwnerLocation, ownerID)
+	return err
+}
+
+const deleteOwnerNotifications = `-- name: DeleteOwnerNotifications :exec
+DELETE FROM notifications WHERE owner_id = $1
+`
+
+func (q *Queries) DeleteOwnerNotifications(ctx context.Context, ownerID string) error {
+	_, err := q.db.Exec(ctx, deleteOwnerNotifications, ownerID)
+	return err
+}
+
 const listActiveDeviceTokens = `-- name: ListActiveDeviceTokens :many
 SELECT token FROM devices WHERE owner_id = $1 AND active ORDER BY token
 `

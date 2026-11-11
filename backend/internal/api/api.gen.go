@@ -1199,6 +1199,9 @@ type ServerInterface interface {
 	// ConfirmIdentification Confirma um candidato e deixa o contato para o tutor do pet.
 	// (POST /v1/identifications/{identificationId}/confirmation)
 	ConfirmIdentification(w http.ResponseWriter, r *http.Request, identificationId openapi_types.UUID)
+	// DeleteMe Exclui a conta do tutor (RF-08).
+	// (DELETE /v1/me)
+	DeleteMe(w http.ResponseWriter, r *http.Request)
 	// GetMe Devolve o tutor da conta que fez a chamada.
 	// (GET /v1/me)
 	GetMe(w http.ResponseWriter, r *http.Request)
@@ -1374,6 +1377,20 @@ func (siw *ServerInterfaceWrapper) ConfirmIdentification(w http.ResponseWriter, 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ConfirmIdentification(w, r, identificationId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteMe operation middleware
+func (siw *ServerInterfaceWrapper) DeleteMe(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteMe(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2328,6 +2345,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/health", wrapper.GetHealth)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/v1/me", wrapper.DeleteMe)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me", wrapper.GetMe)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/me", wrapper.RegisterMe)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/pets", wrapper.ListPets)
@@ -2670,6 +2688,66 @@ type ConfirmIdentificationdefaultJSONResponse struct {
 }
 
 func (response ConfirmIdentificationdefaultJSONResponse) VisitConfirmIdentificationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMeRequestObject struct {
+}
+
+type DeleteMeResponseObject interface {
+	VisitDeleteMeResponse(w http.ResponseWriter) error
+}
+
+type DeleteMe204Response struct {
+}
+
+func (response DeleteMe204Response) VisitDeleteMeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteMe401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response DeleteMe401JSONResponse) VisitDeleteMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMe404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response DeleteMe404JSONResponse) VisitDeleteMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response DeleteMedefaultJSONResponse) VisitDeleteMeResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -5418,6 +5496,9 @@ type StrictServerInterface interface {
 	// ConfirmIdentification Confirma um candidato e deixa o contato para o tutor do pet.
 	// (POST /v1/identifications/{identificationId}/confirmation)
 	ConfirmIdentification(ctx context.Context, request ConfirmIdentificationRequestObject) (ConfirmIdentificationResponseObject, error)
+	// DeleteMe Exclui a conta do tutor (RF-08).
+	// (DELETE /v1/me)
+	DeleteMe(ctx context.Context, request DeleteMeRequestObject) (DeleteMeResponseObject, error)
 	// GetMe Devolve o tutor da conta que fez a chamada.
 	// (GET /v1/me)
 	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
@@ -5669,6 +5750,30 @@ func (sh *strictHandler) ConfirmIdentification(w http.ResponseWriter, r *http.Re
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ConfirmIdentificationResponseObject); ok {
 		if err := validResponse.VisitConfirmIdentificationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteMe operation middleware
+func (sh *strictHandler) DeleteMe(w http.ResponseWriter, r *http.Request) {
+	var request DeleteMeRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteMe(ctx, request.(DeleteMeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteMe")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteMeResponseObject); ok {
+		if err := validResponse.VisitDeleteMeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

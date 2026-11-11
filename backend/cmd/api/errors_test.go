@@ -36,7 +36,7 @@ func validateErrorBody(t *testing.T, body []byte) {
 }
 
 func TestUnknownRouteGetsNotFoundInTheErrorFormat(t *testing.T) {
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{})
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{})
 	tests := []struct {
 		name   string
 		method string
@@ -85,7 +85,7 @@ func (failingOperations) GetHealth(context.Context, api.GetHealthRequestObject) 
 func TestOperationErrorGetsInternalErrorInTheErrorFormat(t *testing.T) {
 	var logs bytes.Buffer
 	logger := slog.New(httpx.NewLogHandler(slog.NewJSONHandler(&logs, nil)))
-	handler := newHandler(logger, failingOperations{}, fakeVerifier{})
+	handler := newHandler(logger, failingOperations{}, fakeVerifier{}, noDeletedAccounts{})
 	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
 	rec := httptest.NewRecorder()
 
@@ -131,7 +131,7 @@ func (panickingOperations) GetHealth(
 func TestHandlerPanicGetsInternalErrorAndKeepsTheRequestLog(t *testing.T) {
 	var logs bytes.Buffer
 	logger := slog.New(httpx.NewLogHandler(slog.NewJSONHandler(&logs, nil)))
-	handler := newHandler(logger, panickingOperations{}, fakeVerifier{})
+	handler := newHandler(logger, panickingOperations{}, fakeVerifier{}, noDeletedAccounts{})
 	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
 	rec := httptest.NewRecorder()
 

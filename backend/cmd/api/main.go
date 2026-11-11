@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"net"
 	"net/http"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"github.com/mcoldibelli/nupii/backend/db/migrations"
 	"github.com/mcoldibelli/nupii/backend/internal/alerts"
 	"github.com/mcoldibelli/nupii/backend/internal/biometrics"
+	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/config"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
@@ -131,7 +133,7 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 		return fmt.Errorf("listen on %s: %w", cfg.HTTPAddr, err)
 	}
 	srv := &http.Server{
-		Handler:           newHandler(logger, operations, tokenVerifier{firebase: verifier}),
+		Handler:           newHandler(logger, operations, tokenVerifier{firebase: verifier}, operations.owners),
 		ReadHeaderTimeout: _readHeaderTimeout,
 		ReadTimeout:       _readTimeout,
 		WriteTimeout:      _writeTimeout,
@@ -154,7 +156,10 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	// RNF-01: um alerta de desaparecimento não se perde quando o processo
 	// para. The jobs that wait in the database run from the start of the
 	// API. Run ends the job in progress and returns when the context ends.
-	runner := jobs.NewRunner(pool, logger, alerts.JobHandlers(pusher))
+	handlers := alerts.JobHandlers(pusher)
+	// RN-03: a job deletes the user of a deleted account in Firebase.
+	maps.Copy(handlers, identity.JobHandlers(verifier))
+	runner := jobs.NewRunner(pool, logger, handlers)
 	background.Go(func() { runner.Run(backgroundCtx) })
 	defer func() {
 		cancelBackground()
