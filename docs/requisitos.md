@@ -124,12 +124,21 @@
 | RN-08 | O vetor é gerado antes de a foto ser salva. Uma foto recusada pela inferência não é gravada. | RF-11 | estável |
 | RN-09 | O cadastro novo passa a ser o principal do pet. Os cadastros anteriores continuam ativos. | RF-11 | estável |
 | RN-10 | A busca lê os 50 cadastros mais parecidos pelo cosseno, só da mesma versão do modelo. | RF-12 | estável |
-| RN-11 | Ficam fora da busca os pets excluídos e os pets de contas que não estão ativas. | RF-12 | estável |
+| RN-11 | Ficam fora da busca os pets excluídos e os pets de contas que não estão ativas. Os estados da conta entram na fatia 9. Até lá, a busca tira só os pets excluídos. | RF-12 | estável |
 | RN-12 | O resultado é agrupado por pet. Vale a foto mais parecida de cada pet. | RF-12 | estável |
 | RN-13 | Uma similaridade abaixo de 0,351 não vira candidato. | RF-12 | estável |
 | RN-14 | A identificação devolve no máximo 3 candidatos. | RF-12 | estável |
-| RN-15 | Um candidato é "correspondência forte" quando a similaridade chega ao limiar do tamanho do acervo. Tabela abaixo. | RF-12 | estável |
-| RN-16 | A foto da consulta só é gravada quando há confirmação. O tutor do pet confirmado recebe uma notificação. | RF-13 | estável |
+| RN-15 | Um candidato é "correspondência forte" quando a similaridade chega ao limiar do tamanho do acervo. Tabela abaixo. O tamanho do acervo é o número de pets que entram na busca (RN-10, RN-11). Vale a menor linha da tabela que não é menor que o acervo. Acima de 300, vale a linha de 300. | RF-12 | estável |
+| RN-16 | A foto da consulta só é gravada quando há confirmação. O tutor do pet confirmado recebe uma notificação. A notificação entra na fatia 6. Até lá, o tutor vê o aviso de encontro na lista (RF-14). | RF-13 | estável |
+| RN-59 | A foto do focinho, no cadastro e na identificação, é uma imagem JPEG, PNG ou WebP de até 8 MB (RN-17). | RF-11, RF-12 | estável |
+| RN-60 | O cadastro que a API devolve para um pet é o principal (RN-09). | RF-11 | estável |
+| RN-61 | A identificação aceita a latitude e a longitude de quem encontrou. As duas são opcionais e vêm juntas. | RF-12 | estável |
+| RN-62 | O resultado da identificação não tem dado do tutor. Cada candidato tem o nome e a foto de perfil do pet, a similaridade e a marca de correspondência forte. | RF-12 | estável |
+| RN-63 | A confirmação tem o candidato, o nome (obrigatório, até 120 caracteres), o telefone (obrigatório, de 8 a 30 caracteres: dígitos, espaço, `+`, `-`, `(` e `)`) e a mensagem (opcional, até 500 caracteres). Os espaços do começo e do fim são removidos. | RF-13 | estável |
+| RN-64 | O candidato da confirmação é da mesma identificação. Uma identificação ou um candidato que não existe recebe 404. | RF-13 | estável |
+| RN-65 | Confirmar de novo o mesmo candidato muda só o contato. A data da confirmação e a foto da consulta ficam as da primeira vez. | RF-13 | estável |
+| RN-66 | O aviso de encontro mostra ao tutor o pet, o nome, o telefone e a mensagem de quem encontrou, o ponto da identificação e a data da confirmação. Os avisos vêm do mais novo para o mais antigo. | RF-14 | estável |
+| RN-67 | O recálculo de RF-15 é executado na subida da API. Ele lê a foto guardada de cada cadastro de outra versão do modelo e grava o vetor novo. Uma foto que a versão nova recusa fica com o vetor antigo, fora da busca. | RF-15 | estável |
 
 Limiares de correspondência forte (RN-15):
 
@@ -226,7 +235,6 @@ Cada item é fechado na fatia indicada, antes do código.
 |---|---|---|
 | 10 | O que acontece quando um login com Google usa o e-mail de uma conta que já tem senha? | RN-02 |
 | 10 | Os termos de uso do conjunto de dados do treino do modelo permitem o uso do modelo em um serviço publicado? Sem essa permissão, a publicação pede um modelo treinado com outro conjunto. | RN-19 |
-| 4 | Qual limiar de RN-15 vale para um acervo com tamanho entre duas linhas da tabela, ou acima de 300? | RN-15 |
 | 5 | Quem resolve um achado registrado sem conta? | RN-29 |
 | 7 | Onde o lembrete é calculado: no app ou em uma tarefa do backend? | RF-29 |
 | 7 | Em qual fuso horário vale a data de hoje para uma data que o tutor informa? Hoje a API usa a data em UTC. | RN-50 |
