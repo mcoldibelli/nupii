@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -14,6 +15,22 @@ import (
 
 	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres/postgrestest"
 )
+
+// _emulatorProjectID is the project of the Authentication emulator of the
+// local environment.
+const _emulatorProjectID = "demo-nupii"
+
+// emulatorHost returns the host:port of the Authentication emulator, from
+// FIREBASE_AUTH_EMULATOR_HOST. The Firebase Admin SDK reads the same
+// variable. An integration test without the emulator fails. It is not skipped.
+func emulatorHost(t *testing.T) string {
+	t.Helper()
+	host := os.Getenv("FIREBASE_AUTH_EMULATOR_HOST")
+	if host == "" {
+		t.Fatal("FIREBASE_AUTH_EMULATOR_HOST is not set: start the compose and set the variable (see backend/README.md)")
+	}
+	return host
+}
 
 // freeAddr returns a local address with a port that is free now.
 func freeAddr(t *testing.T) string {
@@ -31,6 +48,7 @@ func freeAddr(t *testing.T) string {
 
 func TestRunMigratesServesAndStops(t *testing.T) {
 	url := postgrestest.URL(t)
+	emulator := emulatorHost(t)
 	addr := freeAddr(t)
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -40,6 +58,10 @@ func TestRunMigratesServesAndStops(t *testing.T) {
 			return addr
 		case "DATABASE_URL":
 			return url
+		case "FIREBASE_PROJECT_ID":
+			return _emulatorProjectID
+		case "FIREBASE_AUTH_EMULATOR_HOST":
+			return emulator
 		default:
 			return ""
 		}
@@ -118,6 +140,8 @@ func TestRunFailsWhenTheDatabaseDoesNotRespond(t *testing.T) {
 		case "DATABASE_URL":
 			// Port 1 has no server.
 			return "postgres://user:password@127.0.0.1:1/database?sslmode=disable"
+		case "FIREBASE_PROJECT_ID":
+			return _emulatorProjectID
 		default:
 			return ""
 		}

@@ -14,7 +14,9 @@ import (
 	"time"
 
 	"github.com/mcoldibelli/nupii/backend/db/migrations"
+	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/config"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres"
 )
@@ -77,12 +79,27 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	}
 	logger.InfoContext(ctx, "database ready")
 
+	verifier, err := firebase.NewVerifier(startCtx, cfg.FirebaseProjectID)
+	if err != nil {
+		return fmt.Errorf("create ID token verifier: %w", err)
+	}
+	if cfg.FirebaseAuthEmulatorHost != "" {
+		logger.WarnContext(ctx,
+			"firebase auth emulator in use: the signature of the ID tokens is not checked",
+			slog.String("host", cfg.FirebaseAuthEmulatorHost))
+	}
+	operations := server{
+		Handlers: identity.NewHandlers(identity.NewService(pool, time.Now)),
+		logger:   logger,
+		database: pool,
+	}
+
 	listener, err := net.Listen("tcp", cfg.HTTPAddr)
 	if err != nil {
 		return fmt.Errorf("listen on %s: %w", cfg.HTTPAddr, err)
 	}
 	srv := &http.Server{
-		Handler:           newHandler(logger, server{logger: logger, database: pool}),
+		Handler:           newHandler(logger, operations, tokenVerifier{firebase: verifier}),
 		ReadHeaderTimeout: _readHeaderTimeout,
 	}
 
