@@ -7,23 +7,13 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5"
-)
 
-// databaseURL returns the address of the Postgres of the local environment.
-// An integration test without a database fails. It is not skipped.
-func databaseURL(t *testing.T) string {
-	t.Helper()
-	url := os.Getenv("DATABASE_URL")
-	if url == "" {
-		t.Fatal("DATABASE_URL is not set: start the compose and set the variable (see backend/README.md)")
-	}
-	return url
-}
+	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres/postgrestest"
+)
 
 // freeAddr returns a local address with a port that is free now.
 func freeAddr(t *testing.T) string {
@@ -40,7 +30,7 @@ func freeAddr(t *testing.T) string {
 }
 
 func TestRunMigratesServesAndStops(t *testing.T) {
-	url := databaseURL(t)
+	url := postgrestest.URL(t)
 	addr := freeAddr(t)
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
