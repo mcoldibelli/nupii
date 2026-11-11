@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -44,6 +45,26 @@ func Enqueue(ctx context.Context, tx pgx.Tx, kind string, payload any) error {
 	const insert = "INSERT INTO jobs (kind, payload) VALUES ($1, $2)"
 	if _, err := tx.Exec(ctx, insert, kind, data); err != nil {
 		return fmt.Errorf("enqueue the %s job: %w", kind, err)
+	}
+	return nil
+}
+
+// Execer runs a statement. pgx.Tx and *pgxpool.Pool implement it.
+type Execer interface {
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+}
+
+// EnqueueAt writes a job of kind with payload as JSON, due at runAt. A job
+// that a unique index already has changes nothing.
+func EnqueueAt(ctx context.Context, db Execer, kind string, payload any, runAt time.Time) error {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("encode the payload of the %s job: %w", kind, err)
+	}
+	const insert = `INSERT INTO jobs (kind, payload, run_at) VALUES ($1, $2, $3)
+		ON CONFLICT DO NOTHING`
+	if _, err := db.Exec(ctx, insert, kind, data, runAt); err != nil {
+		return fmt.Errorf("enqueue the %s job at %s: %w", kind, runAt, err)
 	}
 	return nil
 }

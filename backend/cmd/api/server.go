@@ -19,6 +19,7 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/pets"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/jobs"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/storage"
 	"github.com/mcoldibelli/nupii/backend/internal/reports"
 )
@@ -87,6 +88,8 @@ type server struct {
 	*alertsHandlers
 	*healthHandlers
 
+	// purge is the handler of the daily purge job (RN-42).
+	purge jobs.Handler
 	// owners tells the middleware which accounts are deleted (RN-04).
 	owners *identity.Service
 	// noseprints runs the recompute of the vectors when the API starts.
@@ -125,6 +128,7 @@ func newServer(
 		alertsHandlers:     alerts.NewHandlers(alertService),
 		healthHandlers:     health.NewHandlers(healthService),
 		owners:             owners,
+		purge:              purgeHandler(noseprints, alertService, photos, logger),
 		noseprints:         noseprints,
 		logger:             logger,
 		database:           pool,

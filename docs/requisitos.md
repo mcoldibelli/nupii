@@ -225,7 +225,7 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 
 | ID | Regra | RF | Estado |
 |---|---|---|---|
-| RN-42 | Todo dia às 3h, no fuso de Brasília (`America/Sao_Paulo`), o sistema apaga o que tem mais de 30 dias: o contato deixado por visitantes, a foto da consulta e a última localização do tutor. | RF-32 | estável |
+| RN-42 | Todo dia às 3h, no fuso de Brasília (`America/Sao_Paulo`), o sistema apaga o que tem mais de 30 dias: o contato deixado por visitantes, a foto da consulta e a última localização do tutor. Um aviso de encontro sem o contato sai da lista do tutor. | RF-32 | estável |
 | RN-43 | Um endpoint público aceita no máximo 10 `POST` por minuto, por IP e por caminho. | RF-12, RF-13, RF-19, RF-20, RF-31 | estável |
 
 ## Requisitos não funcionais

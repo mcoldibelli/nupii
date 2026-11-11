@@ -15,6 +15,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/mcoldibelli/nupii/backend/db/migrations"
 	"github.com/mcoldibelli/nupii/backend/internal/alerts"
@@ -128,6 +129,11 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	}
 	operations := newServer(logger, pool, photos, inference.New(cfg.InferenceURL))
 
+	// RF-32, RN-42: the start writes the next daily purge.
+	if err := schedulePurge(ctx, pool, time.Now()); err != nil {
+		return err
+	}
+
 	listener, err := net.Listen("tcp", cfg.HTTPAddr)
 	if err != nil {
 		return fmt.Errorf("listen on %s: %w", cfg.HTTPAddr, err)
@@ -159,6 +165,8 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	handlers := alerts.JobHandlers(pusher)
 	// RN-03: a job deletes the user of a deleted account in Firebase.
 	maps.Copy(handlers, identity.JobHandlers(verifier))
+	// RF-32, RN-42: a limpeza diária. Each purge writes the one after it.
+	handlers[_jobPurge] = operations.purge
 	runner := jobs.NewRunner(pool, logger, handlers)
 	background.Go(func() { runner.Run(backgroundCtx) })
 	defer func() {
