@@ -14,6 +14,7 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/alerts"
 	"github.com/mcoldibelli/nupii/backend/internal/api"
 	"github.com/mcoldibelli/nupii/backend/internal/biometrics"
+	"github.com/mcoldibelli/nupii/backend/internal/health"
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/pets"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
@@ -68,6 +69,7 @@ type (
 	biometricsHandlers = biometrics.Handlers
 	reportsHandlers    = reports.Handlers
 	alertsHandlers     = alerts.Handlers
+	healthHandlers     = health.Handlers
 )
 
 // server implements the operations of the contract. The operations of each
@@ -78,6 +80,7 @@ type server struct {
 	*biometricsHandlers
 	*reportsHandlers
 	*alertsHandlers
+	*healthHandlers
 
 	// noseprints runs the recompute of the vectors when the API starts.
 	noseprints *biometrics.Service
@@ -106,6 +109,7 @@ func newServer(
 		reportsHandlers: reports.NewHandlers(
 			reports.NewService(pool, owners, petService, photos, logger)),
 		alertsHandlers: alerts.NewHandlers(alerts.NewService(pool, owners)),
+		healthHandlers: health.NewHandlers(health.NewService(pool, owners, petService)),
 		noseprints:     noseprints,
 		logger:         logger,
 		database:       pool,

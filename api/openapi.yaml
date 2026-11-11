@@ -832,6 +832,132 @@ paths:
                 $ref: "#/components/schemas/Error"
         default:
           $ref: "#/components/responses/Error"
+  /v1/pets/{petId}/health-events:
+    parameters:
+      - $ref: "#/components/parameters/PetId"
+    get:
+      operationId: listHealthEvents
+      tags: [health]
+      summary: Os eventos de saúde de um pet do tutor, do mais novo para o mais antigo.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Os eventos de saúde.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthEventList"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/PetNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createHealthEvent
+      tags: [health]
+      summary: Cria um evento de saúde de um pet do tutor.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HealthEventInput"
+      responses:
+        "201":
+          description: O evento criado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthEvent"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/PetNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/pets/{petId}/health-events/{eventId}:
+    parameters:
+      - $ref: "#/components/parameters/PetId"
+      - name: eventId
+        in: path
+        required: true
+        description: Identificador do evento de saúde.
+        schema:
+          type: string
+          format: uuid
+    put:
+      operationId: updateHealthEvent
+      tags: [health]
+      summary: Troca todos os dados de um evento de saúde.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HealthEventInput"
+      responses:
+        "200":
+          description: O evento alterado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthEvent"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/HealthEventNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteHealthEvent
+      tags: [health]
+      summary: Apaga um evento de saúde e os anexos dele.
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: O evento foi apagado.
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/HealthEventNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/upcoming-care:
+    get:
+      operationId: listUpcomingCare
+      tags: [health]
+      summary: Os próximos cuidados de vacina e de medicação dos pets do tutor.
+      description: Da data mais próxima para a mais distante. Uma data passada é um cuidado atrasado.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Os próximos cuidados.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpcomingCareList"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/OwnerNotFound"
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     bearerAuth:
@@ -1235,6 +1361,234 @@ components:
           maxItems: 50
           items:
             $ref: "#/components/schemas/Notification"
+    HealthEventType:
+      type: string
+      enum: [vaccine, consultation, medication, exam, note]
+    MedicationCategory:
+      type: string
+      description: Medicação. Obrigatório na medicação.
+      enum: [medication, flea, deworm]
+    NoteCategory:
+      type: string
+      description: Anotação. Obrigatório na anotação.
+      enum: [disease, weight, allergy, surgery, note, symptom]
+    HealthEventInput:
+      type: object
+      description: |
+        Um evento de saúde. Os campos de cada tipo estão na descrição deles.
+        Um campo de outro tipo é recusado (RN-80).
+      required: [type, date]
+      properties:
+        type:
+          $ref: "#/components/schemas/HealthEventType"
+        date:
+          type: string
+          format: date
+          description: Data do evento. Não é futura.
+        notes:
+          type: string
+        name:
+          type: string
+          description: Nome da vacina, da medicação ou do exame.
+        vet:
+          type: string
+          description: Veterinário. Vacina, consulta e exame.
+        manufacturer:
+          type: string
+          description: Vacina.
+        batch:
+          type: string
+          description: Vacina.
+        dose:
+          type: string
+          description: Vacina.
+        nextDoseDate:
+          type: string
+          format: date
+          description: Vacina. Não é anterior à data do evento.
+        clinic:
+          type: string
+          description: Consulta.
+        reason:
+          type: string
+          description: Consulta. Obrigatório na consulta.
+        diagnosis:
+          type: string
+          description: Consulta.
+        weightKg:
+          type: number
+          format: double
+          description: Consulta e anotação. De 0,01 a 999,99, com até 2 casas decimais.
+        returnDate:
+          type: string
+          format: date
+          description: Consulta. Não é anterior à data do evento.
+        medicationCategory:
+          $ref: "#/components/schemas/MedicationCategory"
+        activeIngredient:
+          type: string
+          description: Medicação.
+        dosage:
+          type: string
+          description: Medicação.
+        frequency:
+          type: string
+          description: Medicação.
+        endDate:
+          type: string
+          format: date
+          description: Medicação. Não é anterior à data do evento.
+        inUse:
+          type: boolean
+          description: Medicação.
+        intervalDays:
+          type: integer
+          minimum: 1
+          maximum: 365
+          description: Medicação. Intervalo entre as doses, em dias.
+        lab:
+          type: string
+          description: Exame.
+        result:
+          type: string
+          description: Exame.
+        noteCategory:
+          $ref: "#/components/schemas/NoteCategory"
+        title:
+          type: string
+          description: Anotação. Obrigatório na anotação.
+        remind:
+          type: boolean
+          description: Vacina e medicação. O evento entra nos próximos cuidados.
+    HealthEvent:
+      type: object
+      required: [id, petId, type, date, remind, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        petId:
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/HealthEventType"
+        date:
+          type: string
+          format: date
+        notes:
+          type: string
+        name:
+          type: string
+          description: Nome da vacina, da medicação ou do exame.
+        vet:
+          type: string
+          description: Veterinário. Vacina, consulta e exame.
+        manufacturer:
+          type: string
+          description: Vacina.
+        batch:
+          type: string
+          description: Vacina.
+        dose:
+          type: string
+          description: Vacina.
+        nextDoseDate:
+          type: string
+          format: date
+          description: Vacina. Não é anterior à data do evento.
+        clinic:
+          type: string
+          description: Consulta.
+        reason:
+          type: string
+          description: Consulta. Obrigatório na consulta.
+        diagnosis:
+          type: string
+          description: Consulta.
+        weightKg:
+          type: number
+          format: double
+          description: Consulta e anotação. De 0,01 a 999,99, com até 2 casas decimais.
+        returnDate:
+          type: string
+          format: date
+          description: Consulta. Não é anterior à data do evento.
+        medicationCategory:
+          $ref: "#/components/schemas/MedicationCategory"
+        activeIngredient:
+          type: string
+          description: Medicação.
+        dosage:
+          type: string
+          description: Medicação.
+        frequency:
+          type: string
+          description: Medicação.
+        endDate:
+          type: string
+          format: date
+          description: Medicação. Não é anterior à data do evento.
+        inUse:
+          type: boolean
+          description: Medicação.
+        intervalDays:
+          type: integer
+          minimum: 1
+          maximum: 365
+          description: Medicação. Intervalo entre as doses, em dias.
+        lab:
+          type: string
+          description: Exame.
+        result:
+          type: string
+          description: Exame.
+        noteCategory:
+          $ref: "#/components/schemas/NoteCategory"
+        title:
+          type: string
+          description: Anotação. Obrigatório na anotação.
+        remind:
+          type: boolean
+          description: Vacina e medicação. O evento entra nos próximos cuidados.
+        createdAt:
+          type: string
+          format: date-time
+    HealthEventList:
+      type: object
+      required: [events]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/HealthEvent"
+    UpcomingCare:
+      type: object
+      required: [eventId, petId, petName, type, title, dueDate]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        petId:
+          type: string
+          format: uuid
+        petName:
+          type: string
+        type:
+          $ref: "#/components/schemas/HealthEventType"
+        title:
+          type: string
+          description: Nome da vacina ou da medicação.
+        dueDate:
+          type: string
+          format: date
+    UpcomingCareList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/UpcomingCare"
     Owner:
       type: object
       description: O tutor. Pessoa com conta, responsável por pets.
@@ -1306,6 +1660,7 @@ components:
         - lost_report_open
         - report_not_open
         - notification_not_found
+        - health_event_not_found
         - rate_limited
         - species_not_supported
         - image_low_quality
@@ -1343,6 +1698,14 @@ components:
             $ref: "#/components/schemas/Error"
     ReportNotFound:
       description: A ocorrência não existe. O código do erro é `report_not_found`.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    HealthEventNotFound:
+      description: |
+        O evento não existe para este pet, com o código `health_event_not_found`.
+        Ou o pet não existe para este tutor, com o código `pet_not_found`.
       content:
         application/json:
           schema:

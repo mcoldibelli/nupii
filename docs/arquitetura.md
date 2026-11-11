@@ -78,6 +78,7 @@ flowchart TD
     biometrics --> identity
     biometrics --> alerts
     health --> pets
+    health --> identity
     pets --> identity
     alerts --> identity
     identity --> platform
@@ -99,6 +100,7 @@ Leituras com `JOIN` entre módulos, conhecidas pelos requisitos:
 | Nome e foto de perfil dos candidatos | `biometrics` | `pets` | RN-62 |
 | Mural e ficha (visão `report_views`) | `reports` | `pets` (nome, espécie, foto, pet não excluído), `biometrics` (o pet tem cadastro) | RN-24, RN-72 |
 | Avisos de encontro do tutor | `biometrics` | `pets` (pets do tutor, não excluídos) | RN-66 |
+| Próximos cuidados | `health` | `pets` (nome, pets do tutor, não excluídos) | RN-81 |
 | Tutores perto de um ponto | `alerts` | `identity` (conta ativa). A leitura entra na fatia 9, com os estados da conta. Hoje a consulta lê só `owner_locations` | RN-32, RN-33 |
 
 ## Tarefas em segundo plano

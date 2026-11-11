@@ -143,8 +143,9 @@ func (r *Runner) Work(ctx context.Context) (worked bool, err error) {
 			// The job does not run again: this needs a person.
 			state, level = "failed", slog.LevelError
 		}
-		r.logger.Log(ctx, level, "job failed", slog.String("job_id", id), slog.String("kind", kind),
-			slog.Int("attempt", attempts), slog.String("state", state), slog.Any("error", jobErr))
+		r.logger.Log(ctx, level, "job failed",
+			slog.String("job_id", id), slog.String("kind", kind), slog.Int("attempt", attempts),
+			slog.String("state", state), slog.Any("error", jobErr))
 		// RNF-02: 10 s, 20 s, 40 s e 80 s.
 		delay := _firstRetryDelay << (attempts - 1)
 		const retry = `UPDATE jobs SET status = $2, attempts = $3, last_error = $4,
