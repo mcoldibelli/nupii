@@ -17,6 +17,7 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/platform/config"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/inference"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/storage"
 )
@@ -98,7 +99,7 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 		AccessKeyID:     cfg.StorageAccessKeyID,
 		SecretAccessKey: cfg.StorageSecretAccessKey,
 	})
-	operations := newServer(logger, pool, photos)
+	operations := newServer(logger, pool, photos, inference.New(cfg.InferenceURL))
 
 	listener, err := net.Listen("tcp", cfg.HTTPAddr)
 	if err != nil {

@@ -19,6 +19,7 @@ func env(vars map[string]string) func(string) string {
 	all := map[string]string{
 		"DATABASE_URL":         _databaseURL,
 		"FIREBASE_PROJECT_ID":  "demo-test",
+		"INFERENCE_URL":        "http://inference.test:8000",
 		"S3_ENDPOINT":          "http://s3.test:8333",
 		"S3_BUCKET":            "bucket",
 		"S3_ACCESS_KEY_ID":     "key-id",
@@ -143,6 +144,8 @@ func TestLoadRejectsInvalidStorageConfiguration(t *testing.T) {
 		name string
 		vars map[string]string
 	}{
+		{name: "no inference address", vars: map[string]string{"INFERENCE_URL": ""}},
+		{name: "inference address that is not an http address", vars: map[string]string{"INFERENCE_URL": "inference:8000"}},
 		{name: "no endpoint", vars: map[string]string{"S3_ENDPOINT": ""}},
 		{name: "endpoint that is not an http address", vars: map[string]string{"S3_ENDPOINT": "s3.test:8333"}},
 		{name: "public endpoint that is not an http address", vars: map[string]string{"S3_PUBLIC_ENDPOINT": "files"}},

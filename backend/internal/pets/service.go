@@ -11,7 +11,6 @@ import (
 	"io"
 	"log/slog"
 	"math"
-	"net/http"
 	"slices"
 	"strings"
 	"time"
@@ -21,6 +20,7 @@ import (
 
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/pets/petsdb"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/imagefile"
 )
 
 // RN-56: tamanhos máximos dos textos do pet, em caracteres.
@@ -336,18 +336,11 @@ func checkPhoto(data []byte) (contentType, extension string, err error) {
 	if len(data) > _maxPhotoBytes {
 		return "", "", &ValidationError{Message: "the photo must have at most 5 MB"}
 	}
-	// The type comes from the bytes of the file, not from what the client says.
-	contentType = http.DetectContentType(data)
-	switch contentType {
-	case "image/jpeg":
-		return contentType, "jpg", nil
-	case "image/png":
-		return contentType, "png", nil
-	case "image/webp":
-		return contentType, "webp", nil
-	default:
+	contentType, extension, ok := imagefile.Type(data)
+	if !ok {
 		return "", "", &ValidationError{Message: "the photo must be a JPEG, PNG or WebP image"}
 	}
+	return contentType, extension, nil
 }
 
 // deletePhoto deletes the object key from the store, when key is not nil.

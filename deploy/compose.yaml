@@ -12,6 +12,7 @@ services:
       # variable the API does not check the signature of the ID tokens.
       FIREBASE_PROJECT_ID: demo-nupii
       FIREBASE_AUTH_EMULATOR_HOST: auth:9099
+      INFERENCE_URL: http://inference:8000
       # The API reaches the object store inside the compose network. The
       # clients of the API reach it at the public address, which is in the
       # temporary URLs of the photos.
@@ -28,6 +29,8 @@ services:
       auth:
         condition: service_healthy
       s3:
+        condition: service_healthy
+      inference:
         condition: service_healthy
     healthcheck:
       # The image has no shell. The binary has a command for this check.
