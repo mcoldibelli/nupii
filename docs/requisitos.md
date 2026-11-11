@@ -188,11 +188,11 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 |---|---|---|---|
 | RN-30 | O sistema guarda só a última localização do tutor. | RF-22 | estável |
 | RN-31 | Um token de push pertence ao tutor que fez o último registro dele. Registrar de novo um token de outro tutor passa o token para o tutor atual. O tutor remove só um token dele. | RF-23 | estável |
-| RN-32 | O alerta de proximidade vai para os tutores com a última localização a até 3.000 m do ponto do desaparecimento. | RF-24 | estável |
+| RN-32 | O alerta de proximidade vai para os tutores com a última localização a até 3.000 m do ponto do desaparecimento, com a borda incluída. | RF-24 | estável |
 | RN-33 | O alerta de proximidade vai para no máximo 100 tutores, os mais próximos. | RF-24 | estável |
 | RN-34 | O autor da ocorrência não recebe o alerta de proximidade. | RF-24 | estável |
 | RN-35 | A lista mostra as 50 notificações mais recentes. A notificação existe na lista mesmo quando o push não sai. | RF-25 | estável |
-| RN-36 | O push só é enviado com a credencial configurada. Sem a credencial, a notificação fica como não enviada. Um token que o Cloud Messaging recusa é desativado. | RF-26 | estável |
+| RN-36 | O push só é enviado com a credencial configurada. Sem a credencial, a notificação fica como não enviada. Um token que o Cloud Messaging diz que não está mais registrado é desativado. | RF-26 | estável |
 | RN-73 | Um avistamento cria uma notificação para o tutor do pet. Uma confirmação de encontro também (RN-16). | RF-20, RF-13, RF-25 | estável |
 | RN-74 | Uma notificação de outro tutor não existe para quem chama. Marcar de novo como lida não muda a data. | RF-25 | estável |
 | RN-75 | A localização do tutor tem latitude e longitude de um ponto da Terra (RN-61). | RF-22 | estável |

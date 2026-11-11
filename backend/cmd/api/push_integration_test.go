@@ -109,7 +109,7 @@ func TestPushOfANotification(t *testing.T) {
 		t.Error("the good device is not active")
 	}
 
-	// RNF-02: the job is safe to run two times.
+	// RNF-02: toda tarefa é segura para executar duas vezes.
 	if _, err := testAPI.pool.Exec(t.Context(), "UPDATE jobs SET status = 'pending' WHERE kind = 'send_push' AND payload->>'notificationId' = $1",
 		testAPI.notifications("token-ana")[0].Id.String()); err != nil {
 		t.Fatalf("run the push job again: %v", err)
@@ -158,13 +158,14 @@ func TestDeviceOwner(t *testing.T) {
 	}
 
 	// Ana removes the token, which is of Bia now: nothing changes.
-	if rec := testAPI.call(http.MethodDelete, "/v1/me/devices/"+token, "token-ana", ""); rec.Code != http.StatusNoContent {
+	removal := `{"token": "` + token + `"}`
+	if rec := testAPI.call(http.MethodPost, "/v1/me/devices/removal", "token-ana", removal); rec.Code != http.StatusNoContent {
 		t.Fatalf("DELETE by Ana: status = %d", rec.Code)
 	}
 	if owner, _ := testAPI.deviceOwner(token); owner != biaUID {
 		t.Errorf("after the delete by Ana, the token is of %q, want Bia", owner)
 	}
-	if rec := testAPI.call(http.MethodDelete, "/v1/me/devices/"+token, "token-bia", ""); rec.Code != http.StatusNoContent {
+	if rec := testAPI.call(http.MethodPost, "/v1/me/devices/removal", "token-bia", removal); rec.Code != http.StatusNoContent {
 		t.Fatalf("DELETE by Bia: status = %d", rec.Code)
 	}
 	if owner, _ := testAPI.deviceOwner(token); owner != "" {

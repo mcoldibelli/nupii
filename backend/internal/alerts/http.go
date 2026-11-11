@@ -140,7 +140,7 @@ func (h *Handlers) RemoveDevice(
 	ctx context.Context,
 	request api.RemoveDeviceRequestObject,
 ) (api.RemoveDeviceResponseObject, error) {
-	err := h.service.RemoveDevice(ctx, request.Token)
+	err := h.service.RemoveDevice(ctx, request.Body.Token)
 	switch {
 	case err == nil:
 		return api.RemoveDevice204Response{}, nil

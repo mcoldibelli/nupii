@@ -649,6 +649,11 @@ type ConfirmIdentificationMultipartBody struct {
 	Phone string `json:"phone"`
 }
 
+// RemoveDeviceJSONBody defines parameters for RemoveDevice.
+type RemoveDeviceJSONBody struct {
+	Token string `json:"token"`
+}
+
 // RegisterNoseprintMultipartBody defines parameters for RegisterNoseprint.
 type RegisterNoseprintMultipartBody struct {
 	// File Foto do focinho. Imagem JPEG, PNG ou WebP, com no máximo 8 MB.
@@ -697,6 +702,9 @@ type RegisterMeJSONRequestBody = RegisterOwnerRequest
 
 // RegisterDeviceJSONRequestBody defines body for RegisterDevice for application/json ContentType.
 type RegisterDeviceJSONRequestBody = Device
+
+// RemoveDeviceJSONRequestBody defines body for RemoveDevice for application/json ContentType.
+type RemoveDeviceJSONRequestBody RemoveDeviceJSONBody
 
 // SetMyLocationJSONRequestBody defines body for SetMyLocation for application/json ContentType.
 type SetMyLocationJSONRequestBody = Location
@@ -749,8 +757,8 @@ type ServerInterface interface {
 	// (PUT /v1/me/devices)
 	RegisterDevice(w http.ResponseWriter, r *http.Request)
 	// RemoveDevice Remove um dispositivo do tutor.
-	// (DELETE /v1/me/devices/{token})
-	RemoveDevice(w http.ResponseWriter, r *http.Request, token string)
+	// (POST /v1/me/devices/removal)
+	RemoveDevice(w http.ResponseWriter, r *http.Request)
 	// SetMyLocation Guarda a última localização do tutor.
 	// (PUT /v1/me/location)
 	SetMyLocation(w http.ResponseWriter, r *http.Request)
@@ -932,20 +940,8 @@ func (siw *ServerInterfaceWrapper) RegisterDevice(w http.ResponseWriter, r *http
 // RemoveDevice operation middleware
 func (siw *ServerInterfaceWrapper) RemoveDevice(w http.ResponseWriter, r *http.Request) {
 
-	var err error
-	_ = err
-
-	// ------------- Path parameter "token" -------------
-	var token string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "token", r.PathValue("token"), &token, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "token", Err: err})
-		return
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.RemoveDevice(w, r, token)
+		siw.Handler.RemoveDevice(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1516,7 +1512,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me/reports", wrapper.ListMyReports)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/me/location", wrapper.SetMyLocation)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/me/devices", wrapper.RegisterDevice)
-	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/v1/me/devices/{token}", wrapper.RemoveDevice)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/me/devices/removal", wrapper.RemoveDevice)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/notifications", wrapper.ListNotifications)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/notifications/{notificationId}/read", wrapper.MarkNotificationRead)
 
@@ -2053,7 +2049,7 @@ func (response RegisterDevicedefaultJSONResponse) VisitRegisterDeviceResponse(w 
 }
 
 type RemoveDeviceRequestObject struct {
-	Token string `json:"token"`
+	Body *RemoveDeviceJSONRequestBody
 }
 
 type RemoveDeviceResponseObject interface {
@@ -3604,7 +3600,7 @@ type StrictServerInterface interface {
 	// (PUT /v1/me/devices)
 	RegisterDevice(ctx context.Context, request RegisterDeviceRequestObject) (RegisterDeviceResponseObject, error)
 	// RemoveDevice Remove um dispositivo do tutor.
-	// (DELETE /v1/me/devices/{token})
+	// (POST /v1/me/devices/removal)
 	RemoveDevice(ctx context.Context, request RemoveDeviceRequestObject) (RemoveDeviceResponseObject, error)
 	// SetMyLocation Guarda a última localização do tutor.
 	// (PUT /v1/me/location)
@@ -3903,10 +3899,15 @@ func (sh *strictHandler) RegisterDevice(w http.ResponseWriter, r *http.Request) 
 }
 
 // RemoveDevice operation middleware
-func (sh *strictHandler) RemoveDevice(w http.ResponseWriter, r *http.Request, token string) {
+func (sh *strictHandler) RemoveDevice(w http.ResponseWriter, r *http.Request) {
 	var request RemoveDeviceRequestObject
 
-	request.Token = token
+	var body RemoveDeviceJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.RemoveDevice(ctx, request.(RemoveDeviceRequestObject))

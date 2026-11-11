@@ -108,7 +108,7 @@ func notify(ctx context.Context, tx pgx.Tx, params alertsdb.CreateNotificationPa
 	return jobs.Enqueue(ctx, tx, _jobPush, pushPayload{NotificationID: id})
 }
 
-const lostNearbyTitle = "Pet desaparecido perto de você"
+const _lostNearbyTitle = "Pet desaparecido perto de você"
 
 func lostNearbyBody(report LostReport) string {
 	where := "você"
@@ -168,7 +168,7 @@ func notifyLostReport(ctx context.Context, tx pgx.Tx, payload json.RawMessage) e
 			Kind:      KindLostNearby,
 			SourceID:  report.ReportID,
 			ReportID:  &report.ReportID,
-			Title:     lostNearbyTitle,
+			Title:     _lostNearbyTitle,
 			Body:      body,
 			DistanceM: &distance,
 		})

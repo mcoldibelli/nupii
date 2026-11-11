@@ -13,14 +13,14 @@ func TestTexts(t *testing.T) {
 	}{
 		{
 			name:      "lost nearby, with the place",
-			title:     lostNearbyTitle,
+			title:     _lostNearbyTitle,
 			body:      lostNearbyBody(LostReport{PetName: "Rex", Place: &place}),
 			wantTitle: "Pet desaparecido perto de você",
 			wantBody:  "Rex sumiu perto de Praça da Sé. Se você vir, avise pelo Nupii.",
 		},
 		{
 			name:      "lost nearby, with no place",
-			title:     lostNearbyTitle,
+			title:     _lostNearbyTitle,
 			body:      lostNearbyBody(LostReport{PetName: "Rex"}),
 			wantTitle: "Pet desaparecido perto de você",
 			wantBody:  "Rex sumiu perto de você. Se você vir, avise pelo Nupii.",
