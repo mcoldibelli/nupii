@@ -53,7 +53,7 @@ func validateResponse(t *testing.T, req *http.Request, rec *httptest.ResponseRec
 }
 
 func TestGetHealth(t *testing.T) {
-	handler := newHandler(slog.New(slog.DiscardHandler))
+	handler := newHandler(slog.New(slog.DiscardHandler), server{})
 	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
 	rec := httptest.NewRecorder()
 

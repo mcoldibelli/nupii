@@ -13,6 +13,24 @@ import (
 	"net/http"
 )
 
+// Defines values for ErrorCode.
+const (
+	InternalError ErrorCode = "internal_error"
+	NotFound      ErrorCode = "not_found"
+)
+
+// Valid indicates whether the value is a known member of the ErrorCode enum.
+func (e ErrorCode) Valid() bool {
+	switch e {
+	case InternalError:
+		return true
+	case NotFound:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for HealthStatus.
 const (
 	Ok HealthStatus = "ok"
@@ -31,13 +49,16 @@ func (e HealthStatus) Valid() bool {
 // Error Formato único de erro. Todo erro da API usa este formato.
 type Error struct {
 	// Error Código estável do erro. O cliente escolhe o texto da tela por este código.
-	//
-	// Examples: internal_error
-	Error string `json:"error"`
+	// Um código novo entra nesta lista antes de entrar no código do servidor.
+	Error ErrorCode `json:"error"`
 
 	// Message Texto para diagnóstico. O cliente não mostra este texto ao usuário.
 	Message string `json:"message"`
 }
+
+// ErrorCode Código estável do erro. O cliente escolhe o texto da tela por este código.
+// Um código novo entra nesta lista antes de entrar no código do servidor.
+type ErrorCode string
 
 // Health defines model for Health.
 type Health struct {

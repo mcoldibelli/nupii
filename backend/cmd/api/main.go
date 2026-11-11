@@ -50,7 +50,7 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 		return fmt.Errorf("listen on %s: %w", cfg.HTTPAddr, err)
 	}
 	srv := &http.Server{
-		Handler:           newHandler(logger),
+		Handler:           newHandler(logger, server{}),
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
 
