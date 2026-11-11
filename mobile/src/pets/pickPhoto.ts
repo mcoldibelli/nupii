@@ -5,15 +5,27 @@ import * as ImagePicker from "expo-image-picker";
 import type { LocalFile } from "../api/pets";
 
 /**
- * Opens the gallery of the device. Returns the chosen image, or null when
- * the owner cancels.
+ * The quality for the photo of a nose: the picker does not compress the
+ * image again. A new compression changes the pixels, and the detector can
+ * stop finding the nose in a small photo.
  */
-export async function pickPhoto(): Promise<LocalFile | null> {
-  const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8 });
+export const NOSE_PHOTO_QUALITY = 1;
+
+/**
+ * Opens the gallery of the device. Returns the chosen image, or null when
+ * the person cancels. quality is the JPEG quality of the copy that the
+ * picker makes, from 0 to 1.
+ */
+export async function pickPhoto(quality = 0.8): Promise<LocalFile | null> {
+  const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality });
   if (result.canceled || result.assets.length === 0) {
     return null;
   }
-  return { uri: result.assets[0].uri };
+  return localFile(result.assets[0]);
+}
+
+function localFile(asset: ImagePicker.ImagePickerAsset): LocalFile {
+  return { uri: asset.uri, file: asset.file };
 }
 
 /**
@@ -29,7 +41,7 @@ export async function takePhoto(): Promise<LocalFile | null | "denied"> {
   if (result.canceled || result.assets.length === 0) {
     return null;
   }
-  return { uri: result.assets[0].uri };
+  return localFile(result.assets[0]);
 }
 
 /**
@@ -37,5 +49,6 @@ export async function takePhoto(): Promise<LocalFile | null | "denied"> {
  * body. The fetch of Expo reads the bytes of the file from this object.
  */
 export function filePart(file: LocalFile): Blob {
-  return new File(file.uri) as unknown as Blob;
+  // On the web, the browser already gave the content of the file.
+  return file.file ?? (new File(file.uri) as unknown as Blob);
 }

@@ -142,6 +142,20 @@ func isRateLimited(r *http.Request) bool {
 	return r.Method == http.MethodPost && isPublic(r)
 }
 
+// allowOtherOrigins lets a web page of another origin read the answer of a
+// public route: the public web page calls the API from the browser. A
+// public route has no credential, so every origin is accepted. The other
+// routes get no header, and the browser keeps their answers from other
+// origins.
+func allowOtherOrigins(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isPublic(r) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // tokenVerifier adapts the Firebase verifier to the interface of the
 // identity module.
 type tokenVerifier struct {
@@ -201,6 +215,7 @@ func newHandler(
 			httpx.LimitBody(bodyLimit),
 			httpx.RateLimit(logger, _publicPostLimit, time.Minute, isRateLimited, time.Now),
 			identity.RequireIdentity(logger, verifier, isPublic),
+			allowOtherOrigins,
 		},
 		// A parameter of the request could not be read.
 		ErrorHandlerFunc: invalidRequest,
