@@ -201,13 +201,13 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 
 | ID | Regra | RF | Estado |
 |---|---|---|---|
-| RN-37 | Uma medicação tem nome (obrigatório), categoria (medicação, antipulgas ou vermífugo), princípio ativo, dosagem, frequência, data de fim, se está em uso, intervalo em dias (de 1 a 365) e a opção de lembrar. A data do evento é o início. A data de fim não é anterior ao início. | RF-27 | estável |
+| RN-37 | Uma medicação tem nome (obrigatório), categoria (medicação, antipulgas ou vermífugo), princípio ativo, dosagem, frequência, data de fim, se está em uso, intervalo em dias (de 1 a 365) e a opção de lembrar. Com a opção de lembrar, o intervalo é obrigatório. A data do evento é o início. A data de fim não é anterior ao início. | RF-27 | estável |
 | RN-38 | Uma anotação tem categoria (doença, peso, alergia, cirurgia, nota ou sintoma) e título (obrigatório), e pode levar o peso do pet (RN-51). | RF-27 | estável |
 | RN-76 | Todo evento tem tipo, data e observações (opcional, até 2.000 caracteres). A data do evento não é futura. Só o tutor do pet vê e muda os eventos dele (RN-52). | RF-27 | estável |
-| RN-77 | Uma vacina tem nome (obrigatório), fabricante, lote, dose, veterinário, data da próxima dose (não anterior à data do evento) e a opção de lembrar. | RF-27 | estável |
+| RN-77 | Uma vacina tem nome (obrigatório), fabricante, lote, dose, veterinário, data da próxima dose (não anterior à data do evento) e a opção de lembrar. Com a opção de lembrar, a data da próxima dose é obrigatória. | RF-27 | estável |
 | RN-78 | Uma consulta tem motivo (obrigatório), clínica, veterinário, diagnóstico, peso do pet (RN-51) e data de retorno (não anterior à data do evento). | RF-27 | estável |
 | RN-79 | Um exame tem nome (obrigatório), laboratório, veterinário e resultado. | RF-27 | estável |
-| RN-80 | Os textos curtos de um evento (nomes, categoria livre, dose, lote, frequência, dosagem) têm até 120 caracteres. Os textos longos (observações, diagnóstico, resultado) têm até 2.000. Os espaços do começo e do fim são removidos, e um texto vazio fica sem valor. Um campo de outro tipo de evento é recusado. | RF-27 | estável |
+| RN-80 | Os textos curtos de um evento (nomes, dose, lote, frequência, dosagem) têm até 120 caracteres. Os textos longos (observações, diagnóstico, resultado) têm até 2.000. Os espaços do começo e do fim são removidos, e um texto vazio fica sem valor. Um campo de outro tipo de evento é recusado. | RF-27 | estável |
 | RN-81 | Os próximos cuidados são: a próxima dose de uma vacina com a opção de lembrar, e a data de uma medicação em uso com a opção de lembrar, somada ao intervalo. Para cada vacina pelo nome, e para cada medicação pela categoria (antipulgas, vermífugo) ou pelo nome, vale só o evento mais novo. A lista vem da data mais próxima para a mais distante. | RF-29 | estável |
 | RN-82 | Um anexo é uma imagem JPEG, PNG ou WebP, ou um PDF, com até 10 MB. O tipo é conferido pelo conteúdo. Um evento tem no máximo 10 anexos. Apagar um evento apaga os anexos dele. | RF-28 | estável |
 

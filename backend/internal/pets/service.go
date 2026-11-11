@@ -357,9 +357,6 @@ func (s *Service) deletePhoto(ctx context.Context, key *string) {
 	}
 }
 
-// validate applies the rules of the data of a pet. It returns the input
-// with the spaces around the texts removed, and with nil in place of an
-// optional text that is empty. The time now gives the date of today.
 // ValidWeight tells if weight is a weight of a pet, in kilograms.
 //
 // RN-51: o peso fica entre 0,01 kg e 999,99 kg, com no máximo 2 casas decimais.
@@ -369,6 +366,9 @@ func ValidWeight(weight float64) bool {
 	return weight >= _minWeightKg && weight <= _maxWeightKg && hasTwoDecimals
 }
 
+// validate applies the rules of the data of a pet. It returns the input
+// with the spaces around the texts removed, and with nil in place of an
+// optional text that is empty. The time now gives the date of today.
 func validate(input Input, now time.Time) (Input, error) {
 	invalid := func(message string) (Input, error) {
 		return Input{}, &ValidationError{Message: message}

@@ -1,4 +1,5 @@
 import type { HealthEvent, HealthEventInput, HealthEventType } from "../api/health";
+import { failureMessage } from "../api/http";
 import { parseDate } from "../pets/form";
 
 /** The kind of input of a field of the form. */
@@ -111,7 +112,8 @@ const allKeys: FieldKey[] = [...new Set(Object.values(fields).flatMap((list) => 
 export function emptyValues(): Values {
   const values = { date: "", notes: "" } as Values;
   for (const key of allKeys) {
-    values[key] = key === "remind" || key === "inUse" ? false : "";
+    // RN-81: a medication is in use until the owner says it is not.
+    values[key] = key === "inUse" ? true : key === "remind" ? false : "";
   }
   return values;
 }
@@ -207,7 +209,26 @@ export function toEventInput(type: HealthEventType, values: Values, now: Date = 
       }
     }
   }
+  // RN-37, RN-77: com a opção de lembrar, a medicação tem o intervalo e a
+  // vacina tem a próxima dose.
+  if (input.remind === true && type === "medication" && input.intervalDays === undefined) {
+    return invalid("Informe o intervalo para mostrar nos próximos cuidados.");
+  }
+  if (input.remind === true && type === "vaccine" && input.nextDoseDate === undefined) {
+    return invalid("Informe a próxima dose para mostrar nos próximos cuidados.");
+  }
   return { ok: true, input: input as HealthEventInput };
+}
+
+/** The message of a failed upload of an attachment (RN-82). */
+export function attachmentFailure(result: { ok: false; code: string }): string {
+  if (result.code === "attachment_limit") {
+    return "O evento já tem 10 anexos.";
+  }
+  if (result.code === "invalid_request") {
+    return "O anexo precisa ser uma imagem JPEG, PNG ou WebP, ou um PDF, de até 10 MB.";
+  }
+  return failureMessage(result);
 }
 
 function dateText(iso: string | undefined): string {

@@ -171,7 +171,7 @@ Limites conhecidos da fila:
 - Um corpo ou um parâmetro que não pode ser lido recebe 400 com o código `invalid_request`. Um dado que quebra uma regra de negócio recebe a mesma resposta, com a regra na mensagem.
 - Um recurso de outro tutor não existe para quem chama: a resposta é 404, igual à de um recurso que nunca existiu (RN-52).
 - Uma conta sem tutor registrado recebe 404 com o código `owner_not_found` nas operações que precisam do tutor.
-- O corpo de uma requisição JSON tem no máximo 1 MiB, o de um envio de foto de perfil tem no máximo 6 MiB, e o de um envio de foto de focinho tem no máximo 9 MiB, e o de um anexo de saúde tem no máximo 11 MiB. Um corpo maior recebe a mesma resposta 400.
+- O corpo de uma requisição JSON tem no máximo 1 MiB. O corpo de um envio de foto de perfil tem no máximo 6 MiB, o de uma foto de focinho 9 MiB e o de um anexo de saúde 11 MiB. Um corpo maior recebe a mesma resposta 400.
 - Uma foto de focinho recusada recebe 422, com o motivo no código: `species_not_supported`, `image_low_quality` ou `image_framing`.
 - Quando o serviço de inferência não responde, a operação que precisa dele recebe 503 com o código `unavailable`. A causa vai para o log. A API sobe sem o serviço de inferência.
 - Um arquivo enviado tem o tipo conferido pelos bytes do arquivo, não pelo que o cliente declara (RN-54).
@@ -180,6 +180,7 @@ Limites conhecidos da fila:
 - O emulador do Authentication só é aceito com um projeto de demonstração (`FIREBASE_PROJECT_ID` com o prefixo `demo-`). Com outro projeto, a API não sobe.
 - O servidor HTTP dá 2 minutos para o cliente enviar uma requisição e 3 minutos para a resposta terminar. Uma foto de 8 MB em uma rede móvel lenta leva cerca de 45 segundos.
 - No app e na página pública, a foto de focinho escolhida da galeria vai para a API sem nova compressão. A foto tirada pela câmera é comprimida uma vez, com qualidade 0,9.
+- Uma trava com `FOR UPDATE` fica num comando separado. Os comandos que leem ou apagam as linhas que outra transação pode gravar vêm depois dela. Um comando lê as linhas gravadas até o começo dele, e a trava pode esperar o fim de outra transação. Exemplo: o envio e a exclusão de anexos travam o evento de saúde primeiro (RN-82).
 - A confirmação grava a foto no armazenamento antes da transação. A transação que trava a identificação não chama o armazenamento. Se a foto não for usada, ela é apagada.
 - Toda resposta tem o cabeçalho `X-Request-Id`, com o identificador que aparece nas linhas de log da requisição (RNF-07).
 

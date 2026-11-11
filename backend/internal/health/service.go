@@ -172,17 +172,26 @@ func (s *Service) Delete(ctx context.Context, petID, eventID string) error {
 	if err := s.checkPet(ctx, petID); err != nil {
 		return err
 	}
-	row, err := s.queries.DeleteHealthEvent(ctx, healthdb.DeleteHealthEventParams{
-		ID: eventID, PetID: petID,
+	var keys []string
+	err := s.inTx(ctx, func(tx pgx.Tx) error {
+		queries := s.queries.WithTx(tx)
+		if err := lockEvent(ctx, queries, petID, eventID); err != nil {
+			return err
+		}
+		row, err := queries.DeleteHealthEvent(ctx, healthdb.DeleteHealthEventParams{
+			ID: eventID, PetID: petID,
+		})
+		if err != nil {
+			return fmt.Errorf("delete health event: %w", err)
+		}
+		keys = row.Keys
+		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("delete health event: %w", err)
-	}
-	if row.Deleted == 0 {
-		return ErrEventNotFound
+		return err
 	}
 	// RN-82: apagar um evento apaga os anexos dele.
-	s.deleteObjects(ctx, row.Keys)
+	s.deleteObjects(ctx, keys)
 	return nil
 }
 

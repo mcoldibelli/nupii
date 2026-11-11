@@ -151,16 +151,14 @@ func (s *Service) AddAttachment(
 	var row healthdb.HealthAttachment
 	err = s.inTx(ctx, func(tx pgx.Tx) error {
 		queries := s.queries.WithTx(tx)
-		event, err := queries.LockHealthEvent(ctx, healthdb.LockHealthEventParams{
-			ID: eventID, PetID: petID,
-		})
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrEventNotFound
+		if err := lockEvent(ctx, queries, petID, eventID); err != nil {
+			return err
 		}
+		count, err := queries.CountHealthAttachments(ctx, eventID)
 		if err != nil {
-			return fmt.Errorf("lock the health event: %w", err)
+			return fmt.Errorf("count the attachments: %w", err)
 		}
-		if event.Attachments >= _maxAttachments {
+		if count >= _maxAttachments {
 			return ErrAttachmentLimit
 		}
 		row, err = queries.CreateHealthAttachment(ctx, healthdb.CreateHealthAttachmentParams{
@@ -178,6 +176,21 @@ func (s *Service) AddAttachment(
 		return Attachment{}, err
 	}
 	return s.attachment(row)
+}
+
+// lockEvent locks the event eventID of the pet petID until the end of the
+// transaction of queries.
+func lockEvent(ctx context.Context, queries *healthdb.Queries, petID, eventID string) error {
+	_, err := queries.LockHealthEvent(ctx, healthdb.LockHealthEventParams{
+		ID: eventID, PetID: petID,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrEventNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("lock the health event: %w", err)
+	}
+	return nil
 }
 
 // DeleteAttachment deletes the attachment attachmentID of the event eventID.

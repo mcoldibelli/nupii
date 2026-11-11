@@ -15,7 +15,7 @@ import {
 } from "../../src/api/health";
 import { failureMessage, SESSION_FAILURE } from "../../src/api/http";
 import { apiUrl } from "../../src/config";
-import { emptyValues, fieldsOf, toEventInput, typeLabels, valuesFromEvent, type Field, type Values } from "../../src/health/form";
+import { attachmentFailure, emptyValues, fieldsOf, toEventInput, typeLabels, valuesFromEvent, type Field, type Values } from "../../src/health/form";
 import { pickAttachment } from "../../src/health/pickFile";
 import { filePart } from "../../src/pets/pickPhoto";
 import { styles } from "../../src/screens/styles";
@@ -126,13 +126,7 @@ export default function HealthEventForm() {
     if (result?.ok) {
       setAttachments((current) => [...current, result.value]);
     } else if (result) {
-      setError(
-        result.code === "attachment_limit"
-          ? "O evento já tem 10 anexos."
-          : result.code === "invalid_request"
-            ? "O anexo precisa ser uma imagem JPEG, PNG ou WebP, ou um PDF, de até 10 MB."
-            : failureMessage(result),
-      );
+      setError(attachmentFailure(result));
     }
   }
 
