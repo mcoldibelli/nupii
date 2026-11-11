@@ -15,7 +15,7 @@ A construção segue fatias verticais. Uma fatia vai do banco até a tela e term
 
 | # | Fatia | Entrega | Critério de pronto |
 |---|---|---|---|
-| 0 | Fundação | Repositório, ADR das ferramentas de teste, CI, lint, compose (Postgres com PostGIS e pgvector, MinIO), migrations, `GET /v1/health`, app Expo que chama o health | `docker compose up` sobe tudo. O CI passa. O app mostra a resposta do health. |
+| 0 | Fundação | Repositório, ADR das ferramentas de teste, CI, lint, compose (Postgres com PostGIS e pgvector, servidor S3), migrations, `GET /v1/health`, app Expo que chama o health | `docker compose up` sobe tudo. O CI passa. O app mostra a resposta do health. |
 | 1 | Identidade | Criar conta e entrar pelo Firebase Authentication no app. A API valida o ID token e cria o tutor com o aceite dos termos. | Uma conta nova entra no app, fecha o app, abre de novo e continua logada. Uma chamada sem token, ou com token inválido, recebe 401. |
 | 2 | Pets | CRUD do pet e foto de perfil. Telas de lista, criar e editar. | Um pet com foto aparece na lista depois de reiniciar o app. |
 | 3 | Inferência | Serviço de inferência em Python, sem torch. Teste de igualdade contra os vetores de referência, com fotos reais de focinho. | Para um conjunto fixo de fotos, o vetor do serviço é igual ao vetor de referência, dentro da tolerância definida no [ADR 0007](adr/0007-inferencia-python-onnx.md). |
@@ -51,6 +51,7 @@ A versão sem detector no aparelho é o padrão da fatia 4. O detector no aparel
 | Decisão | Fatia |
 |---|---|
 | Biblioteca do Firebase no app: SDK JavaScript ou módulo nativo | 1 |
+| Biblioteca cliente de S3 no backend (ADR novo) | 2 |
 | Onde os arquivos de pesos do modelo ficam hospedados | 3 |
 | Forma da web pública: mesmo projeto Expo ou projeto web separado (critérios no [ADR 0006](adr/0006-mobile-expo-web-publica.md)) | 4 |
 | Orçamento de JavaScript da web pública, em KB (critério do [ADR 0006](adr/0006-mobile-expo-web-publica.md)) | 4 |
