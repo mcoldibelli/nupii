@@ -1154,11 +1154,6 @@ export interface components {
             vaccines: components["schemas"]["HealthCardVaccine"][];
             /** @description As medicações antipulgas e vermífugo, da mais nova para a mais antiga. */
             parasiteControl: components["schemas"]["HealthCardMedication"][];
-            /**
-             * Format: date-time
-             * @description Quando o link vence.
-             */
-            expiresAt: string;
         };
         HealthCardPet: {
             name: string;
