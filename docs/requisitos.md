@@ -68,9 +68,9 @@
 
 | ID | Requisito | Fatia | Estado |
 |---|---|---|---|
-| RF-27 | O tutor cria, lista, altera e apaga os eventos de saúde de um pet: vacina, consulta, medicação, exame e anotação. | 7 | rascunho |
-| RF-28 | O tutor envia, lista e apaga os anexos de um evento de saúde. | 7 | rascunho |
-| RF-29 | O tutor recebe lembretes de vacina e de medicação. | 7 | rascunho |
+| RF-27 | O tutor cria, lista, altera e apaga os eventos de saúde de um pet: vacina, consulta, medicação, exame e anotação. | 7 | estável |
+| RF-28 | O tutor envia, lista e apaga os anexos de um evento de saúde. | 7 | estável |
+| RF-29 | O tutor vê os próximos cuidados de vacina e de medicação dos pets dele. O lembrete por push entra na fatia 10 ([ADR 0026](adr/0026-eventos-de-saude.md)). | 7 e 10 | estável |
 
 ### Carteirinha
 
@@ -201,8 +201,15 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 
 | ID | Regra | RF | Estado |
 |---|---|---|---|
-| RN-37 | Uma medicação tem categoria (medicação, antipulgas ou vermífugo), intervalo em dias e a opção de lembrar. | RF-27 | rascunho |
-| RN-38 | Uma anotação tem categoria (doença, peso, alergia, cirurgia, nota ou sintoma) e pode levar o peso do pet. | RF-27 | rascunho |
+| RN-37 | Uma medicação tem nome (obrigatório), categoria (medicação, antipulgas ou vermífugo), princípio ativo, dosagem, frequência, data de fim, se está em uso, intervalo em dias (de 1 a 365) e a opção de lembrar. A data do evento é o início. A data de fim não é anterior ao início. | RF-27 | estável |
+| RN-38 | Uma anotação tem categoria (doença, peso, alergia, cirurgia, nota ou sintoma) e título (obrigatório), e pode levar o peso do pet (RN-51). | RF-27 | estável |
+| RN-76 | Todo evento tem tipo, data e observações (opcional, até 2.000 caracteres). A data do evento não é futura. Só o tutor do pet vê e muda os eventos dele (RN-52). | RF-27 | estável |
+| RN-77 | Uma vacina tem nome (obrigatório), fabricante, lote, dose, veterinário, data da próxima dose (não anterior à data do evento) e a opção de lembrar. | RF-27 | estável |
+| RN-78 | Uma consulta tem motivo (obrigatório), clínica, veterinário, diagnóstico, peso do pet (RN-51) e data de retorno (não anterior à data do evento). | RF-27 | estável |
+| RN-79 | Um exame tem nome (obrigatório), laboratório, veterinário e resultado. | RF-27 | estável |
+| RN-80 | Os textos curtos de um evento (nomes, categoria livre, dose, lote, frequência, dosagem) têm até 120 caracteres. Os textos longos (observações, diagnóstico, resultado) têm até 2.000. Os espaços do começo e do fim são removidos, e um texto vazio fica sem valor. Um campo de outro tipo de evento é recusado. | RF-27 | estável |
+| RN-81 | Os próximos cuidados são: a próxima dose de uma vacina com a opção de lembrar, e a data de uma medicação em uso com a opção de lembrar, somada ao intervalo. Para cada vacina pelo nome, e para cada medicação pela categoria (antipulgas, vermífugo) ou pelo nome, vale só o evento mais novo. A lista vem da data mais próxima para a mais distante. | RF-29 | estável |
+| RN-82 | Um anexo é uma imagem JPEG, PNG ou WebP, ou um PDF, com até 10 MB. O tipo é conferido pelo conteúdo. Um evento tem no máximo 10 anexos. Apagar um evento apaga os anexos dele. | RF-28 | estável |
 
 ### Carteirinha
 
@@ -247,7 +254,6 @@ Cada item é fechado na fatia indicada, antes do código.
 |---|---|---|
 | 10 | O que acontece quando um login com Google usa o e-mail de uma conta que já tem senha? | RN-02 |
 | 10 | De onde a API lê o endereço do cliente quando fica atrás de um proxy? Hoje ela usa o endereço da conexão. | RN-43 |
-| 7 | Onde o lembrete é calculado: no app ou em uma tarefa do backend? | RF-29 |
 | 7 | Em qual fuso horário vale a data de hoje para uma data que o tutor informa? Hoje a API usa a data em UTC. | RN-50 |
 | 8 | Qual é a validade do link da carteirinha? | RN-40 |
 | 9 | Quais são os dados do perfil? | RF-06 |

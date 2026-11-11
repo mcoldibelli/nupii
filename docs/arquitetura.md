@@ -306,6 +306,8 @@ O código usa o termo em inglês. A documentação e as telas usam o termo em po
 | alerta de proximidade | nearby alert | Notificação de um desaparecimento perto do tutor |
 | evento de saúde | health event | Vacina, consulta, medicação, exame ou anotação |
 | carteirinha | health card | Resumo de saúde do pet |
+| próximo cuidado | upcoming care | Data da próxima dose de uma vacina ou de uma medicação |
+| anexo | attachment | Arquivo de um evento de saúde: foto ou PDF |
 | compartilhamento | share link | Link público da carteirinha |
 
 ## Fora da v1
