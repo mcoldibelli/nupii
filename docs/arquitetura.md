@@ -139,10 +139,10 @@ Concorrência, declarada por regra:
 ### Git
 
 - Toda tarefa em trabalho é uma issue no GitHub, criada antes de o trabalho começar. Cada fatia do roteiro é um milestone, e a issue de uma tarefa fica no milestone da fatia dela. O andamento do projeto é lido nas issues e nos milestones.
-- `develop` é o branch de integração. Cada issue tem um branch próprio, criado a partir de `develop` quando o trabalho da issue começa.
+- `develop` é o branch de integração e o branch padrão do repositório no GitHub. Cada issue tem um branch próprio, criado a partir de `develop` quando o trabalho da issue começa.
 - Nome do branch de uma issue: `<tipo>/<número da issue>-<resumo em inglês>`. O tipo é o mesmo do Conventional Commits. Exemplo: `feat/8-backend-health`.
 - Um PR por issue, com destino `develop`. A issue é fechada quando o PR dela entra em `develop`. O branch da issue é apagado logo depois do merge, no GitHub e no ambiente local.
-- Nenhuma mudança entra direto em `main`. `main` é protegida e recebe mudanças só por PR a partir de `develop`.
+- Nenhuma mudança entra direto em `main`. `main` é protegida e recebe mudanças só por PR a partir de `develop`, no fim de cada fatia do roteiro.
 - Commits no formato Conventional Commits, só com título, em inglês ([ADR 0009](adr/0009-idioma.md)).
 - O CI precisa passar antes do merge.
 
