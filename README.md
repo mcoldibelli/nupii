@@ -106,6 +106,7 @@ O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app n
 | [0020](docs/adr/0020-leitura-de-objeto-pelo-backend.md) | Leitura de um objeto do armazenamento pelo backend | aceito |
 | [0021](docs/adr/0021-vetor-como-texto-nas-consultas.md) | Vetor como texto nas consultas, sem a biblioteca pgvector-go | aceito |
 | [0022](docs/adr/0022-web-publica-no-alvo-web-do-expo.md) | Web pública no alvo web do mesmo projeto Expo | aceito |
+| [0023](docs/adr/0023-mapa-com-leaflet.md) | Mapa com Leaflet e OpenStreetMap | aceito |
 
 ## Regras do projeto
 

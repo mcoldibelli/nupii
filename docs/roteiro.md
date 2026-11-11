@@ -50,8 +50,7 @@ A versão sem detector no aparelho é o padrão da fatia 4. O detector no aparel
 
 | Decisão | Fatia |
 |---|---|
-| Critério do mapa para a forma da web pública ([ADR 0022](adr/0022-web-publica-no-alvo-web-do-expo.md)) | 5 |
-| Biblioteca de push no app e de mapa no app | 5 e 6 |
+| Biblioteca de push no app | 6 |
 | Modelagem dos eventos de saúde: uma tabela por tipo ou uma tabela com tipo e colunas opcionais | 7 |
 | Onde o lembrete de vacina e de medicação é calculado: no app ou em uma tarefa do backend | 7 |
 | Onde a API, a web e a inferência são publicadas | 10 |

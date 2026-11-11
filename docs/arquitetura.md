@@ -288,6 +288,9 @@ O código usa o termo em inglês. A documentação e as telas usam o termo em po
 | ocorrência | report | Registro de perdido, achado ou avistado |
 | perdido, achado, avistado | lost, found, sighting | Tipos de ocorrência |
 | mural | board | Lista pública de ocorrências abertas |
+| ficha | report detail | Página de uma ocorrência, com os avistamentos |
+| resolver | resolve | O autor fecha a ocorrência: o pet voltou para casa |
+| código do achado | resolve code | Código que quem publicou um achado sem conta usa para resolver o achado |
 | aviso, notificação | notification | Mensagem para um tutor |
 | evento de saúde | health event | Vacina, consulta, medicação, exame ou anotação |
 | carteirinha | health card | Resumo de saúde do pet |
