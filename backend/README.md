@@ -174,6 +174,7 @@ A primeira execução baixa o `oapi-codegen` na versão fixada em `internal/api/
 | `internal/biometrics/` | Módulo de biometria: cadastro do focinho (RN-07 a RN-09, RN-59, RN-60), identificação (RN-10 a RN-15, RN-61, RN-62), confirmação (RN-16, RN-63 a RN-65), avisos de encontro (RN-66) e recálculo dos vetores (RN-67). `biometricsdb/` é o código gerado das consultas |
 | `internal/reports/` | Módulo de ocorrências: perdido, achado, avistamento, resolver, mural e ficha (RN-24 a RN-29, RN-68 a RN-72). `reportsdb/` é o código gerado das consultas |
 | `internal/platform/inference/` | Cliente do serviço de inferência |
+| `internal/platform/jobs/` | Fila de tarefas no banco (ADR 0003, RNF-01, RNF-02) |
 | `internal/platform/imagefile/` | Tipo de um arquivo de imagem pelo conteúdo |
 | `internal/pets/` | Módulo de pets: regras dos dados (RN-48 a RN-56), operações de `/v1/pets`. `petsdb/` é o código gerado das consultas |
 | `internal/platform/firebase/` | Validação do ID token com o Firebase Admin SDK |
