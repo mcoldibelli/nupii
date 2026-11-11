@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 
 import { failureMessage, SESSION_FAILURE } from "../../src/api/http";
 import { deletePet, getPet, type LocalFile, type Pet, type PetInput } from "../../src/api/pets";
@@ -97,6 +97,17 @@ export default function EditPet() {
         <Text testID="edit-pet-error" accessibilityRole="alert" style={styles.error}>
           {error}
         </Text>
+      )}
+      {/* RN-07: só um cachorro tem cadastro biométrico. */}
+      {pet.species === "dog" && (
+        <Pressable
+          testID="noseprint-link"
+          accessibilityRole="button"
+          style={styles.link}
+          onPress={() => router.push({ pathname: "/noseprint/[petId]", params: { petId: id } })}
+        >
+          <Text style={styles.linkText}>Focinho do pet</Text>
+        </Pressable>
       )}
       <PetFormView initial={formFromPet(pet)} photoUrl={pet.photoUrl} onSubmit={save} onDelete={confirmDelete} />
     </>
