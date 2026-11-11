@@ -35,7 +35,7 @@ Ainda não há o que executar. A fatia 0 entrega o `docker compose` e o conteúd
 | [0009](docs/adr/0009-idioma.md) | Código em inglês, documentação em português | aceito |
 | [0010](docs/adr/0010-ferramentas-de-teste.md) | Ferramentas de teste | aceito |
 | [0011](docs/adr/0011-runtime-do-oapi-codegen.md) | Biblioteca de runtime do código gerado pelo oapi-codegen | aceito |
-| [0012](docs/adr/0012-servidor-s3-local.md) | SeaweedFS como servidor S3 do ambiente local | proposto |
+| [0012](docs/adr/0012-servidor-s3-local.md) | SeaweedFS como servidor S3 do ambiente local | aceito |
 
 ## Regras do projeto
 

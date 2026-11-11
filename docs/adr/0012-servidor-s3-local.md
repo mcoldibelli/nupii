@@ -1,6 +1,6 @@
 # ADR 0012: SeaweedFS como servidor S3 do ambiente local
 
-Data: 2026-11-10. Estado: proposto. Este ADR aprova uma imagem de container para o ambiente local e para o CI. Ele substitui uma parte do [ADR 0003](0003-estado-postgres-fila-no-banco.md): o servidor S3 do ambiente local. O resto do ADR 0003 continua válido.
+Data: 2026-11-10. Estado: aceito. Este ADR aprova uma imagem de container para o ambiente local e para o CI. Ele substitui uma parte do [ADR 0003](0003-estado-postgres-fila-no-banco.md): o servidor S3 do ambiente local. O resto do ADR 0003 continua válido.
 
 ## Contexto
 
