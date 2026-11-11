@@ -5,18 +5,37 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/mcoldibelli/nupii/backend/internal/api"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 )
 
+// healthPingTimeout is the time the database has to answer the health check.
+const healthPingTimeout = 2 * time.Second
+
+// pinger tells if the database responds. *pgxpool.Pool implements it.
+type pinger interface {
+	Ping(ctx context.Context) error
+}
+
 // server implements the operations of the contract.
-type server struct{}
+type server struct {
+	logger   *slog.Logger
+	database pinger
+}
 
 var _ api.StrictServerInterface = server{}
 
-// GetHealth reports that the process is running.
-func (server) GetHealth(context.Context, api.GetHealthRequestObject) (api.GetHealthResponseObject, error) {
+// GetHealth reports that the process is running and that the database
+// responds.
+func (s server) GetHealth(ctx context.Context, _ api.GetHealthRequestObject) (api.GetHealthResponseObject, error) {
+	pingCtx, cancel := context.WithTimeout(ctx, healthPingTimeout)
+	defer cancel()
+	if err := s.database.Ping(pingCtx); err != nil {
+		s.logger.ErrorContext(ctx, "health check: database does not respond", slog.Any("error", err))
+		return api.GetHealth503JSONResponse{Error: api.Unavailable, Message: "the database does not respond"}, nil
+	}
 	return api.GetHealth200JSONResponse{Status: api.Ok}, nil
 }
 
