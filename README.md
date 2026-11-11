@@ -109,6 +109,7 @@ O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app n
 | [0023](docs/adr/0023-mapa-com-leaflet.md) | Mapa com Leaflet e OpenStreetMap | aceito |
 | [0024](docs/adr/0024-push-no-app.md) | Push no app com um build de desenvolvimento, na fatia 10 | aceito |
 | [0025](docs/adr/0025-localizacao-no-app.md) | Localização do aparelho com Expo Location | aceito |
+| [0026](docs/adr/0026-eventos-de-saude.md) | Eventos de saúde em uma tabela, e próximos cuidados calculados pela API | aceito |
 
 ## Regras do projeto
 
