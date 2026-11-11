@@ -217,6 +217,169 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * O mural, as ocorrências abertas dos tipos perdido e achado.
+         * @description Operação pública. 20 ocorrências por página, da mais nova para a mais antiga.
+         */
+        get: operations["listReports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reports/lost": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Registra o desaparecimento de um pet do tutor. */
+        post: operations["reportLost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reports/found": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publica um achado, com a foto do focinho.
+         * @description Operação pública. A resposta tem o código que resolve o achado. O código aparece só nesta resposta.
+         */
+        post: operations["reportFound"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reports/{reportId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * A ficha de uma ocorrência.
+         * @description Operação pública. A ficha de um desaparecimento tem os avistamentos.
+         */
+        get: operations["getReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reports/{reportId}/sightings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registra um avistamento em um desaparecimento aberto.
+         * @description Operação pública. Sem latitude e longitude, vale o ponto do desaparecimento.
+         */
+        post: operations["reportSighting"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reports/{reportId}/resolution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** O autor resolve uma ocorrência dele. */
+        post: operations["resolveReport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reports/{reportId}/code-resolution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve um achado com o código da criação.
+         * @description Operação pública. Um código errado recebe a mesma resposta de um achado que não existe.
+         */
+        post: operations["resolveFoundReport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Os desaparecimentos registrados pelo tutor, abertos e resolvidos. */
+        get: operations["listMyReports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -337,6 +500,97 @@ export interface components {
         FoundNoticeList: {
             notices: components["schemas"]["FoundNotice"][];
         };
+        /** @enum {string} */
+        ReportType: "lost" | "found";
+        /** @enum {string} */
+        ReportStatus: "open" | "resolved";
+        LostReportInput: {
+            /** Format: uuid */
+            petId: string;
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+            /** @description Nome do local, com no máximo 200 caracteres. */
+            place?: string;
+            /** @description Recado, com no máximo 1.000 caracteres. */
+            description?: string;
+            /**
+             * Format: date-time
+             * @description Quando o pet desapareceu. Não é futura. Sem valor, vale o momento do registro.
+             */
+            occurredAt?: string;
+        };
+        SightingInput: {
+            /** Format: double */
+            latitude?: number;
+            /** Format: double */
+            longitude?: number;
+            /** @description Nome do local, com no máximo 200 caracteres. */
+            place?: string;
+            /** @description Recado, com no máximo 1.000 caracteres. */
+            description?: string;
+        };
+        /** @description Um avistamento. Não tem dado de quem avistou. */
+        Sighting: {
+            /** Format: uuid */
+            id: string;
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+            place?: string;
+            description?: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description Uma ocorrência. Não tem dado do autor. */
+        Report: {
+            /** Format: uuid */
+            id: string;
+            type: components["schemas"]["ReportType"];
+            status: components["schemas"]["ReportStatus"];
+            /**
+             * Format: uuid
+             * @description O pet de um desaparecimento.
+             */
+            petId?: string;
+            petName?: string;
+            petSpecies?: components["schemas"]["Species"];
+            /** @description O pet tem cadastro biométrico, e quem o encontrar pode identificá-lo pela foto do focinho. */
+            petHasNoseprint?: boolean;
+            /** @description URL temporária da foto de perfil do pet, ou da foto do focinho de um achado. Vale por 900 segundos. */
+            photoUrl?: string;
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+            place?: string;
+            description?: string;
+            /** Format: date-time */
+            occurredAt: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Os avistamentos de um desaparecimento, do mais antigo para o mais novo. Vazia nas listas. */
+            sightings: components["schemas"]["Sighting"][];
+        };
+        ReportList: {
+            reports: components["schemas"]["Report"][];
+        };
+        ReportPage: {
+            reports: components["schemas"]["Report"][];
+            page: number;
+            hasNext: boolean;
+            /** @description Número de desaparecimentos abertos no mural. */
+            openLost: number;
+            /** @description Número de achados abertos no mural. */
+            openFound: number;
+        };
+        FoundReportCreated: {
+            report: components["schemas"]["Report"];
+            /** @description Código que resolve o achado. Ele aparece só nesta resposta. */
+            resolveCode: string;
+        };
         /** @description O tutor. Pessoa com conta, responsável por pets. */
         Owner: {
             /** @description Identificador do tutor, um UUID. */
@@ -374,7 +628,7 @@ export interface components {
          *     Um código novo entra nesta lista antes de entrar no código do servidor.
          * @enum {string}
          */
-        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found" | "pet_not_found" | "noseprint_not_found" | "identification_not_found" | "rate_limited" | "species_not_supported" | "image_low_quality" | "image_framing";
+        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found" | "pet_not_found" | "noseprint_not_found" | "identification_not_found" | "report_not_found" | "lost_report_open" | "report_not_open" | "rate_limited" | "species_not_supported" | "image_low_quality" | "image_framing";
     };
     responses: {
         /** @description O corpo ou um parâmetro é inválido. O código do erro é `invalid_request`. */
@@ -414,6 +668,15 @@ export interface components {
          *     `image_framing` quando a foto não mostra um focinho.
          */
         NosePhotoRefused: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description A ocorrência não existe. O código do erro é `report_not_found`. */
+        ReportNotFound: {
             headers: {
                 [name: string]: unknown;
             };
@@ -936,6 +1199,256 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FoundNoticeList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listReports: {
+        parameters: {
+            query?: {
+                /** @description Número da página, a partir de 1. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Uma página do mural, com as contagens. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportPage"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            default: components["responses"]["Error"];
+        };
+    };
+    reportLost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LostReportInput"];
+            };
+        };
+        responses: {
+            /** @description O desaparecimento registrado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Report"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["PetNotFound"];
+            /** @description O pet já tem um desaparecimento aberto. O código do erro é `lost_report_open`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    reportFound: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description A foto do focinho usada na identificação. JPEG, PNG ou WebP, com no máximo 8 MB.
+                     */
+                    file: string;
+                    /** Format: double */
+                    latitude: number;
+                    /** Format: double */
+                    longitude: number;
+                    /** @description Nome do local, com no máximo 200 caracteres. */
+                    place?: string;
+                    /** @description Recado, com no máximo 1.000 caracteres. */
+                    description?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description O achado publicado, com o código que resolve o achado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoundReportCreated"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            429: components["responses"]["RateLimited"];
+            default: components["responses"]["Error"];
+        };
+    };
+    getReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A ocorrência. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Report"];
+                };
+            };
+            404: components["responses"]["ReportNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    reportSighting: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SightingInput"];
+            };
+        };
+        responses: {
+            /** @description O avistamento registrado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Sighting"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            404: components["responses"]["ReportNotFound"];
+            /** @description A ocorrência não é um desaparecimento aberto. O código do erro é `report_not_open`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+            default: components["responses"]["Error"];
+        };
+    };
+    resolveReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A ocorrência resolvida. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Report"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["ReportNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    resolveFoundReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            /** @description O achado resolvido. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Report"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            404: components["responses"]["ReportNotFound"];
+            429: components["responses"]["RateLimited"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listMyReports: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description As ocorrências do tutor, da mais nova para a mais antiga. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportList"];
                 };
             };
             401: components["responses"]["Unauthenticated"];

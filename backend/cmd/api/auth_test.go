@@ -167,3 +167,44 @@ func TestOnlyPublicRoutesAllowOtherOrigins(t *testing.T) {
 		})
 	}
 }
+
+// The public web page sends JSON to a public route of another origin. The
+// browser first sends a preflight request with the method OPTIONS.
+func TestPreflightOfPublicRoutes(t *testing.T) {
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{})
+	const sightings = "/v1/reports/0195f3c8-7a55-7c1e-9d2a-0d1c2b3a4f5e/sightings"
+	tests := []struct {
+		name       string
+		path       string
+		method     string
+		wantStatus int
+	}{
+		{name: "public route", path: sightings, method: http.MethodPost, wantStatus: http.StatusNoContent},
+		{name: "route with a token", path: "/v1/reports/lost", method: http.MethodPost, wantStatus: http.StatusNotFound},
+		{name: "method that the route does not have", path: sightings, method: http.MethodDelete, wantStatus: http.StatusNotFound},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodOptions, tt.path, nil)
+			req.Header.Set("Origin", "http://localhost:8081")
+			req.Header.Set("Access-Control-Request-Method", tt.method)
+			req.Header.Set("Access-Control-Request-Headers", "content-type")
+			rec := httptest.NewRecorder()
+
+			handler.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d", rec.Code, tt.wantStatus)
+			}
+			if tt.wantStatus != http.StatusNoContent {
+				return
+			}
+			header := rec.Header()
+			if header.Get("Access-Control-Allow-Origin") != "*" ||
+				header.Get("Access-Control-Allow-Methods") != tt.method ||
+				header.Get("Access-Control-Allow-Headers") != "Content-Type" {
+				t.Errorf("headers = %v, want the origin *, the method and Content-Type", header)
+			}
+		})
+	}
+}
