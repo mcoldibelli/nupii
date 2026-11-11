@@ -108,6 +108,115 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/pets/{petId}/noseprints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cadastra o focinho de um pet do tutor com uma foto.
+         * @description Só um cachorro tem cadastro biométrico. O cadastro novo passa a ser o principal do pet.
+         *     Uma foto recusada não é gravada.
+         */
+        post: operations["registerNoseprint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets/{petId}/noseprint": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        /** Devolve o cadastro biométrico principal de um pet do tutor. */
+        get: operations["getNoseprint"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/identifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Busca os pets parecidos com a foto de um focinho.
+         * @description Operação pública: quem encontrou um cão não precisa de conta.
+         *     A resposta tem no máximo 3 candidatos e nenhum dado do tutor. A foto não é gravada.
+         */
+        post: operations["identifyNose"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/identifications/{identificationId}/confirmation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da identificação. */
+                identificationId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirma um candidato e deixa o contato para o tutor do pet.
+         * @description Operação pública. O contato vai só para o tutor do pet confirmado.
+         *     A foto da consulta é gravada na primeira confirmação que envia a foto.
+         */
+        post: operations["confirmIdentification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/found-notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lista os avisos de quem encontrou um pet do tutor.
+         * @description Os avisos vêm do mais novo para o mais antigo.
+         */
+        get: operations["listFoundNotices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -171,6 +280,63 @@ export interface components {
          * @enum {string}
          */
         Size: "small" | "medium" | "large";
+        /** @description Cadastro biométrico de um pet, a foto do focinho com o vetor dela. */
+        Noseprint: {
+            /** Format: uuid */
+            id: string;
+            /** @description URL temporária da foto do focinho. Vale por 900 segundos. */
+            imageUrl: string;
+            /**
+             * Format: double
+             * @description Nitidez da foto, de 0 a 1.
+             */
+            quality: number;
+            /** @description Versão do modelo que gerou o vetor. */
+            modelVersion: string;
+            /** Format: date-time */
+            capturedAt: string;
+        };
+        /** @description Resultado da busca de um focinho no acervo. */
+        Identification: {
+            /** Format: uuid */
+            id: string;
+            candidates: components["schemas"]["IdentificationCandidate"][];
+        };
+        /** @description Um pet parecido com a foto enviada. Não tem dado do tutor. */
+        IdentificationCandidate: {
+            /** Format: uuid */
+            id: string;
+            petName: string;
+            /** @description URL temporária da foto de perfil do pet. Vale por 900 segundos. */
+            petPhotoUrl?: string;
+            /**
+             * Format: double
+             * @description Cosseno entre a foto enviada e a foto mais parecida do pet.
+             */
+            similarity: number;
+            /** @description Correspondência forte, a similaridade chega ao limiar do tamanho do acervo. */
+            strong: boolean;
+        };
+        /** @description O que o tutor vê de uma confirmação, o pet e o contato de quem encontrou. */
+        FoundNotice: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            petId: string;
+            petName: string;
+            contactName: string;
+            contactPhone: string;
+            message?: string;
+            /** Format: double */
+            latitude?: number;
+            /** Format: double */
+            longitude?: number;
+            /** Format: date-time */
+            confirmedAt: string;
+        };
+        FoundNoticeList: {
+            notices: components["schemas"]["FoundNotice"][];
+        };
         /** @description O tutor. Pessoa com conta, responsável por pets. */
         Owner: {
             /** @description Identificador do tutor, um UUID. */
@@ -208,7 +374,7 @@ export interface components {
          *     Um código novo entra nesta lista antes de entrar no código do servidor.
          * @enum {string}
          */
-        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found" | "pet_not_found";
+        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found" | "pet_not_found" | "noseprint_not_found" | "identification_not_found" | "rate_limited" | "species_not_supported" | "image_low_quality" | "image_framing";
     };
     responses: {
         /** @description O corpo ou um parâmetro é inválido. O código do erro é `invalid_request`. */
@@ -234,6 +400,38 @@ export interface components {
          *     Ou a conta ainda não registrou o tutor, com o código `owner_not_found`.
          */
         PetNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /**
+         * @description A foto do focinho foi recusada. O código do erro diz o motivo:
+         *     `species_not_supported` quando o pet não é um cachorro,
+         *     `image_low_quality` quando a foto não tem nitidez,
+         *     `image_framing` quando a foto não mostra um focinho.
+         */
+        NosePhotoRefused: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Muitas chamadas deste endereço em pouco tempo. O código do erro é `rate_limited`. */
+        RateLimited: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Uma parte do sistema que a operação usa não responde. O código do erro é `unavailable`. */
+        Unavailable: {
             headers: {
                 [name: string]: unknown;
             };
@@ -543,6 +741,205 @@ export interface operations {
             400: components["responses"]["InvalidRequest"];
             401: components["responses"]["Unauthenticated"];
             404: components["responses"]["PetNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    registerNoseprint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description Foto do focinho. Imagem JPEG, PNG ou WebP, com no máximo 8 MB.
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description O cadastro biométrico criado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Noseprint"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["PetNotFound"];
+            422: components["responses"]["NosePhotoRefused"];
+            503: components["responses"]["Unavailable"];
+            default: components["responses"]["Error"];
+        };
+    };
+    getNoseprint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O cadastro biométrico principal do pet. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Noseprint"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            /**
+             * @description O pet não tem cadastro biométrico, com o código `noseprint_not_found`.
+             *     Ou o pet não existe para este tutor, com o código `pet_not_found`.
+             *     Ou a conta ainda não registrou o tutor, com o código `owner_not_found`.
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    identifyNose: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description Foto do focinho. Imagem JPEG, PNG ou WebP, com no máximo 8 MB.
+                     */
+                    file: string;
+                    /**
+                     * Format: double
+                     * @description Latitude de quem encontrou o cão. Vem junto com a longitude.
+                     */
+                    latitude?: number;
+                    /**
+                     * Format: double
+                     * @description Longitude de quem encontrou o cão. Vem junto com a latitude.
+                     */
+                    longitude?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description A identificação, com os candidatos do mais parecido para o menos parecido. A lista pode ser vazia. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Identification"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            422: components["responses"]["NosePhotoRefused"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["Unavailable"];
+            default: components["responses"]["Error"];
+        };
+    };
+    confirmIdentification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da identificação. */
+                identificationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: uuid
+                     * @description Um candidato desta identificação.
+                     */
+                    candidateId: string;
+                    /** @description Nome de quem encontrou o cão, com no máximo 120 caracteres. */
+                    name: string;
+                    /** @description Telefone de quem encontrou o cão, de 8 a 30 caracteres. */
+                    phone: string;
+                    /** @description Mensagem para o tutor, com no máximo 500 caracteres. */
+                    message?: string;
+                    /**
+                     * Format: binary
+                     * @description A foto usada na identificação. Imagem JPEG, PNG ou WebP, com no máximo 8 MB.
+                     */
+                    file?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description A confirmação foi gravada. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["InvalidRequest"];
+            /** @description A identificação ou o candidato não existe. O código do erro é `identification_not_found`. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listFoundNotices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os avisos de encontro dos pets do tutor. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoundNoticeList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
             default: components["responses"]["Error"];
         };
     };

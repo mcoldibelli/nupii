@@ -21,19 +21,20 @@ export function failureMessage(result: { ok: false; code: string }): string {
 }
 
 /**
- * Sends a request with the ID token and reads the JSON answer. An answer
- * with the status 204 has no body. It does not throw.
+ * Sends a request and reads the JSON answer. The request has the ID token,
+ * or no token when idToken is null: a public operation needs none. An
+ * answer with the status 204 has no body. It does not throw.
  */
 export async function request<T>(
   fetchFn: typeof fetch,
   url: string,
-  idToken: string,
+  idToken: string | null,
   init: { method: string; headers?: Record<string, string>; body?: BodyInit },
 ): Promise<ApiResult<T>> {
   try {
     const response = await fetchFn(url, {
       ...init,
-      headers: { Authorization: `Bearer ${idToken}`, ...init.headers },
+      headers: { ...(idToken === null ? {} : { Authorization: `Bearer ${idToken}` }), ...init.headers },
     });
     if (response.status === 204) {
       return { ok: true, value: undefined as T };

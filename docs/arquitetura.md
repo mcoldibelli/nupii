@@ -43,7 +43,7 @@ backend/
     alerts/             localização, dispositivos, notificações, push
     health/             eventos de saúde, anexos, carteirinha compartilhada
     api/                código gerado do contrato (tipos e interface do servidor), não editado à mão
-    platform/           postgres, storage, jobs, httpx (middleware), config, firebase, inference
+    platform/           postgres, storage, jobs, httpx (middleware), config, firebase, inference, imagefile
   db/migrations/        SQL das migrations
   db/queries/           SQL das consultas (entrada do sqlc)
 api/openapi.yaml        contrato da API
@@ -53,7 +53,7 @@ deploy/                 compose e arquivos de publicação
 docs/                   este diretório
 ```
 
-Nota: a forma da web pública é decidida na fatia 4 ([ADR 0006](adr/0006-mobile-expo-web-publica.md)). Até lá, a hipótese é o alvo web do mesmo projeto Expo.
+Nota: a web pública é o alvo web do mesmo projeto Expo ([ADR 0022](adr/0022-web-publica-no-alvo-web-do-expo.md)). Uma página pública é uma rota fora da proteção de sessão, e tem um orçamento de 500 KB de JavaScript com gzip.
 
 O módulo Go fica em `backend/` e não na raiz. Motivo: `go build ./...` na raiz entra em `mobile/node_modules`.
 
@@ -74,6 +74,7 @@ flowchart TD
     reports --> pets
     reports --> alerts
     biometrics --> pets
+    biometrics --> identity
     biometrics --> alerts
     health --> pets
     pets --> identity
@@ -86,11 +87,16 @@ flowchart TD
     health --> platform
 ```
 
+A dependência de `biometrics` para `alerts` é a notificação de RN-16. Ela passa a existir na fatia 6, com o módulo `alerts`.
+
 Leituras com `JOIN` entre módulos, conhecidas pelos requisitos:
 
 | Consulta | Módulo dono | Lê também | Requisito |
 |---|---|---|---|
-| Busca dos focinhos mais parecidos | `biometrics` | `pets` (pet não excluído), `identity` (conta ativa) | RN-10, RN-11 |
+| Busca dos focinhos mais parecidos | `biometrics` | `pets` (pet não excluído). A leitura de `identity` (conta ativa) entra na fatia 9 | RN-10, RN-11 |
+| Trava do pet durante o cadastro do focinho | `biometrics` | `pets` (linha do pet, com `FOR UPDATE`, sem escrita) | RN-09 |
+| Nome e foto de perfil dos candidatos | `biometrics` | `pets` | RN-62 |
+| Avisos de encontro do tutor | `biometrics` | `pets` (pets do tutor, não excluídos) | RN-66 |
 | Tutores perto de um ponto | `alerts` | `identity` (conta ativa) | RN-32, RN-33 |
 | Mural com a foto do pet | `reports` | `pets` | RF-16 |
 
@@ -102,7 +108,7 @@ Uma tabela `jobs` no Postgres. Workers no mesmo binário leem com `SELECT ... FO
 |---|---|---|
 | `notify_lost_report` | `reports`, na mesma transação da ocorrência | RF-24, RNF-01 |
 | `send_push` | `alerts` | RF-26 |
-| `reembed_noseprint` | `biometrics`, quando a versão do modelo muda | RF-15 |
+| `reembed_noseprint` | `biometrics`, quando a versão do modelo muda. Até a fila de tarefas existir (fatia 6), o recálculo é executado na subida da API, em uma goroutine (RN-67) | RF-15 |
 | `purge_expired_data` | agenda diária | RF-32, RN-42 |
 | `delete_identity_user` | `identity`, na mesma transação da anonimização | RF-08, RN-03 |
 
@@ -112,10 +118,13 @@ Concorrência, declarada por regra:
 - Cada worker para quando o contexto é cancelado e termina a tarefa em curso antes de sair.
 - Uma tarefa que falha volta para a fila com espera crescente. Depois do limite de tentativas ela fica marcada como falha.
 - Toda tarefa precisa ser segura para executar duas vezes.
+- O recálculo dos vetores (RN-67) é uma goroutine que nasce em `main` depois de o servidor HTTP subir. Ela termina quando o recálculo termina ou quando o contexto é cancelado, e `main` espera por ela antes de sair. Se o serviço de inferência não responde, ela escreve um aviso no log e para: os cadastros que faltam ficam para a subida seguinte.
 
 ## Dados
 
 - PostgreSQL com PostGIS (distância) e pgvector (vetores com índice HNSW e cosseno).
+- Um vetor vai para o banco como texto, e a consulta converte para o tipo `vector` ([ADR 0021](adr/0021-vetor-como-texto-nas-consultas.md)).
+- A busca de focinhos muda dois parâmetros do índice HNSW na transação dela: `hnsw.ef_search = 100`, porque o padrão de 40 é menor que os 50 cadastros de RN-10, e `hnsw.iterative_scan = strict_order`, para o índice ler mais cadastros quando os filtros de RN-11 tiram alguns. Um teste de integração força o uso do índice e confere os 50.
 - O esquema nasce das migrations de `backend/db/migrations/`. As migrations são a fonte do modelo de dados.
 - A API aplica as migrations pendentes quando sobe, antes de aceitar requisições. A primeira migration cria as extensões PostGIS e pgvector.
 - `GET /v1/health` responde 503 com o código `unavailable` quando o banco não responde.
@@ -136,16 +145,22 @@ Concorrência, declarada por regra:
 - Uma rota com `GET` atende também `HEAD`, com a mesma resposta sem o corpo. É o comportamento do `http.ServeMux`.
 - Um erro devolvido por uma operação, ou um panic em um handler, recebe 500 com o código `internal_error`. O detalhe do erro vai só para o log, com o identificador da requisição.
 - Rotas em inglês, com versão no caminho: `/v1/...`.
-- Endpoints públicos têm limite de tentativas por IP (RN-43).
+- Endpoints públicos têm limite de tentativas por IP (RN-43). O IP é o endereço da conexão, e a rota é o padrão do contrato, não o caminho com os identificadores. Acima do limite, a resposta é 429 com o código `rate_limited`. Atrás de um proxy, o endereço da conexão é o do proxy: a fatia 10 decide de onde a API lê o endereço do cliente.
+- Uma rota pública responde com `Access-Control-Allow-Origin: *`, para a página pública ler a resposta de outra origem. As rotas com token não têm esse cabeçalho.
 - Autenticação: uma operação do contrato sem `security` é pública. Toda outra operação pede o ID token do Firebase no cabeçalho `Authorization: Bearer`. Sem token válido, a resposta é 401 com o código `unauthenticated` (RN-46). A conferência do token acontece antes da leitura do corpo.
 - O módulo `identity` depende da interface `TokenVerifier`. A implementação com o Firebase Admin SDK fica em `platform/firebase`, e `cmd/api` liga as duas.
 - Um corpo ou um parâmetro que não pode ser lido recebe 400 com o código `invalid_request`. Um dado que quebra uma regra de negócio recebe a mesma resposta, com a regra na mensagem.
 - Um recurso de outro tutor não existe para quem chama: a resposta é 404, igual à de um recurso que nunca existiu (RN-52).
 - Uma conta sem tutor registrado recebe 404 com o código `owner_not_found` nas operações que precisam do tutor.
-- O corpo de uma requisição JSON tem no máximo 1 MiB, e o de um envio de foto tem no máximo 6 MiB. Um corpo maior recebe a mesma resposta 400.
+- O corpo de uma requisição JSON tem no máximo 1 MiB, o de um envio de foto de perfil tem no máximo 6 MiB, e o de um envio de foto de focinho tem no máximo 9 MiB. Um corpo maior recebe a mesma resposta 400.
+- Uma foto de focinho recusada recebe 422, com o motivo no código: `species_not_supported`, `image_low_quality` ou `image_framing`.
+- Quando o serviço de inferência não responde, a operação que precisa dele recebe 503 com o código `unavailable`. A causa vai para o log. A API sobe sem o serviço de inferência.
 - Um arquivo enviado tem o tipo conferido pelos bytes do arquivo, não pelo que o cliente declara (RN-54).
 - A URL temporária de uma foto é assinada com o endereço público do armazenamento (`S3_PUBLIC_ENDPOINT`).
 - O emulador do Authentication só é aceito com um projeto de demonstração (`FIREBASE_PROJECT_ID` com o prefixo `demo-`). Com outro projeto, a API não sobe.
+- O servidor HTTP dá 2 minutos para o cliente enviar uma requisição e 3 minutos para a resposta terminar. Uma foto de 8 MB em uma rede móvel lenta leva cerca de 45 segundos.
+- No app e na página pública, a foto de focinho escolhida da galeria vai para a API sem nova compressão. A foto tirada pela câmera é comprimida uma vez, com qualidade 0,9.
+- A confirmação grava a foto no armazenamento antes da transação. A transação que trava a identificação não chama o armazenamento. Se a foto não for usada, ela é apagada.
 - Toda resposta tem o cabeçalho `X-Request-Id`, com o identificador que aparece nas linhas de log da requisição (RNF-07).
 
 ## Serviço de inferência
@@ -265,6 +280,10 @@ O código usa o termo em inglês. A documentação e as telas usam o termo em po
 | cadastro biométrico | noseprint | Foto do focinho com o vetor |
 | identificação | identification | Busca de um focinho no acervo |
 | candidato | candidate | Pet devolvido por uma identificação |
+| correspondência forte | strong match | Candidato com similaridade no limiar do tamanho do acervo, ou acima dele |
+| confirmação | confirmation | Quem encontrou o cão escolhe um candidato e deixa o contato |
+| aviso de encontro | found notice | O que o tutor vê de uma confirmação: o pet e o contato de quem encontrou |
+| cadastro principal | primary noseprint | O cadastro biométrico mais novo do pet |
 | acervo | gallery | Conjunto de noseprints ativos de uma versão do modelo |
 | ocorrência | report | Registro de perdido, achado ou avistado |
 | perdido, achado, avistado | lost, found, sighting | Tipos de ocorrência |

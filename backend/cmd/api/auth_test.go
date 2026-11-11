@@ -139,3 +139,31 @@ func TestRequestBodyOverTheLimitGetsInvalidRequest(t *testing.T) {
 		t.Errorf("error code = %q, want %q", got.Error, api.ErrorCodeInvalidRequest)
 	}
 }
+
+// The public web page runs in a browser, at another origin. The browser
+// gives the answer to the page only with this header.
+func TestOnlyPublicRoutesAllowOtherOrigins(t *testing.T) {
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{})
+	tests := []struct {
+		method string
+		path   string
+		want   string
+	}{
+		{method: http.MethodGet, path: "/v1/health", want: "*"},
+		// The request has no body, so the answer is an error. The header
+		// is in the answer of an error too.
+		{method: http.MethodPost, path: "/v1/identifications", want: "*"},
+		{method: http.MethodGet, path: "/v1/me", want: ""},
+		{method: http.MethodGet, path: "/v1/unknown", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, httptest.NewRequest(tt.method, tt.path, nil))
+
+			if got := rec.Header().Get("Access-Control-Allow-Origin"); got != tt.want {
+				t.Errorf("Access-Control-Allow-Origin = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

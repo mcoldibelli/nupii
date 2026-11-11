@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/mcoldibelli/nupii/backend/internal/api"
+	"github.com/mcoldibelli/nupii/backend/internal/biometrics"
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/pets"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
@@ -28,14 +29,27 @@ const (
 	// _maxPhotoBodyBytes is the maximum size of the body of a photo
 	// upload: the 5 MB of the photo (RN-54) and the multipart envelope.
 	_maxPhotoBodyBytes = 6 << 20
+	// _publicPostLimit is the number of POST requests that one address
+	// can send to one public route in one minute (RN-43).
+	_publicPostLimit = 10
+	// _maxNosePhotoBodyBytes is the maximum size of the body of an upload
+	// of the photo of a nose: the 8 MB of the photo (RN-59) and the
+	// multipart envelope.
+	_maxNosePhotoBodyBytes = 9 << 20
 )
 
 // bodyLimit returns the maximum size of the body of the request.
 func bodyLimit(r *http.Request) int64 {
-	if r.Pattern == "PUT /v1/pets/{petId}/photo" {
+	switch r.Pattern {
+	case "PUT /v1/pets/{petId}/photo":
 		return _maxPhotoBodyBytes
+	case "POST /v1/pets/{petId}/noseprints",
+		"POST /v1/identifications",
+		"POST /v1/identifications/{identificationId}/confirmation":
+		return _maxNosePhotoBodyBytes
+	default:
+		return _maxBodyBytes
 	}
-	return _maxBodyBytes
 }
 
 // pinger tells if the database responds. *pgxpool.Pool implements it.
@@ -43,11 +57,12 @@ type pinger interface {
 	Ping(ctx context.Context) error
 }
 
-// The handlers of two modules have the same type name. The aliases give
+// The handlers of the modules have the same type name. The aliases give
 // each embedded field of server a different name.
 type (
-	identityHandlers = identity.Handlers
-	petsHandlers     = pets.Handlers
+	identityHandlers   = identity.Handlers
+	petsHandlers       = pets.Handlers
+	biometricsHandlers = biometrics.Handlers
 )
 
 // server implements the operations of the contract. The operations of each
@@ -55,6 +70,10 @@ type (
 type server struct {
 	*identityHandlers
 	*petsHandlers
+	*biometricsHandlers
+
+	// noseprints runs the recompute of the vectors when the API starts.
+	noseprints *biometrics.Service
 
 	logger   *slog.Logger
 	database pinger
@@ -64,13 +83,22 @@ var _ api.StrictServerInterface = server{}
 
 // newServer connects the modules: each module gets the connection pool and
 // the modules it depends on.
-func newServer(logger *slog.Logger, pool *pgxpool.Pool, photos *storage.Store) server {
+func newServer(
+	logger *slog.Logger,
+	pool *pgxpool.Pool,
+	photos *storage.Store,
+	embedder biometrics.Embedder,
+) server {
 	owners := identity.NewService(pool)
+	petService := pets.NewService(pool, owners, photos, logger)
+	noseprints := biometrics.NewService(pool, owners, petService, embedder, photos, logger)
 	return server{
-		identityHandlers: identity.NewHandlers(owners),
-		petsHandlers:     pets.NewHandlers(pets.NewService(pool, owners, photos, logger)),
-		logger:           logger,
-		database:         pool,
+		identityHandlers:   identity.NewHandlers(owners),
+		petsHandlers:       pets.NewHandlers(petService),
+		biometricsHandlers: biometrics.NewHandlers(noseprints, logger),
+		noseprints:         noseprints,
+		logger:             logger,
+		database:           pool,
 	}
 }
 
@@ -96,7 +124,36 @@ func (s server) GetHealth(
 // contract has the same information: an operation without "security" is
 // public. A test compares the two.
 func isPublic(r *http.Request) bool {
-	return r.Pattern == "GET /v1/health"
+	switch r.Pattern {
+	case "GET /v1/health",
+		"POST /v1/identifications",
+		"POST /v1/identifications/{identificationId}/confirmation":
+		return true
+	default:
+		return false
+	}
+}
+
+// isRateLimited tells if the request counts for the limit of RN-43.
+//
+// RN-43: um endpoint público aceita no máximo 10 POST por minuto, por IP e
+// por caminho.
+func isRateLimited(r *http.Request) bool {
+	return r.Method == http.MethodPost && isPublic(r)
+}
+
+// allowOtherOrigins lets a web page of another origin read the answer of a
+// public route: the public web page calls the API from the browser. A
+// public route has no credential, so every origin is accepted. The other
+// routes get no header, and the browser keeps their answers from other
+// origins.
+func allowOtherOrigins(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isPublic(r) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // tokenVerifier adapts the Firebase verifier to the interface of the
@@ -156,7 +213,9 @@ func newHandler(
 		// runs before the body of the request is read.
 		Middlewares: []api.MiddlewareFunc{
 			httpx.LimitBody(bodyLimit),
+			httpx.RateLimit(logger, _publicPostLimit, time.Minute, isRateLimited, time.Now),
 			identity.RequireIdentity(logger, verifier, isPublic),
+			allowOtherOrigins,
 		},
 		// A parameter of the request could not be read.
 		ErrorHandlerFunc: invalidRequest,

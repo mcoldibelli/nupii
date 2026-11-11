@@ -19,8 +19,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/mcoldibelli/nupii/backend/internal/api"
+	"github.com/mcoldibelli/nupii/backend/internal/biometrics"
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/inference"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres/postgrestest"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/storage"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/storage/storagetest"
@@ -31,6 +33,32 @@ type testAPI struct {
 	t       *testing.T
 	handler http.Handler
 	pool    *pgxpool.Pool
+	// embedder is in the place of the inference service.
+	embedder *fakeEmbedder
+	// noseprints is the biometrics service of the server.
+	noseprints *biometrics.Service
+}
+
+// fakeEmbedder is in the place of the inference service. A test sets embed
+// to choose the answer for a photo.
+type fakeEmbedder struct {
+	embed        func(image []byte) (inference.Embedding, error)
+	modelVersion func() (string, error)
+}
+
+func (f *fakeEmbedder) ModelVersion(context.Context) (string, error) {
+	return f.modelVersion()
+}
+
+func (f *fakeEmbedder) Embed(_ context.Context, image []byte) (inference.Embedding, error) {
+	return f.embed(image)
+}
+
+// unitVector returns a vector with the value 1 at index and 0 at the others.
+func unitVector(index int) []float32 {
+	vector := make([]float32, inference.Dimensions)
+	vector[index] = 1
+	return vector
 }
 
 // newTestAPI returns the API with the database of the local environment
@@ -42,12 +70,33 @@ func newTestAPI(t *testing.T, verifier identity.TokenVerifier, uids ...string) t
 	t.Cleanup(func() { deleteOwners(t, pool, uids) })
 	logger := slog.New(slog.DiscardHandler)
 	photos := storage.New(storagetest.Config(t))
-	return testAPI{t: t, handler: newHandler(logger, newServer(logger, pool, photos), verifier), pool: pool}
+	embedder := &fakeEmbedder{
+		embed: func([]byte) (inference.Embedding, error) {
+			return inference.Embedding{Vector: unitVector(0), ModelVersion: "test-model", Quality: 0.9}, nil
+		},
+		modelVersion: func() (string, error) { return "test-model", nil },
+	}
+	operations := newServer(logger, pool, photos, embedder)
+	return testAPI{
+		t:          t,
+		handler:    newHandler(logger, operations, verifier),
+		pool:       pool,
+		embedder:   embedder,
+		noseprints: operations.noseprints,
+	}
 }
 
 func deleteOwners(t *testing.T, pool *pgxpool.Pool, uids []string) {
 	t.Helper()
 	ctx := context.WithoutCancel(t.Context())
+	const ownedPets = "SELECT p.id FROM pets AS p JOIN owners AS o ON o.id = p.owner_id WHERE o.firebase_uid = ANY($1)"
+	// The identifications stay: they have no owner. Their candidates point to the pets.
+	if _, err := pool.Exec(ctx, "DELETE FROM identification_candidates WHERE pet_id IN ("+ownedPets+")", uids); err != nil {
+		t.Errorf("delete the identification candidates of the test: %v", err)
+	}
+	if _, err := pool.Exec(ctx, "DELETE FROM noseprints WHERE pet_id IN ("+ownedPets+")", uids); err != nil {
+		t.Errorf("delete the noseprints of the test: %v", err)
+	}
 	const deletePets = "DELETE FROM pets WHERE owner_id IN (SELECT id FROM owners WHERE firebase_uid = ANY($1))"
 	if _, err := pool.Exec(ctx, deletePets, uids); err != nil {
 		t.Errorf("delete the pets of the test: %v", err)

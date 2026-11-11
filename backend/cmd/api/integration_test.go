@@ -3,11 +3,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -66,6 +68,9 @@ func TestRunMigratesServesAndStops(t *testing.T) {
 			return emulator
 		case "S3_ENDPOINT":
 			return store.Endpoint
+		case "INFERENCE_URL":
+			// The API starts without a call to the inference service.
+			return "http://127.0.0.1:1"
 		case "S3_BUCKET":
 			return store.Bucket
 		case "S3_ACCESS_KEY_ID":
@@ -76,8 +81,10 @@ func TestRunMigratesServesAndStops(t *testing.T) {
 			return ""
 		}
 	}
+	// The test reads the log only after run returns.
+	var logOutput bytes.Buffer
 	done := make(chan error, 1)
-	go func() { done <- run(ctx, getenv, io.Discard) }()
+	go func() { done <- run(ctx, getenv, &logOutput) }()
 
 	healthURL := "http://" + addr + "/v1/health"
 	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, healthURL, nil)
@@ -140,6 +147,11 @@ func TestRunMigratesServesAndStops(t *testing.T) {
 	case <-time.After(15 * time.Second):
 		t.Fatal("run did not return 15 seconds after the context was canceled")
 	}
+	// RN-67: o recálculo é executado na subida. The inference service of
+	// this test does not respond: the API serves, and the log has the cause.
+	if !strings.Contains(logOutput.String(), "recompute of the noseprint vectors stopped") {
+		t.Errorf("the log has no line about the recompute of the vectors:\n%s", logOutput.String())
+	}
 }
 
 func TestRunFailsWhenTheDatabaseDoesNotRespond(t *testing.T) {
@@ -153,6 +165,8 @@ func TestRunFailsWhenTheDatabaseDoesNotRespond(t *testing.T) {
 		case "FIREBASE_PROJECT_ID":
 			return _emulatorProjectID
 		case "S3_ENDPOINT":
+			return "http://127.0.0.1:1"
+		case "INFERENCE_URL":
 			return "http://127.0.0.1:1"
 		case "S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY":
 			return "value-for-the-test"
