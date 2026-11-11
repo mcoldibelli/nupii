@@ -13,6 +13,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      # The image has no shell. The binary has a command for this check.
+      test: ["CMD", "/api", "healthcheck"]
+      interval: 2s
+      timeout: 4s
+      retries: 30
 
   db:
     build: ./postgres
