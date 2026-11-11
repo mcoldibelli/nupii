@@ -113,7 +113,8 @@ components:
         email:
           type: string
         termsVersion:
-          $ref: "#/components/schemas/TermsVersion"
+          type: string
+          description: Versão dos termos de uso que o tutor aceitou. Pode ser uma versão anterior à vigente.
         termsAcceptedAt:
           type: string
           format: date-time
@@ -123,7 +124,7 @@ components:
       properties:
         name:
           type: string
-          description: Nome do tutor. Não pode ser vazio.
+          description: Nome do tutor. Não pode ser vazio. Tem no máximo 100 caracteres.
           maxLength: 100
         acceptedTermsVersion:
           $ref: "#/components/schemas/TermsVersion"

@@ -140,6 +140,8 @@ Concorrência, declarada por regra:
 - Autenticação: uma operação do contrato sem `security` é pública. Toda outra operação pede o ID token do Firebase no cabeçalho `Authorization: Bearer`. Sem token válido, a resposta é 401 com o código `unauthenticated` (RN-46). A conferência do token acontece antes da leitura do corpo.
 - O módulo `identity` depende da interface `TokenVerifier`. A implementação com o Firebase Admin SDK fica em `platform/firebase`, e `cmd/api` liga as duas.
 - Um corpo ou um parâmetro que não pode ser lido recebe 400 com o código `invalid_request`.
+- O corpo de uma requisição tem no máximo 1 MiB. Um corpo maior recebe a mesma resposta 400.
+- O emulador do Authentication só é aceito com um projeto de demonstração (`FIREBASE_PROJECT_ID` com o prefixo `demo-`). Com outro projeto, a API não sobe.
 - Toda resposta tem o cabeçalho `X-Request-Id`, com o identificador que aparece nas linhas de log da requisição (RNF-07).
 
 ## Convenções
@@ -193,7 +195,7 @@ Os workflows ficam em `.github/workflows/`. Cada um é disparado só pelos arqui
 |---|---|---|
 | `backend` | `backend/`, `api/` | Lint, código gerado igual ao contrato, testes de unidade com detector de corrida, build, e que as bibliotecas de teste não entram no binário |
 | `mobile` | `mobile/`, `api/` | Instalação, tipos gerados iguais ao contrato, lint e testes de unidade |
-| `integration` | `backend/`, `api/`, `deploy/` | Sobe o compose (API, banco e servidor S3), chama `GET /v1/health` e executa os testes de integração |
+| `integration` | `backend/`, `api/`, `deploy/` | Sobe o compose (API, banco, servidor S3 e emulador do Authentication), chama `GET /v1/health` e executa os testes de integração |
 
 O workflow `integration` cria o `deploy/.env` com credenciais aleatórias em cada execução. Nenhum workflow tem credencial escrita.
 
@@ -204,6 +206,9 @@ O código usa o termo em inglês. A documentação e as telas usam o termo em po
 | Português | Inglês (código) | Significado |
 |---|---|---|
 | tutor | owner | Pessoa com conta, responsável por pets |
+| conta | account | O usuário no provedor de identidade: e-mail e senha |
+| identidade | identity | A conta que fez uma requisição, lida do ID token |
+| termos de uso | terms | Texto que o tutor aceita no registro, com uma versão |
 | visitante | visitor | Pessoa sem conta |
 | pet | pet | Animal cadastrado |
 | focinho | nose | Região usada na biometria |

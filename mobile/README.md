@@ -20,7 +20,7 @@ Requisitos: Node 22.13 ou mais novo, e o ambiente local em execução (ver o [RE
    cp .env.example .env
    ```
 
-   Preencha `EXPO_PUBLIC_FIREBASE_API_KEY`. Com o emulador, qualquer texto serve. O arquivo já vem com os endereços do emulador Android. Para outro aparelho, troque os endereços:
+   O arquivo já vem pronto para o emulador do Authentication e para o emulador Android. Para outro aparelho, troque os endereços:
 
    | Onde o app executa | API | Emulador do Authentication |
    |---|---|---|
@@ -42,7 +42,7 @@ Para usar o projeto real do Firebase no lugar do emulador, execute `./deploy/fir
 
 1. Tela de entrada: entrar ou criar conta, com e-mail e senha de no mínimo 8 caracteres.
 2. No primeiro acesso: o tutor informa o nome e aceita os termos de uso. O app registra o tutor na API.
-3. Tela inicial: mostra o nome e o e-mail do tutor, e a ação de sair.
+3. Tela inicial: mostra o nome do tutor e a ação de sair.
 
 A sessão continua depois de fechar o app. As contas do emulador somem quando o container do emulador reinicia: nesse caso a API recusa a sessão antiga e o app volta para a tela de entrada.
 

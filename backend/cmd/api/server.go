@@ -15,8 +15,14 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 )
 
-// _healthPingTimeout is the time the database has to answer the health check.
-const _healthPingTimeout = 2 * time.Second
+const (
+	// _healthPingTimeout is the time the database has to answer the health
+	// check.
+	_healthPingTimeout = 2 * time.Second
+	// _maxBodyBytes is the maximum size of the body of a request. The
+	// operations of today have small JSON bodies.
+	_maxBodyBytes = 1 << 20
+)
 
 // pinger tells if the database responds. *pgxpool.Pool implements it.
 type pinger interface {
@@ -65,13 +71,16 @@ type tokenVerifier struct {
 	firebase *firebase.Verifier
 }
 
-func (v tokenVerifier) VerifyIDToken(ctx context.Context, rawToken string) (identity.Identity, error) {
+func (v tokenVerifier) VerifyIDToken(
+	ctx context.Context,
+	rawToken string,
+) (identity.Identity, error) {
 	token, err := v.firebase.VerifyIDToken(ctx, rawToken)
 	if errors.Is(err, firebase.ErrInvalidToken) {
 		return identity.Identity{}, fmt.Errorf("%w: %w", identity.ErrInvalidToken, err)
 	}
 	if err != nil {
-		return identity.Identity{}, err
+		return identity.Identity{}, fmt.Errorf("verify ID token with firebase: %w", err)
 	}
 	return identity.Identity{UID: token.UID, Email: token.Email}, nil
 }
@@ -96,8 +105,7 @@ func newHandler(
 		// not to the client.
 		ResponseErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			logger.ErrorContext(r.Context(), "operation failed", slog.Any("error", err))
-			httpx.WriteError(r.Context(), logger, w,
-				http.StatusInternalServerError, string(api.ErrorCodeInternalError), "internal error")
+			httpx.WriteInternalError(r.Context(), logger, w)
 		},
 	})
 
@@ -110,8 +118,12 @@ func newHandler(
 	})
 	routes := api.HandlerWithOptions(strict, api.StdHTTPServerOptions{
 		BaseRouter: mux,
-		// The identity check runs before the body of the request is read.
-		Middlewares: []api.MiddlewareFunc{identity.RequireIdentity(logger, verifier, isPublic)},
+		// The last middleware of the list runs first: the identity check
+		// runs before the body of the request is read.
+		Middlewares: []api.MiddlewareFunc{
+			httpx.LimitBody(_maxBodyBytes),
+			identity.RequireIdentity(logger, verifier, isPublic),
+		},
 		// A parameter of the request could not be read.
 		ErrorHandlerFunc: invalidRequest,
 	})
@@ -137,8 +149,7 @@ func recoverPanic(logger *slog.Logger, next http.Handler) http.Handler {
 				slog.Any("panic", value),
 				slog.String("stack", string(debug.Stack())),
 			)
-			httpx.WriteError(r.Context(), logger, w,
-				http.StatusInternalServerError, string(api.ErrorCodeInternalError), "internal error")
+			httpx.WriteInternalError(r.Context(), logger, w)
 		}()
 		next.ServeHTTP(w, r)
 	})

@@ -31,3 +31,21 @@ func WriteError(
 		logger.ErrorContext(ctx, "write error response", slog.Any("error", err))
 	}
 }
+
+// WriteInternalError writes the 500 response of the API. The cause of the
+// error goes to the log of the caller and not to the client.
+func WriteInternalError(ctx context.Context, logger *slog.Logger, w http.ResponseWriter) {
+	WriteError(ctx, logger, w, http.StatusInternalServerError, "internal_error", "internal error")
+}
+
+// LimitBody returns a middleware that stops the read of a request body
+// after maxBytes. The read then fails, and the handler answers with the
+// error of an invalid request.
+func LimitBody(maxBytes int64) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+			next.ServeHTTP(w, r)
+		})
+	}
+}

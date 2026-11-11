@@ -8,9 +8,15 @@ import (
 	"net"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
-const _defaultHTTPAddr = ":8080"
+const (
+	_defaultHTTPAddr = ":8080"
+	// _demoProjectPrefix is the prefix of a Firebase project that exists
+	// only in the emulators.
+	_demoProjectPrefix = "demo-"
+)
 
 // Config is the configuration of the API process.
 type Config struct {
@@ -50,6 +56,14 @@ func Load(getenv func(string) string) (Config, error) {
 	}
 	if cfg.FirebaseProjectID == "" {
 		return Config{}, errors.New("FIREBASE_PROJECT_ID: the variable is not set")
+	}
+	// With the emulator, the ID tokens have no signature. The emulator is
+	// accepted only with a demonstration project, so a real project never
+	// runs with tokens that are not verified.
+	if cfg.FirebaseAuthEmulatorHost != "" && !strings.HasPrefix(cfg.FirebaseProjectID, _demoProjectPrefix) {
+		return Config{}, fmt.Errorf(
+			"FIREBASE_AUTH_EMULATOR_HOST: the emulator needs a FIREBASE_PROJECT_ID that starts with %q",
+			_demoProjectPrefix)
 	}
 	return cfg, nil
 }

@@ -41,8 +41,10 @@ func FromContext(ctx context.Context) (Identity, bool) {
 // RequireIdentity returns a middleware that validates the ID token of the
 // header "Authorization: Bearer <token>" and puts the identity in the
 // context of the request. A request for which isPublic returns true goes
-// to next without a token. RN-46: a request without a token, or with a
-// token that is not valid, gets 401.
+// to next without a token.
+//
+// RN-46: uma chamada sem token, com token inválido ou com token vencido
+// recebe 401.
 func RequireIdentity(
 	logger *slog.Logger,
 	verifier TokenVerifier,
@@ -67,8 +69,7 @@ func RequireIdentity(
 			}
 			if err != nil {
 				logger.ErrorContext(ctx, "verify ID token", slog.Any("error", err))
-				httpx.WriteError(ctx, logger, w,
-					http.StatusInternalServerError, string(api.ErrorCodeInternalError), "internal error")
+				httpx.WriteInternalError(ctx, logger, w)
 				return
 			}
 			next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, identityKey{}, who)))
@@ -77,6 +78,7 @@ func RequireIdentity(
 }
 
 // bearerToken returns the token of the header "Authorization: Bearer <token>".
+// The second result is false when the header has no bearer token.
 func bearerToken(r *http.Request) (string, bool) {
 	scheme, token, found := strings.Cut(r.Header.Get("Authorization"), " ")
 	if !found || !strings.EqualFold(scheme, "Bearer") || token == "" {
@@ -85,7 +87,13 @@ func bearerToken(r *http.Request) (string, bool) {
 	return token, true
 }
 
-func unauthenticated(ctx context.Context, logger *slog.Logger, w http.ResponseWriter, message string) {
+func unauthenticated(
+	ctx context.Context,
+	logger *slog.Logger,
+	w http.ResponseWriter,
+	message string,
+) {
 	w.Header().Set("WWW-Authenticate", "Bearer")
-	httpx.WriteError(ctx, logger, w, http.StatusUnauthorized, string(api.ErrorCodeUnauthenticated), message)
+	httpx.WriteError(ctx, logger, w,
+		http.StatusUnauthorized, string(api.ErrorCodeUnauthenticated), message)
 }
