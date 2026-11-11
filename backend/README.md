@@ -169,7 +169,7 @@ A primeira execução baixa o `oapi-codegen` na versão fixada em `internal/api/
 | `db/queries/` | Arquivos SQL das consultas, a entrada do `sqlc` |
 | `sqlc.yaml` | Configuração do `sqlc`: qual arquivo de consultas gera qual pacote |
 | `internal/identity/` | Módulo do tutor: validação do token das requisições, regras do registro, handlers de `/v1/me`. `identitydb/` é o código gerado das consultas |
-| `internal/biometrics/` | Módulo de biometria: cadastro do focinho (RN-07 a RN-09, RN-59, RN-60), operações de `/v1/pets/{petId}/noseprints`. `biometricsdb/` é o código gerado das consultas |
+| `internal/biometrics/` | Módulo de biometria: cadastro do focinho (RN-07 a RN-09, RN-59, RN-60), identificação (RN-10 a RN-15, RN-61, RN-62), confirmação (RN-16, RN-63 a RN-65) e avisos de encontro (RN-66). `biometricsdb/` é o código gerado das consultas |
 | `internal/platform/inference/` | Cliente do serviço de inferência |
 | `internal/platform/imagefile/` | Tipo de um arquivo de imagem pelo conteúdo |
 | `internal/pets/` | Módulo de pets: regras dos dados (RN-48 a RN-56), operações de `/v1/pets`. `petsdb/` é o código gerado das consultas |

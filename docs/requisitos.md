@@ -225,7 +225,7 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 | RNF-08 | A API responde o que o contrato declara. | Contrato OpenAPI e teste de contrato ([ADR 0005](adr/0005-contrato-openapi.md)). |
 | RNF-09 | Toda RN tem um teste que cita o identificador dela. | Estratégia de testes ([arquitetura.md](arquitetura.md)). |
 
-Limite conhecido de RN-43: a contagem fica na memória do processo. Ela vale para uma instância da API e zera quando o processo sobe ([ADR 0003](adr/0003-estado-postgres-fila-no-banco.md)).
+Limite conhecido de RN-43: a contagem fica na memória do processo. Ela vale para uma instância da API e zera quando o processo sobe ([ADR 0003](adr/0003-estado-postgres-fila-no-banco.md)). O IP é o endereço da conexão. O minuto começa na primeira chamada do endereço para a rota.
 
 ## Em aberto
 
@@ -234,6 +234,7 @@ Cada item é fechado na fatia indicada, antes do código.
 | Fatia | Pergunta | Item |
 |---|---|---|
 | 10 | O que acontece quando um login com Google usa o e-mail de uma conta que já tem senha? | RN-02 |
+| 10 | De onde a API lê o endereço do cliente quando fica atrás de um proxy? Hoje ela usa o endereço da conexão. | RN-43 |
 | 10 | Os termos de uso do conjunto de dados do treino do modelo permitem o uso do modelo em um serviço publicado? Sem essa permissão, a publicação pede um modelo treinado com outro conjunto. | RN-19 |
 | 5 | Quem resolve um achado registrado sem conta? | RN-29 |
 | 7 | Onde o lembrete é calculado: no app ou em uma tarefa do backend? | RF-29 |

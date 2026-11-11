@@ -18,6 +18,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/mcoldibelli/nupii/backend/internal/biometrics/biometricsdb"
+	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/pets"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/imagefile"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/inference"
@@ -59,6 +60,13 @@ type Noseprint struct {
 	CapturedAt   time.Time
 }
 
+// OwnerFinder gives the owner that made a request. *identity.Service
+// implements it. CurrentOwner returns identity.ErrOwnerNotFound when the
+// account of the request did not register an owner.
+type OwnerFinder interface {
+	CurrentOwner(ctx context.Context) (identity.Owner, error)
+}
+
 // PetFinder gives a pet of the owner that made the request.
 // *pets.Service implements it. Get returns pets.ErrPetNotFound when the
 // pet does not exist for that owner.
@@ -83,6 +91,7 @@ type PhotoStore interface {
 type Service struct {
 	pool     *pgxpool.Pool
 	queries  *biometricsdb.Queries
+	owners   OwnerFinder
 	pets     PetFinder
 	embedder Embedder
 	photos   PhotoStore
@@ -93,6 +102,7 @@ type Service struct {
 // of pool and the photos in photos.
 func NewService(
 	pool *pgxpool.Pool,
+	owners OwnerFinder,
 	petFinder PetFinder,
 	embedder Embedder,
 	photos PhotoStore,
@@ -101,6 +111,7 @@ func NewService(
 	return &Service{
 		pool:     pool,
 		queries:  biometricsdb.New(pool),
+		owners:   owners,
 		pets:     petFinder,
 		embedder: embedder,
 		photos:   photos,
@@ -166,38 +177,26 @@ func (s *Service) create(
 	ctx context.Context,
 	params biometricsdb.CreateNoseprintParams,
 ) (row biometricsdb.CreateNoseprintRow, err error) {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return row, fmt.Errorf("begin the noseprint transaction: %w", err)
-	}
-	defer func() {
-		// After Commit, Rollback returns pgx.ErrTxClosed and does nothing.
-		rerr := tx.Rollback(context.WithoutCancel(ctx))
-		if rerr != nil && !errors.Is(rerr, pgx.ErrTxClosed) && err == nil {
-			err = fmt.Errorf("roll back the noseprint transaction: %w", rerr)
+	err = s.inTx(ctx, "noseprint", func(tx pgx.Tx) error {
+		queries := s.queries.WithTx(tx)
+		if _, err := queries.LockPet(ctx, params.PetID); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return pets.ErrPetNotFound
+			}
+			return fmt.Errorf("lock the pet of the noseprint: %w", err)
 		}
-	}()
-	queries := s.queries.WithTx(tx)
-
-	if _, err := queries.LockPet(ctx, params.PetID); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return row, pets.ErrPetNotFound
+		// RN-09: o cadastro novo passa a ser o principal do pet. Os
+		// cadastros anteriores continuam ativos.
+		if err := queries.DemotePrimaryNoseprint(ctx, params.PetID); err != nil {
+			return fmt.Errorf("demote the primary noseprint: %w", err)
 		}
-		return row, fmt.Errorf("lock the pet of the noseprint: %w", err)
-	}
-	// RN-09: o cadastro novo passa a ser o principal do pet. Os cadastros
-	// anteriores continuam ativos.
-	if err := queries.DemotePrimaryNoseprint(ctx, params.PetID); err != nil {
-		return row, fmt.Errorf("demote the primary noseprint: %w", err)
-	}
-	row, err = queries.CreateNoseprint(ctx, params)
-	if err != nil {
-		return row, fmt.Errorf("create noseprint: %w", err)
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return row, fmt.Errorf("commit the noseprint transaction: %w", err)
-	}
-	return row, nil
+		row, err = queries.CreateNoseprint(ctx, params)
+		if err != nil {
+			return fmt.Errorf("create noseprint: %w", err)
+		}
+		return nil
+	})
+	return row, err
 }
 
 // Primary returns the primary noseprint of the pet petID of the owner that
@@ -237,22 +236,32 @@ func (s *Service) noseprint(
 
 // readPhoto reads the photo of a nose and applies RN-59. It returns the
 // bytes, the content type and the file extension of the photo.
-//
-// RN-59: a foto do focinho é uma imagem JPEG, PNG ou WebP de até 8 MB.
 func readPhoto(photo io.Reader) (data []byte, contentType, extension string, err error) {
 	// One byte over the limit is enough to know that the photo is too big.
 	data, err = io.ReadAll(io.LimitReader(photo, _maxPhotoBytes+1))
 	if err != nil {
 		return nil, "", "", &ValidationError{Message: "the photo could not be read"}
 	}
+	contentType, extension, err = checkPhoto(data)
+	if err != nil {
+		return nil, "", "", err
+	}
+	return data, contentType, extension, nil
+}
+
+// checkPhoto applies RN-59 and returns the content type and the file
+// extension of the photo of a nose.
+//
+// RN-59: a foto do focinho é uma imagem JPEG, PNG ou WebP de até 8 MB.
+func checkPhoto(data []byte) (contentType, extension string, err error) {
 	if len(data) > _maxPhotoBytes {
-		return nil, "", "", &ValidationError{Message: "the photo must have at most 8 MB"}
+		return "", "", &ValidationError{Message: "the photo must have at most 8 MB"}
 	}
 	contentType, extension, ok := imagefile.Type(data)
 	if !ok {
-		return nil, "", "", &ValidationError{Message: "the photo must be a JPEG, PNG or WebP image"}
+		return "", "", &ValidationError{Message: "the photo must be a JPEG, PNG or WebP image"}
 	}
-	return data, contentType, extension, nil
+	return contentType, extension, nil
 }
 
 // vectorText returns vector in the text format of pgvector: [0.1,0.2].

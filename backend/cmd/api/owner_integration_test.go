@@ -73,6 +73,10 @@ func deleteOwners(t *testing.T, pool *pgxpool.Pool, uids []string) {
 	t.Helper()
 	ctx := context.WithoutCancel(t.Context())
 	const ownedPets = "SELECT p.id FROM pets AS p JOIN owners AS o ON o.id = p.owner_id WHERE o.firebase_uid = ANY($1)"
+	// The identifications stay: they have no owner. Their candidates point to the pets.
+	if _, err := pool.Exec(ctx, "DELETE FROM identification_candidates WHERE pet_id IN ("+ownedPets+")", uids); err != nil {
+		t.Errorf("delete the identification candidates of the test: %v", err)
+	}
 	if _, err := pool.Exec(ctx, "DELETE FROM noseprints WHERE pet_id IN ("+ownedPets+")", uids); err != nil {
 		t.Errorf("delete the noseprints of the test: %v", err)
 	}

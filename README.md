@@ -4,7 +4,7 @@ Plataforma para tutores de pets, com três partes: saúde do pet, mural de perdi
 
 ## Estado
 
-As fatias 0, 1, 2 e 3 do [roteiro](docs/roteiro.md) estão prontas. O ambiente local sobe com um comando e o CI confere a API, o app, a integração e o serviço de inferência. O tutor cria a conta e entra pelo app, e cadastra os pets dele com foto de perfil. O serviço de inferência transforma a foto de um focinho em um vetor. A fatia 4 está em andamento: a API já cadastra o focinho de um cachorro. O andamento de cada fatia está nos milestones do GitHub.
+As fatias 0, 1, 2 e 3 do [roteiro](docs/roteiro.md) estão prontas. O ambiente local sobe com um comando e o CI confere a API, o app, a integração e o serviço de inferência. O tutor cria a conta e entra pelo app, e cadastra os pets dele com foto de perfil. O serviço de inferência transforma a foto de um focinho em um vetor. A fatia 4 está em andamento: a API já cadastra o focinho de um cachorro, identifica um cão pela foto do focinho e guarda o contato de quem encontrou. O andamento de cada fatia está nos milestones do GitHub.
 
 ## Como executar
 

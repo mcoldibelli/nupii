@@ -10,6 +10,91 @@ import (
 	"time"
 )
 
+const confirmCandidate = `-- name: ConfirmCandidate :exec
+UPDATE identification_candidates
+SET confirmed_at = now()
+WHERE id = $1 AND confirmed_at IS NULL
+`
+
+// RN-65: a data da confirmação fica a da primeira vez.
+func (q *Queries) ConfirmCandidate(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, confirmCandidate, id)
+	return err
+}
+
+const countGalleryPets = `-- name: CountGalleryPets :one
+SELECT count(DISTINCT n.pet_id)
+FROM noseprints AS n
+JOIN pets AS p ON p.id = n.pet_id
+WHERE n.model_version = $1 AND p.deleted_at IS NULL
+`
+
+// RN-15: o tamanho do acervo é o número de pets que entram na busca.
+func (q *Queries) CountGalleryPets(ctx context.Context, modelVersion string) (int64, error) {
+	row := q.db.QueryRow(ctx, countGalleryPets, modelVersion)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const createIdentification = `-- name: CreateIdentification :one
+INSERT INTO identifications (model_version, location)
+VALUES (
+    $1,
+    ST_SetSRID(
+        ST_MakePoint($2::float8, $3::float8), 4326
+    )::geography
+)
+RETURNING id
+`
+
+type CreateIdentificationParams struct {
+	ModelVersion string
+	Longitude    *float64
+	Latitude     *float64
+}
+
+// The location is NULL when the latitude or the longitude is NULL.
+func (q *Queries) CreateIdentification(ctx context.Context, arg CreateIdentificationParams) (string, error) {
+	row := q.db.QueryRow(ctx, createIdentification, arg.ModelVersion, arg.Longitude, arg.Latitude)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
+const createIdentificationCandidate = `-- name: CreateIdentificationCandidate :one
+INSERT INTO identification_candidates (identification_id, noseprint_id, pet_id, rank, similarity)
+VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5
+)
+RETURNING id
+`
+
+type CreateIdentificationCandidateParams struct {
+	IdentificationID string
+	NoseprintID      string
+	PetID            string
+	Rank             int16
+	Similarity       float64
+}
+
+func (q *Queries) CreateIdentificationCandidate(ctx context.Context, arg CreateIdentificationCandidateParams) (string, error) {
+	row := q.db.QueryRow(ctx, createIdentificationCandidate,
+		arg.IdentificationID,
+		arg.NoseprintID,
+		arg.PetID,
+		arg.Rank,
+		arg.Similarity,
+	)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
 const createNoseprint = `-- name: CreateNoseprint :one
 INSERT INTO noseprints (pet_id, image_key, embedding, model_version, quality, is_primary)
 VALUES (
@@ -97,6 +182,130 @@ func (q *Queries) GetPrimaryNoseprint(ctx context.Context, petID string) (GetPri
 	return i, err
 }
 
+const listCandidatePets = `-- name: ListCandidatePets :many
+SELECT p.id, p.name, p.photo_key
+FROM pets AS p
+WHERE p.id = ANY($1::uuid[])
+`
+
+type ListCandidatePetsRow struct {
+	ID       string
+	Name     string
+	PhotoKey *string
+}
+
+// RN-62: o candidato tem só o nome e a foto de perfil do pet.
+func (q *Queries) ListCandidatePets(ctx context.Context, ids []string) ([]ListCandidatePetsRow, error) {
+	rows, err := q.db.Query(ctx, listCandidatePets, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCandidatePetsRow
+	for rows.Next() {
+		var i ListCandidatePetsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.PhotoKey); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listFoundNotices = `-- name: ListFoundNotices :many
+SELECT
+    c.id,
+    c.pet_id,
+    p.name AS pet_name,
+    i.contact_name,
+    i.contact_phone,
+    i.contact_message,
+    (i.location IS NOT NULL)::boolean AS has_location,
+    COALESCE(ST_Y(i.location::geometry), 0)::float8 AS latitude,
+    COALESCE(ST_X(i.location::geometry), 0)::float8 AS longitude,
+    c.confirmed_at
+FROM identification_candidates AS c
+JOIN identifications AS i ON i.id = c.identification_id
+JOIN pets AS p ON p.id = c.pet_id
+WHERE p.owner_id = $1 AND p.deleted_at IS NULL AND c.confirmed_at IS NOT NULL
+ORDER BY c.confirmed_at DESC, c.id DESC
+`
+
+type ListFoundNoticesRow struct {
+	ID             string
+	PetID          string
+	PetName        string
+	ContactName    *string
+	ContactPhone   *string
+	ContactMessage *string
+	HasLocation    bool
+	Latitude       float64
+	Longitude      float64
+	ConfirmedAt    *time.Time
+}
+
+// RN-66: os avisos vêm do mais novo para o mais antigo.
+func (q *Queries) ListFoundNotices(ctx context.Context, ownerID string) ([]ListFoundNoticesRow, error) {
+	rows, err := q.db.Query(ctx, listFoundNotices, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListFoundNoticesRow
+	for rows.Next() {
+		var i ListFoundNoticesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.PetID,
+			&i.PetName,
+			&i.ContactName,
+			&i.ContactPhone,
+			&i.ContactMessage,
+			&i.HasLocation,
+			&i.Latitude,
+			&i.Longitude,
+			&i.ConfirmedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const lockCandidate = `-- name: LockCandidate :one
+SELECT c.id, i.photo_key
+FROM identification_candidates AS c
+JOIN identifications AS i ON i.id = c.identification_id
+WHERE c.id = $1 AND i.id = $2
+FOR UPDATE OF i
+`
+
+type LockCandidateParams struct {
+	CandidateID      string
+	IdentificationID string
+}
+
+type LockCandidateRow struct {
+	ID       string
+	PhotoKey *string
+}
+
+// RN-64: o candidato da confirmação é da mesma identificação. The lock of
+// the identification puts two confirmations in sequence.
+func (q *Queries) LockCandidate(ctx context.Context, arg LockCandidateParams) (LockCandidateRow, error) {
+	row := q.db.QueryRow(ctx, lockCandidate, arg.CandidateID, arg.IdentificationID)
+	var i LockCandidateRow
+	err := row.Scan(&i.ID, &i.PhotoKey)
+	return i, err
+}
+
 const lockPet = `-- name: LockPet :one
 SELECT p.id
 FROM pets AS p
@@ -111,4 +320,81 @@ func (q *Queries) LockPet(ctx context.Context, id string) (string, error) {
 	var id_2 string
 	err := row.Scan(&id_2)
 	return id_2, err
+}
+
+const searchNoseprints = `-- name: SearchNoseprints :many
+SELECT
+    n.id AS noseprint_id,
+    n.pet_id,
+    (1 - (n.embedding <=> $1::text::vector))::float8 AS similarity
+FROM noseprints AS n
+JOIN pets AS p ON p.id = n.pet_id
+WHERE n.model_version = $2 AND p.deleted_at IS NULL
+ORDER BY n.embedding <=> $1::text::vector
+LIMIT 50
+`
+
+type SearchNoseprintsParams struct {
+	Embedding    string
+	ModelVersion string
+}
+
+type SearchNoseprintsRow struct {
+	NoseprintID string
+	PetID       string
+	Similarity  float64
+}
+
+// RN-10: a busca lê os 50 cadastros mais parecidos pelo cosseno, só da mesma
+// versão do modelo. RN-11: ficam fora da busca os pets excluídos.
+func (q *Queries) SearchNoseprints(ctx context.Context, arg SearchNoseprintsParams) ([]SearchNoseprintsRow, error) {
+	rows, err := q.db.Query(ctx, searchNoseprints, arg.Embedding, arg.ModelVersion)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchNoseprintsRow
+	for rows.Next() {
+		var i SearchNoseprintsRow
+		if err := rows.Scan(&i.NoseprintID, &i.PetID, &i.Similarity); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const setIdentificationContact = `-- name: SetIdentificationContact :one
+UPDATE identifications
+SET contact_name = $1,
+    contact_phone = $2,
+    contact_message = $3,
+    photo_key = COALESCE(photo_key, $4)
+WHERE id = $5
+RETURNING photo_key
+`
+
+type SetIdentificationContactParams struct {
+	ContactName    *string
+	ContactPhone   *string
+	ContactMessage *string
+	PhotoKey       *string
+	ID             string
+}
+
+// RN-65: confirmar de novo muda só o contato. A foto fica a da primeira vez.
+func (q *Queries) SetIdentificationContact(ctx context.Context, arg SetIdentificationContactParams) (*string, error) {
+	row := q.db.QueryRow(ctx, setIdentificationContact,
+		arg.ContactName,
+		arg.ContactPhone,
+		arg.ContactMessage,
+		arg.PhotoKey,
+		arg.ID,
+	)
+	var photo_key *string
+	err := row.Scan(&photo_key)
+	return photo_key, err
 }
