@@ -183,7 +183,15 @@ Regra: toda regra de negócio de [requisitos.md](requisitos.md) tem um teste que
 
 ## CI
 
-Um workflow por projeto, disparado só pelos arquivos daquele projeto: lint, testes e build. Um workflow de integração sobe o compose e chama a API.
+Os workflows ficam em `.github/workflows/`. Cada um é disparado só pelos arquivos que ele confere.
+
+| Workflow | Disparado por | O que confere |
+|---|---|---|
+| `backend` | `backend/`, `api/` | Lint, código gerado igual ao contrato, testes de unidade com detector de corrida, build, e que as bibliotecas de teste não entram no binário |
+| `mobile` | `mobile/`, `api/` | Instalação, tipos gerados iguais ao contrato, lint e testes de unidade |
+| `integration` | `backend/`, `api/`, `deploy/` | Sobe o compose (API, banco e servidor S3), chama `GET /v1/health` e executa os testes de integração |
+
+O workflow `integration` cria o `deploy/.env` com credenciais aleatórias em cada execução. Nenhum workflow tem credencial escrita.
 
 ## Glossário
 
