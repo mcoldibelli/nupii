@@ -16,6 +16,8 @@ A verificação que o ADR 0005 deixou aberta foi feita com o `oapi-codegen` v2.8
 
 O `go.mod` do teste ficou com `github.com/oapi-codegen/runtime` v1.9.0 e duas dependências indiretas: `github.com/google/uuid` v1.6.0 e `github.com/apapsch/go-jsonmerge/v2` v2.0.0.
 
+As notas de release do `oapi-codegen` v2.8.1 pedem a biblioteca na versão v1.8.0 ou mais nova, por causa de uma correção de segurança. A documentação do gerador trata a biblioteca como parte do código gerado.
+
 Gerar só os tipos (opção `models`) não remove a dependência: um campo de arquivo (`format: binary`) no contrato gera o tipo `types.File`.
 
 Nenhuma dependência entra sem um ADR aceito ([ADR 0001](0001-registrar-decisoes-em-adrs.md)).
@@ -42,4 +44,4 @@ Nenhuma dependência entra sem um ADR aceito ([ADR 0001](0001-registrar-decisoes
 
 - O modo `strict-server` gera código que compila com a mesma dependência, mas nenhum teste de comportamento foi executado nesse modo. A escolha entre o modo simples e o modo `strict-server` é feita na tarefa do contrato.
 
-Referências: [oapi-codegen](https://github.com/oapi-codegen/oapi-codegen), [oapi-codegen/runtime](https://pkg.go.dev/github.com/oapi-codegen/runtime).
+Referências: [oapi-codegen, servidor net/http](https://github.com/oapi-codegen/oapi-codegen/blob/v2.8.2/docs/stdhttp-server.md), [oapi-codegen, release v2.8.1](https://github.com/oapi-codegen/oapi-codegen/releases/tag/v2.8.1), [oapi-codegen/runtime](https://pkg.go.dev/github.com/oapi-codegen/runtime).
