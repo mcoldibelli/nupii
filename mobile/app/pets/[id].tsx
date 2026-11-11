@@ -9,6 +9,7 @@ import { formFromPet } from "../../src/pets/form";
 import { PetFormView } from "../../src/pets/PetFormView";
 import { filePart } from "../../src/pets/pickPhoto";
 import { savePet } from "../../src/pets/save";
+import { LostReportActions } from "../../src/reports/LostReportActions";
 import { styles } from "../../src/screens/styles";
 import { useSession } from "../../src/session/SessionContext";
 
@@ -109,6 +110,7 @@ export default function EditPet() {
           <Text style={styles.linkText}>Focinho do pet</Text>
         </Pressable>
       )}
+      <LostReportActions petId={id} petName={pet.name} />
       <PetFormView initial={formFromPet(pet)} photoUrl={pet.photoUrl} onSubmit={save} onDelete={confirmDelete} />
     </>
   );

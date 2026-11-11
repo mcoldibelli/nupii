@@ -46,6 +46,10 @@ Para usar o projeto real do Firebase no lugar do emulador, execute `./deploy/fir
 4. Novo pet e editar pet: o formulário com os dados do pet e a foto de perfil, escolhida na galeria do aparelho. A tela de editar tem a ação de excluir.
 5. Focinho: na tela de editar de um cachorro, a ação "Focinho do pet" abre o cadastro do focinho, com a câmera ou a galeria. A tela mostra o motivo quando a foto é recusada.
 6. Avisos de encontro: a lista dos contatos de quem encontrou um pet do tutor.
+7. Mural: as ocorrências abertas de perdidos e achados. A ficha de uma ocorrência tem o mapa, os avistamentos e o formulário de um novo avistamento.
+8. Desaparecimento: na tela de editar pet, a ação "Registrar desaparecimento" abre o mapa para o tutor marcar o ponto. Com um desaparecimento aberto, a tela tem a ação "Marcar como encontrado".
+
+O mapa é uma página com o Leaflet e os quadros do OpenStreetMap, dentro de um WebView ([ADR 0023](../docs/adr/0023-mapa-com-leaflet.md)). Ele precisa de internet.
 
 ## Web pública
 
@@ -113,6 +117,10 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `app/noseprint/[petId].tsx` | Cadastro do focinho de um cachorro |
 | `app/found-notices.tsx` | Avisos de encontro |
 | `app/found.tsx` | Página pública "encontrei um pet" |
+| `app/reports/index.tsx`, `app/reports/[id].tsx` | Mural e ficha de uma ocorrência |
+| `app/reports/lost.tsx` | Registro do desaparecimento de um pet |
+| `src/map/` | O mapa: a página HTML (`mapHtml.ts`, com testes), o WebView do app e o iframe da web |
+| `src/reports/` | Regras dos textos de uma ocorrência (RN-70), títulos e mensagens, com testes; ações do desaparecimento na tela do pet |
 | `app/sign-in.tsx`, `app/complete-profile.tsx` | Entrada e primeiro acesso |
 | `src/session/SessionContext.tsx` | A conta e o tutor, para todas as telas |
 | `src/config.ts` | Leitura das variáveis de ambiente |
