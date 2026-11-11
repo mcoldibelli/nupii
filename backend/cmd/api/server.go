@@ -32,6 +32,9 @@ const (
 	// _maxPhotoBodyBytes is the maximum size of the body of a photo
 	// upload: the 5 MB of the photo (RN-54) and the multipart envelope.
 	_maxPhotoBodyBytes = 6 << 20
+	// _maxAttachmentBodyBytes is the maximum size of the body of an upload
+	// of an attachment: the 10 MB of the file (RN-82) and the envelope.
+	_maxAttachmentBodyBytes = 11 << 20
 	// _publicPostLimit is the number of POST requests that one address
 	// can send to one public route in one minute (RN-43).
 	_publicPostLimit = 10
@@ -46,6 +49,8 @@ func bodyLimit(r *http.Request) int64 {
 	switch r.Pattern {
 	case "PUT /v1/pets/{petId}/photo":
 		return _maxPhotoBodyBytes
+	case "POST /v1/pets/{petId}/health-events/{eventId}/attachments":
+		return _maxAttachmentBodyBytes
 	case "POST /v1/pets/{petId}/noseprints",
 		"POST /v1/reports/found",
 		"POST /v1/identifications",
@@ -109,10 +114,11 @@ func newServer(
 		reportsHandlers: reports.NewHandlers(
 			reports.NewService(pool, owners, petService, photos, logger)),
 		alertsHandlers: alerts.NewHandlers(alerts.NewService(pool, owners)),
-		healthHandlers: health.NewHandlers(health.NewService(pool, owners, petService)),
-		noseprints:     noseprints,
-		logger:         logger,
-		database:       pool,
+		healthHandlers: health.NewHandlers(
+			health.NewService(pool, owners, petService, photos, logger)),
+		noseprints: noseprints,
+		logger:     logger,
+		database:   pool,
 	}
 }
 

@@ -159,3 +159,83 @@ func TestUpcomingCare(t *testing.T) {
 		}
 	}
 }
+
+// RF-28: o tutor envia, lista e apaga os anexos de um evento de saúde.
+func TestHealthAttachments(t *testing.T) {
+	testAPI := petsAPI(t)
+	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
+	event := testAPI.createEvent("token-ana", pet, `{"type": "exam", "date": "`+dateText(0)+`", "name": "Hemograma"}`)
+	path := "/v1/pets/" + pet.Id.String() + "/health-events/" + event.Id.String() + "/attachments"
+	pdf := []byte("%PDF-1.7\nresultado")
+
+	rec := testAPI.upload(http.MethodPost, "token-ana", path, pdf)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("POST attachment: status = %d, body %s", rec.Code, rec.Body)
+	}
+	first := decode[api.HealthAttachment](t, rec)
+	if first.ContentType != "application/pdf" || first.SizeBytes != len(pdf) || first.FileName != "photo" {
+		t.Errorf("attachment = %+v, want a PDF of %d bytes with the name of the part", first, len(pdf))
+	}
+	if status, body := readURL(t, first.Url); status != http.StatusOK || string(body) != string(pdf) {
+		t.Errorf("read of the attachment: status %d, want 200 and the file", status)
+	}
+
+	// RN-82: o tipo é conferido pelo conteúdo, e um evento tem no máximo 10 anexos.
+	if rec := testAPI.upload(http.MethodPost, "token-ana", path, []byte("a text file")); rec.Code != http.StatusBadRequest {
+		t.Errorf("text file: status = %d, want 400", rec.Code)
+	}
+	for range 9 {
+		if rec := testAPI.upload(http.MethodPost, "token-ana", path, nosePhoto()); rec.Code != http.StatusCreated {
+			t.Fatalf("POST attachment: status = %d", rec.Code)
+		}
+	}
+	if rec := testAPI.upload(http.MethodPost, "token-ana", path, nosePhoto()); rec.Code != http.StatusConflict ||
+		decode[api.Error](t, rec).Error != api.ErrorCodeAttachmentLimit {
+		t.Errorf("11th attachment: status = %d, want 409 attachment_limit", rec.Code)
+	}
+	list := decode[api.HealthAttachmentList](t, testAPI.call(http.MethodGet, path, "token-ana", ""))
+	if len(list.Attachments) != 10 || list.Attachments[0].Id != first.Id {
+		t.Fatalf("%d attachments, want 10 with the first one first", len(list.Attachments))
+	}
+
+	// Another owner does not see the attachments.
+	if rec := testAPI.call(http.MethodGet, path, "token-bia", ""); rec.Code != http.StatusNotFound {
+		t.Errorf("GET by Bia: status = %d, want 404", rec.Code)
+	}
+
+	if rec := testAPI.call(http.MethodDelete, path+"/"+first.Id.String(), "token-ana", ""); rec.Code != http.StatusNoContent {
+		t.Fatalf("DELETE attachment: status = %d", rec.Code)
+	}
+	if status, _ := readURL(t, first.Url); status != http.StatusNotFound {
+		t.Errorf("read of the deleted attachment: status %d, want 404", status)
+	}
+
+	// RN-82: apagar um evento apaga os anexos dele.
+	second := list.Attachments[1]
+	eventPath := "/v1/pets/" + pet.Id.String() + "/health-events/" + event.Id.String()
+	if rec := testAPI.call(http.MethodDelete, eventPath, "token-ana", ""); rec.Code != http.StatusNoContent {
+		t.Fatalf("DELETE event: status = %d, body %s", rec.Code, rec.Body)
+	}
+	if status, _ := readURL(t, second.Url); status != http.StatusNotFound {
+		t.Errorf("read of an attachment of the deleted event: status %d, want 404", status)
+	}
+	if rec := testAPI.call(http.MethodGet, path, "token-ana", ""); rec.Code != http.StatusNotFound {
+		t.Errorf("GET attachments of the deleted event: status = %d, want 404", rec.Code)
+	}
+}
+
+// RN-82: um anexo tem até 10 MB, also through the body limit of the API.
+func TestHealthAttachmentOf10MB(t *testing.T) {
+	testAPI := petsAPI(t)
+	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
+	event := testAPI.createEvent("token-ana", pet, `{"type": "exam", "date": "`+dateText(0)+`", "name": "Raio X"}`)
+	path := "/v1/pets/" + pet.Id.String() + "/health-events/" + event.Id.String() + "/attachments"
+	file := append([]byte("%PDF-1.7\n"), make([]byte, 10<<20-9)...)
+
+	if rec := testAPI.upload(http.MethodPost, "token-ana", path, file); rec.Code != http.StatusCreated {
+		t.Errorf("file of 10 MB: status = %d, body %s, want 201", rec.Code, rec.Body)
+	}
+	if rec := testAPI.upload(http.MethodPost, "token-ana", path, append(file, 0)); rec.Code != http.StatusBadRequest {
+		t.Errorf("file of 10 MB and 1 byte: status = %d, want 400", rec.Code)
+	}
+}

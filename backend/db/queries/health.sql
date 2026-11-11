@@ -36,8 +36,25 @@ SELECT * FROM health_events
 WHERE pet_id = sqlc.arg(pet_id)
 ORDER BY date DESC, created_at DESC;
 
--- name: DeleteHealthEvent :execrows
-DELETE FROM health_events WHERE id = sqlc.arg(id) AND pet_id = sqlc.arg(pet_id);
+-- name: DeleteHealthEvent :one
+-- RN-82: apagar um evento apaga os anexos dele. The statement returns the
+-- keys of the objects, which the service deletes from the store.
+WITH event AS (
+    SELECT h.id FROM health_events AS h
+    WHERE h.id = sqlc.arg(id) AND h.pet_id = sqlc.arg(pet_id)
+    FOR UPDATE
+), attachments AS (
+    DELETE FROM health_attachments AS a USING event
+    WHERE a.event_id = event.id
+    RETURNING a.key
+), deleted AS (
+    DELETE FROM health_events AS h USING event
+    WHERE h.id = event.id
+    RETURNING h.id
+)
+SELECT
+    (SELECT count(*) FROM deleted)::int AS deleted,
+    COALESCE((SELECT array_agg(key) FROM attachments), '{}')::text[] AS keys;
 
 -- name: ListUpcomingCare :many
 -- RN-81: a próxima dose de uma vacina com a opção de lembrar, e a data de
@@ -72,3 +89,34 @@ WHERE l.remind AND (
     OR (l.type = 'medication' AND l.in_use IS NOT FALSE AND l.interval_days IS NOT NULL)
 )
 ORDER BY due_date, p.name;
+
+-- name: LockHealthEvent :one
+-- The lock puts two uploads to the same event in sequence (RN-82: 10 anexos).
+SELECT h.id,
+    (SELECT count(*) FROM health_attachments AS a WHERE a.event_id = h.id)::int AS attachments
+FROM health_events AS h
+WHERE h.id = sqlc.arg(id) AND h.pet_id = sqlc.arg(pet_id)
+FOR UPDATE;
+
+-- name: CreateHealthAttachment :one
+INSERT INTO health_attachments (event_id, key, content_type, file_name, size_bytes)
+VALUES (sqlc.arg(event_id), sqlc.arg(key), sqlc.arg(content_type), sqlc.arg(file_name), sqlc.arg(size_bytes))
+RETURNING *;
+
+-- name: ListHealthAttachments :many
+SELECT a.* FROM health_attachments AS a
+JOIN health_events AS h ON h.id = a.event_id
+WHERE a.event_id = sqlc.arg(event_id) AND h.pet_id = sqlc.arg(pet_id)
+ORDER BY a.created_at, a.id;
+
+-- name: DeleteHealthAttachment :one
+DELETE FROM health_attachments AS a
+USING health_events AS h
+WHERE a.id = sqlc.arg(id) AND a.event_id = sqlc.arg(event_id)
+    AND h.id = a.event_id AND h.pet_id = sqlc.arg(pet_id)
+RETURNING a.key;
+
+-- name: HealthEventExists :one
+SELECT EXISTS (
+    SELECT 1 FROM health_events WHERE id = sqlc.arg(id) AND pet_id = sqlc.arg(pet_id)
+);

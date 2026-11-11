@@ -522,6 +522,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/pets/{petId}/health-events/{eventId}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do evento de saúde. */
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        /** Os anexos de um evento de saúde. */
+        get: operations["listHealthAttachments"];
+        put?: never;
+        /** Envia um anexo de um evento de saúde. */
+        post: operations["createHealthAttachment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets/{petId}/health-events/{eventId}/attachments/{attachmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do evento de saúde. */
+                eventId: string;
+                /** @description Identificador do anexo. */
+                attachmentId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Apaga um anexo de um evento de saúde. */
+        delete: operations["deleteHealthAttachment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/upcoming-care": {
         parameters: {
             query?: never;
@@ -947,6 +994,22 @@ export interface components {
         HealthEventList: {
             events: components["schemas"]["HealthEvent"][];
         };
+        HealthAttachment: {
+            /** Format: uuid */
+            id: string;
+            /** @description URL temporária do arquivo. Vale por 900 segundos. */
+            url: string;
+            /** @enum {string} */
+            contentType: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+            /** @description Nome do arquivo enviado, ou "anexo" quando o envio não tem nome. */
+            fileName: string;
+            sizeBytes: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        HealthAttachmentList: {
+            attachments: components["schemas"]["HealthAttachment"][];
+        };
         UpcomingCare: {
             /** Format: uuid */
             eventId: string;
@@ -999,7 +1062,7 @@ export interface components {
          *     Um código novo entra nesta lista antes de entrar no código do servidor.
          * @enum {string}
          */
-        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found" | "pet_not_found" | "noseprint_not_found" | "identification_not_found" | "report_not_found" | "lost_report_open" | "report_not_open" | "notification_not_found" | "health_event_not_found" | "rate_limited" | "species_not_supported" | "image_low_quality" | "image_framing";
+        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found" | "pet_not_found" | "noseprint_not_found" | "identification_not_found" | "report_not_found" | "lost_report_open" | "report_not_open" | "notification_not_found" | "health_event_not_found" | "attachment_limit" | "rate_limited" | "species_not_supported" | "image_low_quality" | "image_framing";
     };
     responses: {
         /** @description O corpo ou um parâmetro é inválido. O código do erro é `invalid_request`. */
@@ -1056,7 +1119,7 @@ export interface components {
             };
         };
         /**
-         * @description O evento não existe para este pet, com o código `health_event_not_found`.
+         * @description O evento ou o anexo não existe para este pet, com o código `health_event_not_found`.
          *     Ou o pet não existe para este tutor, com o código `pet_not_found`.
          */
         HealthEventNotFound: {
@@ -2082,6 +2145,112 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description O evento foi apagado. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["HealthEventNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listHealthAttachments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do evento de saúde. */
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os anexos, do mais antigo para o mais novo. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthAttachmentList"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["HealthEventNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    createHealthAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do evento de saúde. */
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description Imagem JPEG, PNG ou WebP, ou PDF, com no máximo 10 MB.
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description O anexo criado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthAttachment"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["HealthEventNotFound"];
+            /** @description O evento já tem 10 anexos. O código do erro é `attachment_limit`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteHealthAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do evento de saúde. */
+                eventId: string;
+                /** @description Identificador do anexo. */
+                attachmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O anexo foi apagado. */
             204: {
                 headers: {
                     [name: string]: unknown;

@@ -8,6 +8,16 @@ import (
 	"time"
 )
 
+type HealthAttachment struct {
+	ID          string
+	EventID     string
+	Key         string
+	ContentType string
+	FileName    string
+	SizeBytes   int32
+	CreatedAt   time.Time
+}
+
 type HealthEvent struct {
 	ID                 string
 	PetID              string
