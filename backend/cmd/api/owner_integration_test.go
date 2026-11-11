@@ -96,6 +96,9 @@ func deleteOwners(t *testing.T, pool *pgxpool.Pool, uids []string) {
 			t.Errorf("delete the %s of the test: %v", table, err)
 		}
 	}
+	if _, err := pool.Exec(ctx, "DELETE FROM health_events WHERE pet_id IN ("+ownedPets+")", uids); err != nil {
+		t.Errorf("delete the health events of the test: %v", err)
+	}
 	const ownedReports = "SELECT id FROM reports WHERE pet_id IN (" + ownedPets + ")"
 	if _, err := pool.Exec(ctx, "DELETE FROM sightings WHERE report_id IN ("+ownedReports+")", uids); err != nil {
 		t.Errorf("delete the sightings of the test: %v", err)

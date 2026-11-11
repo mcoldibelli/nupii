@@ -42,6 +42,7 @@ func (e DevicePlatform) Valid() bool {
 
 // Defines values for ErrorCode.
 const (
+	ErrorCodeHealthEventNotFound    ErrorCode = "health_event_not_found"
 	ErrorCodeIdentificationNotFound ErrorCode = "identification_not_found"
 	ErrorCodeImageFraming           ErrorCode = "image_framing"
 	ErrorCodeImageLowQuality        ErrorCode = "image_low_quality"
@@ -64,6 +65,8 @@ const (
 // Valid indicates whether the value is a known member of the ErrorCode enum.
 func (e ErrorCode) Valid() bool {
 	switch e {
+	case ErrorCodeHealthEventNotFound:
+		return true
 	case ErrorCodeIdentificationNotFound:
 		return true
 	case ErrorCodeImageFraming:
@@ -112,6 +115,84 @@ const (
 func (e HealthStatus) Valid() bool {
 	switch e {
 	case HealthStatusOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HealthEventType.
+const (
+	HealthEventTypeConsultation HealthEventType = "consultation"
+	HealthEventTypeExam         HealthEventType = "exam"
+	HealthEventTypeMedication   HealthEventType = "medication"
+	HealthEventTypeNote         HealthEventType = "note"
+	HealthEventTypeVaccine      HealthEventType = "vaccine"
+)
+
+// Valid indicates whether the value is a known member of the HealthEventType enum.
+func (e HealthEventType) Valid() bool {
+	switch e {
+	case HealthEventTypeConsultation:
+		return true
+	case HealthEventTypeExam:
+		return true
+	case HealthEventTypeMedication:
+		return true
+	case HealthEventTypeNote:
+		return true
+	case HealthEventTypeVaccine:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MedicationCategory.
+const (
+	MedicationCategoryDeworm     MedicationCategory = "deworm"
+	MedicationCategoryFlea       MedicationCategory = "flea"
+	MedicationCategoryMedication MedicationCategory = "medication"
+)
+
+// Valid indicates whether the value is a known member of the MedicationCategory enum.
+func (e MedicationCategory) Valid() bool {
+	switch e {
+	case MedicationCategoryDeworm:
+		return true
+	case MedicationCategoryFlea:
+		return true
+	case MedicationCategoryMedication:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NoteCategory.
+const (
+	NoteCategoryAllergy NoteCategory = "allergy"
+	NoteCategoryDisease NoteCategory = "disease"
+	NoteCategoryNote    NoteCategory = "note"
+	NoteCategorySurgery NoteCategory = "surgery"
+	NoteCategorySymptom NoteCategory = "symptom"
+	NoteCategoryWeight  NoteCategory = "weight"
+)
+
+// Valid indicates whether the value is a known member of the NoteCategory enum.
+func (e NoteCategory) Valid() bool {
+	switch e {
+	case NoteCategoryAllergy:
+		return true
+	case NoteCategoryDisease:
+		return true
+	case NoteCategoryNote:
+		return true
+	case NoteCategorySurgery:
+		return true
+	case NoteCategorySymptom:
+		return true
+	case NoteCategoryWeight:
 		return true
 	default:
 		return false
@@ -313,6 +394,170 @@ type Health struct {
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
 
+// HealthEvent defines model for HealthEvent.
+type HealthEvent struct {
+	// ActiveIngredient Medicação.
+	ActiveIngredient *string `json:"activeIngredient,omitempty"`
+
+	// Batch Vacina.
+	Batch *string `json:"batch,omitempty"`
+
+	// Clinic Consulta.
+	Clinic    *string            `json:"clinic,omitempty"`
+	CreatedAt time.Time          `json:"createdAt"`
+	Date      openapi_types.Date `json:"date"`
+
+	// Diagnosis Consulta.
+	Diagnosis *string `json:"diagnosis,omitempty"`
+
+	// Dosage Medicação.
+	Dosage *string `json:"dosage,omitempty"`
+
+	// Dose Vacina.
+	Dose *string `json:"dose,omitempty"`
+
+	// EndDate Medicação. Não é anterior à data do evento.
+	EndDate *openapi_types.Date `json:"endDate,omitempty"`
+
+	// Frequency Medicação.
+	Frequency *string            `json:"frequency,omitempty"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// InUse Medicação.
+	InUse *bool `json:"inUse,omitempty"`
+
+	// IntervalDays Medicação. Intervalo entre as doses, em dias.
+	IntervalDays *int `json:"intervalDays,omitempty"`
+
+	// Lab Exame.
+	Lab *string `json:"lab,omitempty"`
+
+	// Manufacturer Vacina.
+	Manufacturer *string `json:"manufacturer,omitempty"`
+
+	// MedicationCategory Medicação. Obrigatório na medicação.
+	MedicationCategory *MedicationCategory `json:"medicationCategory,omitempty"`
+
+	// Name Nome da vacina, da medicação ou do exame.
+	Name *string `json:"name,omitempty"`
+
+	// NextDoseDate Vacina. Não é anterior à data do evento.
+	NextDoseDate *openapi_types.Date `json:"nextDoseDate,omitempty"`
+
+	// NoteCategory Anotação. Obrigatório na anotação.
+	NoteCategory *NoteCategory      `json:"noteCategory,omitempty"`
+	Notes        *string            `json:"notes,omitempty"`
+	PetId        openapi_types.UUID `json:"petId"`
+
+	// Reason Consulta. Obrigatório na consulta.
+	Reason *string `json:"reason,omitempty"`
+
+	// Remind Vacina e medicação. O evento entra nos próximos cuidados.
+	Remind bool `json:"remind"`
+
+	// Result Exame.
+	Result *string `json:"result,omitempty"`
+
+	// ReturnDate Consulta. Não é anterior à data do evento.
+	ReturnDate *openapi_types.Date `json:"returnDate,omitempty"`
+
+	// Title Anotação. Obrigatório na anotação.
+	Title *string         `json:"title,omitempty"`
+	Type  HealthEventType `json:"type"`
+
+	// Vet Veterinário. Vacina, consulta e exame.
+	Vet *string `json:"vet,omitempty"`
+
+	// WeightKg Consulta e anotação. De 0,01 a 999,99, com até 2 casas decimais.
+	WeightKg *float64 `json:"weightKg,omitempty"`
+}
+
+// HealthEventInput Um evento de saúde. Os campos de cada tipo estão na descrição deles.
+// Um campo de outro tipo é recusado (RN-80).
+type HealthEventInput struct {
+	// ActiveIngredient Medicação.
+	ActiveIngredient *string `json:"activeIngredient,omitempty"`
+
+	// Batch Vacina.
+	Batch *string `json:"batch,omitempty"`
+
+	// Clinic Consulta.
+	Clinic *string `json:"clinic,omitempty"`
+
+	// Date Data do evento. Não é futura.
+	Date openapi_types.Date `json:"date"`
+
+	// Diagnosis Consulta.
+	Diagnosis *string `json:"diagnosis,omitempty"`
+
+	// Dosage Medicação.
+	Dosage *string `json:"dosage,omitempty"`
+
+	// Dose Vacina.
+	Dose *string `json:"dose,omitempty"`
+
+	// EndDate Medicação. Não é anterior à data do evento.
+	EndDate *openapi_types.Date `json:"endDate,omitempty"`
+
+	// Frequency Medicação.
+	Frequency *string `json:"frequency,omitempty"`
+
+	// InUse Medicação.
+	InUse *bool `json:"inUse,omitempty"`
+
+	// IntervalDays Medicação. Intervalo entre as doses, em dias.
+	IntervalDays *int `json:"intervalDays,omitempty"`
+
+	// Lab Exame.
+	Lab *string `json:"lab,omitempty"`
+
+	// Manufacturer Vacina.
+	Manufacturer *string `json:"manufacturer,omitempty"`
+
+	// MedicationCategory Medicação. Obrigatório na medicação.
+	MedicationCategory *MedicationCategory `json:"medicationCategory,omitempty"`
+
+	// Name Nome da vacina, da medicação ou do exame.
+	Name *string `json:"name,omitempty"`
+
+	// NextDoseDate Vacina. Não é anterior à data do evento.
+	NextDoseDate *openapi_types.Date `json:"nextDoseDate,omitempty"`
+
+	// NoteCategory Anotação. Obrigatório na anotação.
+	NoteCategory *NoteCategory `json:"noteCategory,omitempty"`
+	Notes        *string       `json:"notes,omitempty"`
+
+	// Reason Consulta. Obrigatório na consulta.
+	Reason *string `json:"reason,omitempty"`
+
+	// Remind Vacina e medicação. O evento entra nos próximos cuidados.
+	Remind *bool `json:"remind,omitempty"`
+
+	// Result Exame.
+	Result *string `json:"result,omitempty"`
+
+	// ReturnDate Consulta. Não é anterior à data do evento.
+	ReturnDate *openapi_types.Date `json:"returnDate,omitempty"`
+
+	// Title Anotação. Obrigatório na anotação.
+	Title *string         `json:"title,omitempty"`
+	Type  HealthEventType `json:"type"`
+
+	// Vet Veterinário. Vacina, consulta e exame.
+	Vet *string `json:"vet,omitempty"`
+
+	// WeightKg Consulta e anotação. De 0,01 a 999,99, com até 2 casas decimais.
+	WeightKg *float64 `json:"weightKg,omitempty"`
+}
+
+// HealthEventList defines model for HealthEventList.
+type HealthEventList struct {
+	Events []HealthEvent `json:"events"`
+}
+
+// HealthEventType defines model for HealthEventType.
+type HealthEventType string
+
 // Identification Resultado da busca de um focinho no acervo.
 type Identification struct {
 	Candidates []IdentificationCandidate `json:"candidates"`
@@ -356,6 +601,9 @@ type LostReportInput struct {
 	Place *string `json:"place,omitempty"`
 }
 
+// MedicationCategory Medicação. Obrigatório na medicação.
+type MedicationCategory string
+
 // Noseprint Cadastro biométrico de um pet, a foto do focinho com o vetor dela.
 type Noseprint struct {
 	CapturedAt time.Time          `json:"capturedAt"`
@@ -370,6 +618,9 @@ type Noseprint struct {
 	// Quality Nitidez da foto, de 0 a 1.
 	Quality float64 `json:"quality"`
 }
+
+// NoteCategory Anotação. Obrigatório na anotação.
+type NoteCategory string
 
 // Notification defines model for Notification.
 type Notification struct {
@@ -592,8 +843,28 @@ type Species string
 // Uma versão nova dos termos troca o valor desta lista.
 type TermsVersion string
 
+// UpcomingCare defines model for UpcomingCare.
+type UpcomingCare struct {
+	DueDate openapi_types.Date `json:"dueDate"`
+	EventId openapi_types.UUID `json:"eventId"`
+	PetId   openapi_types.UUID `json:"petId"`
+	PetName string             `json:"petName"`
+
+	// Title Nome da vacina ou da medicação.
+	Title string          `json:"title"`
+	Type  HealthEventType `json:"type"`
+}
+
+// UpcomingCareList defines model for UpcomingCareList.
+type UpcomingCareList struct {
+	Items []UpcomingCare `json:"items"`
+}
+
 // PetId defines model for PetId.
 type PetId = openapi_types.UUID
+
+// HealthEventNotFound Formato único de erro. Todo erro da API usa este formato.
+type HealthEventNotFound = Error
 
 // InvalidRequest Formato único de erro. Todo erro da API usa este formato.
 type InvalidRequest = Error
@@ -715,6 +986,12 @@ type CreatePetJSONRequestBody = PetInput
 // UpdatePetJSONRequestBody defines body for UpdatePet for application/json ContentType.
 type UpdatePetJSONRequestBody = PetInput
 
+// CreateHealthEventJSONRequestBody defines body for CreateHealthEvent for application/json ContentType.
+type CreateHealthEventJSONRequestBody = HealthEventInput
+
+// UpdateHealthEventJSONRequestBody defines body for UpdateHealthEvent for application/json ContentType.
+type UpdateHealthEventJSONRequestBody = HealthEventInput
+
 // RegisterNoseprintMultipartRequestBody defines body for RegisterNoseprint for multipart/form-data ContentType.
 type RegisterNoseprintMultipartRequestBody RegisterNoseprintMultipartBody
 
@@ -786,6 +1063,18 @@ type ServerInterface interface {
 	// UpdatePet Troca todos os dados de um pet do tutor.
 	// (PUT /v1/pets/{petId})
 	UpdatePet(w http.ResponseWriter, r *http.Request, petId PetId)
+	// ListHealthEvents Os eventos de saúde de um pet do tutor, do mais novo para o mais antigo.
+	// (GET /v1/pets/{petId}/health-events)
+	ListHealthEvents(w http.ResponseWriter, r *http.Request, petId PetId)
+	// CreateHealthEvent Cria um evento de saúde de um pet do tutor.
+	// (POST /v1/pets/{petId}/health-events)
+	CreateHealthEvent(w http.ResponseWriter, r *http.Request, petId PetId)
+	// DeleteHealthEvent Apaga um evento de saúde e os anexos dele.
+	// (DELETE /v1/pets/{petId}/health-events/{eventId})
+	DeleteHealthEvent(w http.ResponseWriter, r *http.Request, petId PetId, eventId openapi_types.UUID)
+	// UpdateHealthEvent Troca todos os dados de um evento de saúde.
+	// (PUT /v1/pets/{petId}/health-events/{eventId})
+	UpdateHealthEvent(w http.ResponseWriter, r *http.Request, petId PetId, eventId openapi_types.UUID)
 	// GetNoseprint Devolve o cadastro biométrico principal de um pet do tutor.
 	// (GET /v1/pets/{petId}/noseprint)
 	GetNoseprint(w http.ResponseWriter, r *http.Request, petId PetId)
@@ -816,6 +1105,9 @@ type ServerInterface interface {
 	// ReportSighting Registra um avistamento em um desaparecimento aberto.
 	// (POST /v1/reports/{reportId}/sightings)
 	ReportSighting(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID)
+	// ListUpcomingCare Os próximos cuidados de vacina e de medicação dos pets do tutor.
+	// (GET /v1/upcoming-care)
+	ListUpcomingCare(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -1125,6 +1417,128 @@ func (siw *ServerInterfaceWrapper) UpdatePet(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// ListHealthEvents operation middleware
+func (siw *ServerInterfaceWrapper) ListHealthEvents(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListHealthEvents(w, r, petId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateHealthEvent operation middleware
+func (siw *ServerInterfaceWrapper) CreateHealthEvent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateHealthEvent(w, r, petId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteHealthEvent operation middleware
+func (siw *ServerInterfaceWrapper) DeleteHealthEvent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "eventId" -------------
+	var eventId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "eventId", r.PathValue("eventId"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "eventId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteHealthEvent(w, r, petId, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateHealthEvent operation middleware
+func (siw *ServerInterfaceWrapper) UpdateHealthEvent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "eventId" -------------
+	var eventId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "eventId", r.PathValue("eventId"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "eventId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateHealthEvent(w, r, petId, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetNoseprint operation middleware
 func (siw *ServerInterfaceWrapper) GetNoseprint(w http.ResponseWriter, r *http.Request) {
 
@@ -1368,6 +1782,20 @@ func (siw *ServerInterfaceWrapper) ReportSighting(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// ListUpcomingCare operation middleware
+func (siw *ServerInterfaceWrapper) ListUpcomingCare(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListUpcomingCare(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -1515,11 +1943,18 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/me/devices/removal", wrapper.RemoveDevice)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/notifications", wrapper.ListNotifications)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/notifications/{notificationId}/read", wrapper.MarkNotificationRead)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/pets/{petId}/health-events", wrapper.ListHealthEvents)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/pets/{petId}/health-events", wrapper.CreateHealthEvent)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/v1/pets/{petId}/health-events/{eventId}", wrapper.DeleteHealthEvent)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/pets/{petId}/health-events/{eventId}", wrapper.UpdateHealthEvent)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/upcoming-care", wrapper.ListUpcomingCare)
 
 	return m
 }
 
 type ErrorJSONResponse Error
+
+type HealthEventNotFoundJSONResponse Error
 
 type InvalidRequestJSONResponse Error
 
@@ -2776,6 +3211,332 @@ func (response UpdatePetdefaultJSONResponse) VisitUpdatePetResponse(w http.Respo
 	return err
 }
 
+type ListHealthEventsRequestObject struct {
+	PetId PetId `json:"petId"`
+}
+
+type ListHealthEventsResponseObject interface {
+	VisitListHealthEventsResponse(w http.ResponseWriter) error
+}
+
+type ListHealthEvents200JSONResponse HealthEventList
+
+func (response ListHealthEvents200JSONResponse) VisitListHealthEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHealthEvents400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ListHealthEvents400JSONResponse) VisitListHealthEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHealthEvents401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ListHealthEvents401JSONResponse) VisitListHealthEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHealthEvents404JSONResponse struct{ PetNotFoundJSONResponse }
+
+func (response ListHealthEvents404JSONResponse) VisitListHealthEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHealthEventsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListHealthEventsdefaultJSONResponse) VisitListHealthEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthEventRequestObject struct {
+	PetId PetId `json:"petId"`
+	Body  *CreateHealthEventJSONRequestBody
+}
+
+type CreateHealthEventResponseObject interface {
+	VisitCreateHealthEventResponse(w http.ResponseWriter) error
+}
+
+type CreateHealthEvent201JSONResponse HealthEvent
+
+func (response CreateHealthEvent201JSONResponse) VisitCreateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthEvent400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response CreateHealthEvent400JSONResponse) VisitCreateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthEvent401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response CreateHealthEvent401JSONResponse) VisitCreateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthEvent404JSONResponse struct{ PetNotFoundJSONResponse }
+
+func (response CreateHealthEvent404JSONResponse) VisitCreateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthEventdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response CreateHealthEventdefaultJSONResponse) VisitCreateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteHealthEventRequestObject struct {
+	PetId   PetId              `json:"petId"`
+	EventId openapi_types.UUID `json:"eventId"`
+}
+
+type DeleteHealthEventResponseObject interface {
+	VisitDeleteHealthEventResponse(w http.ResponseWriter) error
+}
+
+type DeleteHealthEvent204Response struct {
+}
+
+func (response DeleteHealthEvent204Response) VisitDeleteHealthEventResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteHealthEvent400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response DeleteHealthEvent400JSONResponse) VisitDeleteHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteHealthEvent401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response DeleteHealthEvent401JSONResponse) VisitDeleteHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteHealthEvent404JSONResponse struct {
+	HealthEventNotFoundJSONResponse
+}
+
+func (response DeleteHealthEvent404JSONResponse) VisitDeleteHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteHealthEventdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response DeleteHealthEventdefaultJSONResponse) VisitDeleteHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateHealthEventRequestObject struct {
+	PetId   PetId              `json:"petId"`
+	EventId openapi_types.UUID `json:"eventId"`
+	Body    *UpdateHealthEventJSONRequestBody
+}
+
+type UpdateHealthEventResponseObject interface {
+	VisitUpdateHealthEventResponse(w http.ResponseWriter) error
+}
+
+type UpdateHealthEvent200JSONResponse HealthEvent
+
+func (response UpdateHealthEvent200JSONResponse) VisitUpdateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateHealthEvent400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response UpdateHealthEvent400JSONResponse) VisitUpdateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateHealthEvent401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response UpdateHealthEvent401JSONResponse) VisitUpdateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateHealthEvent404JSONResponse struct {
+	HealthEventNotFoundJSONResponse
+}
+
+func (response UpdateHealthEvent404JSONResponse) VisitUpdateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateHealthEventdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response UpdateHealthEventdefaultJSONResponse) VisitUpdateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetNoseprintRequestObject struct {
 	PetId PetId `json:"petId"`
 }
@@ -3576,6 +4337,72 @@ func (response ReportSightingdefaultJSONResponse) VisitReportSightingResponse(w 
 	return err
 }
 
+type ListUpcomingCareRequestObject struct {
+}
+
+type ListUpcomingCareResponseObject interface {
+	VisitListUpcomingCareResponse(w http.ResponseWriter) error
+}
+
+type ListUpcomingCare200JSONResponse UpcomingCareList
+
+func (response ListUpcomingCare200JSONResponse) VisitListUpcomingCareResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUpcomingCare401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ListUpcomingCare401JSONResponse) VisitListUpcomingCareResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUpcomingCare404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response ListUpcomingCare404JSONResponse) VisitListUpcomingCareResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUpcomingCaredefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListUpcomingCaredefaultJSONResponse) VisitListUpcomingCareResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// ListFoundNotices Lista os avisos de quem encontrou um pet do tutor.
@@ -3629,6 +4456,18 @@ type StrictServerInterface interface {
 	// UpdatePet Troca todos os dados de um pet do tutor.
 	// (PUT /v1/pets/{petId})
 	UpdatePet(ctx context.Context, request UpdatePetRequestObject) (UpdatePetResponseObject, error)
+	// ListHealthEvents Os eventos de saúde de um pet do tutor, do mais novo para o mais antigo.
+	// (GET /v1/pets/{petId}/health-events)
+	ListHealthEvents(ctx context.Context, request ListHealthEventsRequestObject) (ListHealthEventsResponseObject, error)
+	// CreateHealthEvent Cria um evento de saúde de um pet do tutor.
+	// (POST /v1/pets/{petId}/health-events)
+	CreateHealthEvent(ctx context.Context, request CreateHealthEventRequestObject) (CreateHealthEventResponseObject, error)
+	// DeleteHealthEvent Apaga um evento de saúde e os anexos dele.
+	// (DELETE /v1/pets/{petId}/health-events/{eventId})
+	DeleteHealthEvent(ctx context.Context, request DeleteHealthEventRequestObject) (DeleteHealthEventResponseObject, error)
+	// UpdateHealthEvent Troca todos os dados de um evento de saúde.
+	// (PUT /v1/pets/{petId}/health-events/{eventId})
+	UpdateHealthEvent(ctx context.Context, request UpdateHealthEventRequestObject) (UpdateHealthEventResponseObject, error)
 	// GetNoseprint Devolve o cadastro biométrico principal de um pet do tutor.
 	// (GET /v1/pets/{petId}/noseprint)
 	GetNoseprint(ctx context.Context, request GetNoseprintRequestObject) (GetNoseprintResponseObject, error)
@@ -3659,6 +4498,9 @@ type StrictServerInterface interface {
 	// ReportSighting Registra um avistamento em um desaparecimento aberto.
 	// (POST /v1/reports/{reportId}/sightings)
 	ReportSighting(ctx context.Context, request ReportSightingRequestObject) (ReportSightingResponseObject, error)
+	// ListUpcomingCare Os próximos cuidados de vacina e de medicação dos pets do tutor.
+	// (GET /v1/upcoming-care)
+	ListUpcomingCare(ctx context.Context, request ListUpcomingCareRequestObject) (ListUpcomingCareResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -4174,6 +5016,126 @@ func (sh *strictHandler) UpdatePet(w http.ResponseWriter, r *http.Request, petId
 	}
 }
 
+// ListHealthEvents operation middleware
+func (sh *strictHandler) ListHealthEvents(w http.ResponseWriter, r *http.Request, petId PetId) {
+	var request ListHealthEventsRequestObject
+
+	request.PetId = petId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListHealthEvents(ctx, request.(ListHealthEventsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListHealthEvents")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListHealthEventsResponseObject); ok {
+		if err := validResponse.VisitListHealthEventsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateHealthEvent operation middleware
+func (sh *strictHandler) CreateHealthEvent(w http.ResponseWriter, r *http.Request, petId PetId) {
+	var request CreateHealthEventRequestObject
+
+	request.PetId = petId
+
+	var body CreateHealthEventJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateHealthEvent(ctx, request.(CreateHealthEventRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateHealthEvent")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateHealthEventResponseObject); ok {
+		if err := validResponse.VisitCreateHealthEventResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteHealthEvent operation middleware
+func (sh *strictHandler) DeleteHealthEvent(w http.ResponseWriter, r *http.Request, petId PetId, eventId openapi_types.UUID) {
+	var request DeleteHealthEventRequestObject
+
+	request.PetId = petId
+	request.EventId = eventId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteHealthEvent(ctx, request.(DeleteHealthEventRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteHealthEvent")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteHealthEventResponseObject); ok {
+		if err := validResponse.VisitDeleteHealthEventResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateHealthEvent operation middleware
+func (sh *strictHandler) UpdateHealthEvent(w http.ResponseWriter, r *http.Request, petId PetId, eventId openapi_types.UUID) {
+	var request UpdateHealthEventRequestObject
+
+	request.PetId = petId
+	request.EventId = eventId
+
+	var body UpdateHealthEventJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateHealthEvent(ctx, request.(UpdateHealthEventRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateHealthEvent")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateHealthEventResponseObject); ok {
+		if err := validResponse.VisitUpdateHealthEventResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetNoseprint operation middleware
 func (sh *strictHandler) GetNoseprint(w http.ResponseWriter, r *http.Request, petId PetId) {
 	var request GetNoseprintRequestObject
@@ -4465,6 +5427,30 @@ func (sh *strictHandler) ReportSighting(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ReportSightingResponseObject); ok {
 		if err := validResponse.VisitReportSightingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListUpcomingCare operation middleware
+func (sh *strictHandler) ListUpcomingCare(w http.ResponseWriter, r *http.Request) {
+	var request ListUpcomingCareRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListUpcomingCare(ctx, request.(ListUpcomingCareRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListUpcomingCare")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListUpcomingCareResponseObject); ok {
+		if err := validResponse.VisitListUpcomingCareResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

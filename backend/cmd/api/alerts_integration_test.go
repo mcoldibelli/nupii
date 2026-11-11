@@ -54,6 +54,9 @@ func (a testAPI) setLocation(token, body string) int {
 // notification comes at the next start (RNF-01).
 func TestNearbyAlert(t *testing.T) {
 	testAPI := petsAPI(t)
+	// Other tests leave lost reports with pending jobs near the same point.
+	// They run before Bia has a location, so they do not notify her.
+	testAPI.runJobs()
 	// Bia is about 1.100 m north of the point of the lost report. Ana is
 	// the author and is at the point.
 	if status := testAPI.setLocation("token-bia", `{"latitude": -23.5405, "longitude": -46.6333}`); status != http.StatusNoContent {
@@ -122,6 +125,9 @@ func TestNearbyAlert(t *testing.T) {
 
 func TestNearbyAlertDistance(t *testing.T) {
 	testAPI := petsAPI(t)
+	// Other tests leave lost reports with pending jobs near the same point.
+	// They run before Bia has a location, so they do not notify her.
+	testAPI.runJobs()
 	// Bia is about 3.330 m away: out of the radius of RN-32.
 	if status := testAPI.setLocation("token-bia", `{"latitude": -23.5205, "longitude": -46.6333}`); status != http.StatusNoContent {
 		t.Fatalf("PUT location: status = %d", status)
@@ -229,6 +235,9 @@ func TestNotificationListHasThe50Newest(t *testing.T) {
 // latitude is about 2.991 m, and 0,0271 is about 3.013 m.
 func TestNearbyAlertAtTheEdgeOf3000Meters(t *testing.T) {
 	testAPI := petsAPI(t)
+	// Other tests leave lost reports with pending jobs near the same point.
+	// They run before Bia has a location, so they do not notify her.
+	testAPI.runJobs()
 	if status := testAPI.setLocation("token-bia", `{"latitude": -23.5236, "longitude": -46.6333}`); status != http.StatusNoContent {
 		t.Fatalf("PUT location of Bia: status = %d", status)
 	}
