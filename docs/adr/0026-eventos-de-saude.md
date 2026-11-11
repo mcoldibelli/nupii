@@ -33,3 +33,16 @@ Um anexo de exame é muitas vezes um PDF. O seletor de imagem do app ([ADR 0016]
 - O `expo-document-picker` no Expo Go com o Expo SDK 58. A verificação é feita na tarefa do app.
 
 Referências: [Expo DocumentPicker](https://docs.expo.dev/versions/latest/sdk/document-picker/), [PostgreSQL, restrições CHECK](https://www.postgresql.org/docs/current/ddl-constraints.html).
+
+## Verificação posterior
+
+2026-11-11, na tarefa do app, no emulador Android com o Expo Go:
+
+| Teste | Resultado |
+|---|---|
+| Seletor com a cópia para o cache (`copyToCacheDirectory: true`) | O arquivo não é lido: o `expo-file-system` do Expo Go recusa a cópia, que fica fora da pasta do app ("FileSystemFile.bytes has been rejected") |
+| Seletor sem a cópia (`copyToCacheDirectory: false`) | O endereço `content://` do Android é lido, e a API recebe o PDF |
+| Nome do arquivo | O `fetch` do Expo envia o nome do objeto do arquivo, e não o nome dado ao `FormData`. O app envia o nome no campo `fileName` |
+| Criar, editar e apagar os cinco tipos de evento | Os cinco tipos passam |
+
+Continua sem verificação: o seletor no iOS e em um aparelho real.

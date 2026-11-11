@@ -978,6 +978,9 @@ type RemoveDeviceJSONBody struct {
 type CreateHealthAttachmentMultipartBody struct {
 	// File Imagem JPEG, PNG ou WebP, ou PDF, com no máximo 10 MB.
 	File openapi_types.File `json:"file"`
+
+	// FileName Nome do arquivo. Sem este campo, vale o nome da parte "file".
+	FileName *string `json:"fileName,omitempty"`
 }
 
 // RegisterNoseprintMultipartBody defines parameters for RegisterNoseprint.

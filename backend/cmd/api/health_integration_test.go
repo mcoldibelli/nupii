@@ -3,7 +3,10 @@
 package main
 
 import (
+	"bytes"
+	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -237,5 +240,39 @@ func TestHealthAttachmentOf10MB(t *testing.T) {
 	}
 	if rec := testAPI.upload(http.MethodPost, "token-ana", path, append(file, 0)); rec.Code != http.StatusBadRequest {
 		t.Errorf("file of 10 MB and 1 byte: status = %d, want 400", rec.Code)
+	}
+}
+
+// The name of an attachment comes from the field fileName, without the
+// directories. The app sends it in this field (the fetch of Expo does not
+// send the name of the part).
+func TestHealthAttachmentName(t *testing.T) {
+	testAPI := petsAPI(t)
+	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
+	event := testAPI.createEvent("token-ana", pet, `{"type": "exam", "date": "`+dateText(0)+`", "name": "Hemograma"}`)
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	part, err := writer.CreateFormFile("file", "document%3A22")
+	if err != nil {
+		t.Fatalf("create the part: %v", err)
+	}
+	if _, err := part.Write([]byte("%PDF-1.7\nresultado")); err != nil {
+		t.Fatalf("write the part: %v", err)
+	}
+	if err := writer.WriteField("fileName", "C:/exames/hemograma.pdf"); err != nil {
+		t.Fatalf("write the field: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close the body: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/v1/pets/"+pet.Id.String()+"/health-events/"+event.Id.String()+"/attachments", &body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer token-ana")
+	rec := httptest.NewRecorder()
+	testAPI.handler.ServeHTTP(rec, req)
+	validateResponse(t, req, rec.Code, rec.Header(), rec.Body.Bytes())
+
+	if rec.Code != http.StatusCreated || decode[api.HealthAttachment](t, rec).FileName != "hemograma.pdf" {
+		t.Errorf("status = %d, body %s, want 201 with the name hemograma.pdf", rec.Code, rec.Body)
 	}
 }

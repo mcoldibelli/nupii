@@ -110,6 +110,14 @@ export default function EditPet() {
           <Text style={styles.linkText}>Focinho do pet</Text>
         </Pressable>
       )}
+      <Pressable
+        testID="health-link"
+        accessibilityRole="button"
+        style={styles.link}
+        onPress={() => router.push({ pathname: "/health/[petId]", params: { petId: id, petName: pet.name } })}
+      >
+        <Text style={styles.linkText}>Saúde do pet</Text>
+      </Pressable>
       <LostReportActions petId={id} petName={pet.name} />
       <PetFormView initial={formFromPet(pet)} photoUrl={pet.photoUrl} onSubmit={save} onDelete={confirmDelete} />
     </>

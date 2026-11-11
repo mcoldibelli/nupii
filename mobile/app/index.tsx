@@ -4,6 +4,8 @@ import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native
 
 import { failureMessage, SESSION_FAILURE } from "../src/api/http";
 import { setMyLocation } from "../src/api/alerts";
+import { listUpcomingCare, type UpcomingCare } from "../src/api/health";
+import { careText } from "../src/health/care";
 import { listPets, type Pet } from "../src/api/pets";
 import { devicePosition, locationAllowed } from "../src/alerts/deviceLocation";
 import { sendLocation } from "../src/alerts/location";
@@ -17,6 +19,7 @@ export default function PetList() {
   const { state, idToken, signOut } = useSession();
   const [pets, setPets] = useState<Pet[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [care, setCare] = useState<UpcomingCare[]>([]);
 
   const load = useCallback(async () => {
     const token = await idToken();
@@ -24,7 +27,11 @@ export default function PetList() {
       setError(SESSION_FAILURE);
       return;
     }
-    const result = await listPets(apiUrl, token);
+    const [result, upcoming] = await Promise.all([listPets(apiUrl, token), listUpcomingCare(apiUrl, token)]);
+    // RF-29: the next care of the pets, on the first screen.
+    if (upcoming.ok) {
+      setCare(upcoming.value.slice(0, 3));
+    }
     if (result.ok) {
       setPets(result.value);
       setError(null);
@@ -68,6 +75,16 @@ export default function PetList() {
         <Text testID="home-greeting" style={local.greeting}>
           Olá, {state.owner.name}
         </Text>
+      )}
+      {care.length > 0 && (
+        <View testID="upcoming-care" style={local.care}>
+          <Text style={local.careTitle}>Próximos cuidados</Text>
+          {care.map((item) => (
+            <Text key={item.eventId} style={local.careLine}>
+              {careText(item)}
+            </Text>
+          ))}
+        </View>
       )}
       {error !== null && (
         <Text testID="pet-list-error" accessibilityRole="alert" style={styles.error}>
@@ -130,6 +147,9 @@ const local = StyleSheet.create({
   row: { alignItems: "center", borderBottomColor: "#eee", borderBottomWidth: 1, flexDirection: "row", gap: 16, paddingVertical: 12 },
   photo: { borderRadius: 28, height: 56, width: 56 },
   photoEmpty: { backgroundColor: "#ddd" },
+  care: { backgroundColor: "#f2f6fd", borderRadius: 8, marginBottom: 12, padding: 12 },
+  careTitle: { fontSize: 15, fontWeight: "600", marginBottom: 4 },
+  careLine: { fontSize: 14 },
   name: { fontSize: 18, fontWeight: "600" },
   species: { color: "#555", fontSize: 14 },
 });

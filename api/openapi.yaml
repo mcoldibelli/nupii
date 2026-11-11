@@ -986,6 +986,9 @@ paths:
                   type: string
                   format: binary
                   description: Imagem JPEG, PNG ou WebP, ou PDF, com no máximo 10 MB.
+                fileName:
+                  type: string
+                  description: Nome do arquivo. Sem este campo, vale o nome da parte "file".
       responses:
         "201":
           description: O anexo criado.
