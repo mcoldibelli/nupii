@@ -5,5 +5,7 @@
 set -eu
 cd "$(dirname "$0")"
 
-gh release download model-tinyvit21m-s43 --repo mcoldibelli/nupii --dir models --clobber
+# The tag of the release has the model version, which is in app/weights.py.
+version=$(python3 -c "from app import weights; print(weights.MODEL_VERSION)")
+gh release download "model-$version" --dir models --clobber
 python3 -m app.weights models

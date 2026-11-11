@@ -150,7 +150,7 @@ Concorrência, declarada por regra:
 
 ## Serviço de inferência
 
-Só a API chama o serviço de inferência. Ele não tem autenticação e não fica exposto fora da rede interna.
+Só a API chama o serviço de inferência. Ele não tem autenticação. Na publicação, ele não fica exposto fora da rede interna. No ambiente local, a porta 8000 fica aberta só para a própria máquina.
 
 | Caminho | Entrada | Resposta |
 |---|---|---|
@@ -162,12 +162,19 @@ Erros de `POST /v1/nose/embedding`, no mesmo formato da API (`error` e `message`
 
 | Estado | `error` | Quando | Regra |
 |---|---|---|---|
-| 400 | `image_invalid` | O conteúdo não é uma imagem, ou a imagem tem pixels demais | RN-17, RN-57 |
 | 413 | `image_too_large` | O corpo passa de 8 MB | RN-17 |
+| 400 | `image_invalid` | O conteúdo não é uma imagem que o serviço consegue ler, ou a imagem tem pixels demais | RN-17, RN-57 |
 | 422 | `image_low_quality` | A nitidez está abaixo do mínimo | RN-20 |
 | 422 | `image_framing` | O detector não achou um focinho | RN-21 |
 
-A ordem das conferências é a ordem da tabela. O serviço só responde depois de carregar os pesos e conferir o SHA-256 deles (RN-22). Antes disso, a porta não aceita conexão.
+A ordem das conferências é a ordem da tabela. Os outros erros usam o mesmo formato: 404 `not_found` para um caminho que não existe, 405 `method_not_allowed` para um método errado e 500 `internal_error` para uma falha do serviço.
+
+O serviço só responde depois de carregar os pesos e conferir o SHA-256 deles (RN-22). Antes disso, a porta não aceita conexão.
+
+Limites conhecidos:
+
+- Uma thread executa as inferências, uma por vez (RN-23). As requisições em espera ficam na memória, cada uma com até 8 MB. O serviço não limita essa fila: quem limita as chamadas é a API (RN-43).
+- Uma imagem de 50 milhões de pixels (RN-57) ocupa cerca de 150 MB na memória enquanto é lida, e as cópias da rotação e da conversão de cor somam a isso. Só uma imagem é lida por vez.
 
 Os arquivos de pesos ficam em uma release do repositório, com a tag `model-<versão do modelo>`. O script `inference/download_weights.sh` baixa os arquivos e confere o SHA-256.
 
