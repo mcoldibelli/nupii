@@ -138,12 +138,13 @@ func (r *Runner) Work(ctx context.Context) (worked bool, err error) {
 			return true, fmt.Errorf("finish the %s job %s: %w", kind, id, err)
 		}
 	} else {
-		r.logger.WarnContext(ctx, "job failed", slog.String("job_id", id),
-			slog.String("kind", kind), slog.Int("attempt", attempts), slog.Any("error", jobErr))
-		state := "pending"
+		state, level := "pending", slog.LevelWarn
 		if attempts >= _maxAttempts {
-			state = "failed"
+			// The job does not run again: this needs a person.
+			state, level = "failed", slog.LevelError
 		}
+		r.logger.Log(ctx, level, "job failed", slog.String("job_id", id), slog.String("kind", kind),
+			slog.Int("attempt", attempts), slog.String("state", state), slog.Any("error", jobErr))
 		// RNF-02: 10 s, 20 s, 40 s e 80 s.
 		delay := _firstRetryDelay << (attempts - 1)
 		const retry = `UPDATE jobs SET status = $2, attempts = $3, last_error = $4,
@@ -164,7 +165,13 @@ func (r *Runner) runHandler(
 	tx pgx.Tx,
 	kind string,
 	payload json.RawMessage,
-) error {
+) (err error) {
+	// A panic of a handler is a failure of the job, and not of the API.
+	defer func() {
+		if value := recover(); value != nil {
+			err = fmt.Errorf("the %s job panicked: %v", kind, value)
+		}
+	}()
 	savepoint, err := tx.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin the savepoint of the job: %w", err)

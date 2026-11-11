@@ -78,8 +78,8 @@ func (j pushJob) run(ctx context.Context, tx pgx.Tx, payload json.RawMessage) er
 		}
 		return nil
 	}
-	// RN-36: o push só é enviado com a credencial configurada. RN-35: the
-	// notification stays in the list in all cases.
+	// RN-36: o push só é enviado com a credencial configurada. RN-35: a
+	// notificação existe na lista mesmo quando o push não sai.
 	if j.pusher == nil || len(tokens) == 0 {
 		return status(_pushNotSent)
 	}

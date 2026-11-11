@@ -187,3 +187,75 @@ func TestLocationRefusals(t *testing.T) {
 		t.Errorf("account with no owner: status = %d, want 404", status)
 	}
 }
+
+// RN-30: o sistema guarda só a última localização do tutor.
+func TestOnlyTheLastLocationStays(t *testing.T) {
+	testAPI := petsAPI(t)
+	for _, body := range []string{`{"latitude": -10, "longitude": -10}`, `{"latitude": -23.5405, "longitude": -46.6333}`} {
+		if status := testAPI.setLocation("token-bia", body); status != http.StatusNoContent {
+			t.Fatalf("PUT location: status = %d", status)
+		}
+	}
+	var count int
+	var latitude float64
+	const query = "SELECT count(*), max(ST_Y(location::geometry)) FROM owner_locations WHERE owner_id = $1"
+	if err := testAPI.pool.QueryRow(t.Context(), query, testAPI.ownerID("token-bia")).Scan(&count, &latitude); err != nil {
+		t.Fatalf("read the locations: %v", err)
+	}
+	if count != 1 || latitude != -23.5405 {
+		t.Errorf("%d locations, latitude %v, want 1 with the last latitude -23.5405", count, latitude)
+	}
+}
+
+// RN-35: a lista mostra as 50 notificações mais recentes.
+func TestNotificationListHasThe50Newest(t *testing.T) {
+	testAPI := petsAPI(t)
+	const insert = `INSERT INTO notifications (owner_id, kind, source_id, title, body, created_at)
+		SELECT o.id, 'sighting', uuidv7(), 'n' || i, 'b', now() - make_interval(mins => i)
+		FROM owners AS o, generate_series(1, 51) AS i WHERE o.id = $1`
+	if _, err := testAPI.pool.Exec(t.Context(), insert, testAPI.ownerID("token-ana")); err != nil {
+		t.Fatalf("create 51 notifications: %v", err)
+	}
+
+	got := testAPI.notifications("token-ana")
+
+	if len(got) != 50 || got[0].Title != "n1" || got[49].Title != "n50" {
+		t.Errorf("%d notifications, from %q to %q, want the 50 newest: n1 to n50",
+			len(got), got[0].Title, got[len(got)-1].Title)
+	}
+}
+
+// RN-32: o alerta vai para os tutores a até 3.000 m. 0,0269 degree of
+// latitude is about 2.991 m, and 0,0271 is about 3.013 m.
+func TestNearbyAlertAtTheEdgeOf3000Meters(t *testing.T) {
+	testAPI := petsAPI(t)
+	if status := testAPI.setLocation("token-bia", `{"latitude": -23.5236, "longitude": -46.6333}`); status != http.StatusNoContent {
+		t.Fatalf("PUT location of Bia: status = %d", status)
+	}
+	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
+	testAPI.reportLost("token-ana", pet, `"latitude": -23.5505, "longitude": -46.6333`)
+	testAPI.runJobs()
+	if got := testAPI.notifications("token-bia"); len(got) != 1 || *got[0].DistanceMeters > 3000 {
+		t.Fatalf("Bia at about 2.991 m: %+v, want 1 notification", got)
+	}
+
+	if status := testAPI.setLocation("token-bia", `{"latitude": -23.5234, "longitude": -46.6333}`); status != http.StatusNoContent {
+		t.Fatalf("PUT location of Bia: status = %d", status)
+	}
+	other := testAPI.createPet("token-ana", `{"name": "Mel", "species": "dog"}`)
+	testAPI.reportLost("token-ana", other, `"latitude": -23.5505, "longitude": -46.6333`)
+	testAPI.runJobs()
+	if got := testAPI.notifications("token-bia"); len(got) != 1 {
+		t.Errorf("Bia at about 3.013 m has %d notifications, want still 1", len(got))
+	}
+}
+
+// ownerID returns the identifier of the owner of the account of token.
+func (a testAPI) ownerID(token string) string {
+	a.t.Helper()
+	rec := a.call(http.MethodGet, "/v1/me", token, "")
+	if rec.Code != http.StatusOK {
+		a.t.Fatalf("GET /v1/me: status = %d", rec.Code)
+	}
+	return decode[api.Owner](a.t, rec).Id
+}

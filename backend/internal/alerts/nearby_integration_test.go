@@ -57,7 +57,7 @@ func TestNearbyOwnersAreAtMost100AndTheNearest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListNearbyOwners: %v", err)
 	}
-	// RN-34: sem o autor, the nearest one. RN-33: 100 of the 104 others.
+	// RN-34: o autor, o mais próximo, fica de fora. RN-33: 100 dos 104 outros.
 	if len(owners) != 100 {
 		t.Fatalf("%d owners, want 100", len(owners))
 	}

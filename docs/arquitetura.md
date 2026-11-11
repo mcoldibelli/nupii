@@ -111,7 +111,7 @@ Uma tabela `jobs` no Postgres. Workers no mesmo binário leem com `SELECT ... FO
 | `notify_sighting` | `reports`, na mesma transação do avistamento | RN-73 |
 | `notify_found` | `biometrics`, na mesma transação da confirmação | RN-16, RN-73 |
 | `send_push` | `alerts`, na mesma transação da notificação | RF-26 |
-| `reembed_noseprint` | `biometrics`, quando a versão do modelo muda. Até a fila de tarefas existir (fatia 6), o recálculo é executado na subida da API, em uma goroutine (RN-67) | RF-15 |
+| (recálculo dos vetores) | Não é uma tarefa da fila: o recálculo é executado na subida da API, em uma goroutine (RN-67). Ele refaz tudo o que falta a cada subida, então não precisa de uma tarefa por cadastro | RF-15 |
 | `purge_expired_data` | agenda diária | RF-32, RN-42 |
 | `delete_identity_user` | `identity`, na mesma transação da anonimização | RF-08, RN-03 |
 
@@ -123,6 +123,14 @@ Concorrência, declarada por regra:
 - O código da fila fica em `platform/jobs`. Um runner pega uma tarefa vencida com `FOR UPDATE SKIP LOCKED`, só dos tipos que ele conhece, e espera 1 segundo quando nenhuma tarefa vence. Uma tarefa tem 1 minuto.
 - O worker executa a tarefa na mesma transação que trava a linha dela. As escritas da tarefa no banco e o fim da tarefa entram juntos, ou não entram.
 - Cada notificação grava, na mesma transação, a tarefa `send_push`. A tarefa envia só uma notificação com o push pendente. Sem a credencial do Firebase, ela marca o push como não enviado (RN-36).
+- Um panic em uma tarefa é uma falha da tarefa, e não derruba a API. A tarefa que chega ao limite de tentativas escreve uma linha de erro no log.
+
+Limites conhecidos da fila:
+
+- A tarefa `send_push` envia antes de gravar o fim da tarefa. Se a gravação falha depois do envio, o push sai duas vezes. O push é uma mensagem, e uma mensagem repetida não muda dado nenhum.
+- Uma tarefa `send_push` que chega ao limite de tentativas deixa a notificação com o push pendente. A tabela `jobs` tem a falha.
+- O alerta de proximidade sai também quando o desaparecimento é resolvido, ou o pet é excluído, antes de a tarefa rodar. A ficha mostra a ocorrência resolvida, ou responde 404.
+- Na parada, a API espera a tarefa em curso terminar: até 1 minuto, além do tempo de parada do servidor HTTP.
 - A tarefa leva os dados de que precisa. O módulo que executa a tarefa não lê as tabelas do módulo que a criou.
 - Toda tarefa precisa ser segura para executar duas vezes.
 - O recálculo dos vetores (RN-67) é uma goroutine que nasce em `main` depois de o servidor HTTP subir. Ela termina quando o recálculo termina ou quando o contexto é cancelado, e `main` espera por ela antes de sair. Se o serviço de inferência não responde, ela escreve um aviso no log e para: os cadastros que faltam ficam para a subida seguinte.

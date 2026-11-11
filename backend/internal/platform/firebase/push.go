@@ -18,7 +18,7 @@ type PushResult struct {
 	// Sent is the number of devices that got the message.
 	Sent int
 	// InvalidTokens are the tokens that Cloud Messaging refused for good:
-	// the app was removed, or the token is not valid.
+	// the app was removed from the device.
 	InvalidTokens []string
 }
 
@@ -54,8 +54,9 @@ func (p *Pusher) Send(
 	}
 	result := PushResult{Sent: response.SuccessCount}
 	for i, answer := range response.Responses {
-		if answer.Error != nil && (messaging.IsUnregistered(answer.Error) ||
-			messaging.IsInvalidArgument(answer.Error)) {
+		// Only this error is about the token. An invalid argument can be an
+		// error of the message, the same for all the tokens.
+		if answer.Error != nil && messaging.IsUnregistered(answer.Error) {
 			result.InvalidTokens = append(result.InvalidTokens, tokens[i])
 		}
 	}

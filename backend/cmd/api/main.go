@@ -151,7 +151,8 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	backgroundCtx, cancelBackground := context.WithCancel(ctx)
 	var background sync.WaitGroup
 	background.Go(func() { reembedNoseprints(backgroundCtx, logger, operations.noseprints) })
-	// RNF-01: the jobs that wait in the database run from the start of the
+	// RNF-01: um alerta de desaparecimento não se perde quando o processo
+	// para. The jobs that wait in the database run from the start of the
 	// API. Run ends the job in progress and returns when the context ends.
 	runner := jobs.NewRunner(pool, logger, alerts.JobHandlers(pusher))
 	background.Go(func() { runner.Run(backgroundCtx) })

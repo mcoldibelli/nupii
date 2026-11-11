@@ -420,24 +420,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/me/devices/{token}": {
+    "/v1/me/devices/removal": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description O token de push do dispositivo. */
-                token: string;
-            };
+            path?: never;
             cookie?: never;
         };
         get?: never;
         put?: never;
-        post?: never;
         /**
          * Remove um dispositivo do tutor.
          * @description Um token de outro tutor fica como está, com a mesma resposta (RN-31).
+         *     O token vai no corpo, e não no caminho, para não entrar no log das requisições.
          */
-        delete: operations["removeDevice"];
+        post: operations["removeDevice"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1656,13 +1654,16 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description O token de push do dispositivo. */
-                token: string;
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                };
+            };
+        };
         responses: {
             /** @description O dispositivo não recebe mais push deste tutor. */
             204: {
