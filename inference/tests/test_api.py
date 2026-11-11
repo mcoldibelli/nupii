@@ -1,6 +1,9 @@
 import asyncio
+import json
+import logging
 import threading
 import time
+from collections.abc import Iterator
 from pathlib import Path
 
 import httpx
@@ -14,7 +17,7 @@ from .conftest import MODELS_DIR, SYNTHETIC
 
 
 @pytest.fixture(scope="module")
-def client(extractor: nose.Extractor):
+def client(extractor: nose.Extractor) -> Iterator[TestClient]:
     with TestClient(main.create_app(lambda: extractor)) as client:
         yield client
 
@@ -103,6 +106,82 @@ def test_rn22_the_service_does_not_start_with_a_wrong_weight_file(
         pass
 
 
+class FixedExtractor:
+    """Gives a fixed quality, or raises a fixed error."""
+
+    def __init__(self, quality: float = 1.0, error: Exception | None = None) -> None:
+        self._quality = quality
+        self._error = error
+
+    def extract(self, data: bytes) -> tuple[np.ndarray, float]:
+        if self._error is not None:
+            raise self._error
+        return np.zeros(512, dtype=np.float32), self._quality
+
+
+def test_rn18_the_quality_has_4_decimal_places() -> None:
+    with TestClient(main.create_app(lambda: FixedExtractor(quality=0.123456789))) as client:
+        assert post(client, b"photo").json()["quality"] == 0.1235
+
+
+def test_a_failure_of_the_service_gives_500_and_a_log_line_with_the_request_id(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    broken = FixedExtractor(error=RuntimeError("the network failed"))
+    with (
+        caplog.at_level(logging.INFO, logger="inference"),
+        TestClient(main.create_app(lambda: broken)) as client,
+    ):
+        response = client.post(
+            "/v1/nose/embedding", content=b"photo", headers={"X-Request-Id": "request-500"}
+        )
+
+    assert response.status_code == 500 and response.json()["error"] == "internal_error"
+    assert response.headers["X-Request-Id"] == "request-500"
+    # RNF-07: the line of the request has the identifier and the status.
+    line = json.loads(caplog.records[-1].getMessage())
+    assert line["request_id"] == "request-500" and line["status"] == 500
+
+
+def test_the_log_line_of_a_refusal_has_the_cause(caplog: pytest.LogCaptureFixture) -> None:
+    refused = FixedExtractor(error=nose.LowQualityError("quality 0.1234"))
+    with (
+        caplog.at_level(logging.INFO, logger="inference"),
+        TestClient(main.create_app(lambda: refused)) as client,
+    ):
+        assert post(client, b"photo").status_code == 422
+
+    line = json.loads(caplog.records[-1].getMessage())
+    assert line["status"] == 422 and line["detail"] == "quality 0.1234"
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "status", "error"),
+    [
+        ("GET", "/v1/unknown", 404, "not_found"),
+        ("GET", "/v1/nose/embedding", 405, "method_not_allowed"),
+        # ADR 0007: the service has three paths, and no documentation pages.
+        ("GET", "/docs", 404, "not_found"),
+        ("GET", "/redoc", 404, "not_found"),
+        ("GET", "/openapi.json", 404, "not_found"),
+    ],
+)
+def test_every_error_has_the_format_of_the_contract(
+    client: TestClient, method: str, path: str, status: int, error: str
+) -> None:
+    response = client.request(method, path)
+
+    assert response.status_code == status
+    assert response.json()["error"] == error and response.json()["message"]
+
+
+def test_the_number_of_threads_must_be_a_whole_number(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("INFERENCE_THREADS", "two")
+
+    with pytest.raises(ValueError, match="INFERENCE_THREADS"), TestClient(main.create_app()):
+        pass
+
+
 class SlowExtractor:
     """Counts the calls of extract that run at the same time."""
 
@@ -135,4 +214,23 @@ def test_rn23_runs_one_inference_at_a_time() -> None:
     responses = asyncio.run(four_requests())
 
     assert [r.status_code for r in responses] == [200] * 4
+    assert slow.most_at_the_same_time == 1
+
+
+def test_rn23_a_cancelled_request_does_not_let_two_inferences_run() -> None:
+    slow = SlowExtractor()
+    app = main.create_app(lambda: slow)
+    app.state.extractor = slow
+
+    async def cancel_the_first_request() -> None:
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            first = asyncio.create_task(client.post("/v1/nose/embedding", content=b"photo"))
+            await asyncio.sleep(0.02)  # The first inference is running.
+            first.cancel()
+            second = await client.post("/v1/nose/embedding", content=b"photo")
+            assert second.status_code == 200
+
+    asyncio.run(cancel_the_first_request())
+
     assert slow.most_at_the_same_time == 1

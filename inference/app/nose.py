@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageOps
 
 from app import weights
 
@@ -48,10 +48,14 @@ def open_image(data: bytes) -> Image.Image:
         image = Image.open(io.BytesIO(data))
         if image.width * image.height > MAX_PIXELS:
             raise InvalidImageError(f"the image has more than {MAX_PIXELS} pixels")
-        image.load()
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as error:
-        raise InvalidImageError(str(error)) from error
-    return ImageOps.exif_transpose(image).convert("RGB")
+        return ImageOps.exif_transpose(image).convert("RGB")
+    except InvalidImageError:
+        raise
+    except Exception as error:
+        # The bytes come from outside, and the readers of the image formats
+        # raise many types of error for a damaged file: OSError, SyntaxError,
+        # ValueError and others. All of them mean the same for the caller.
+        raise InvalidImageError(f"{type(error).__name__}: {error}") from error
 
 
 def embedder_pixels(image: Image.Image) -> np.ndarray:
@@ -84,7 +88,9 @@ def detector_pixels(image: Image.Image) -> np.ndarray:
     detector: another position changes the confidence.
     """
     ratio = min(_DETECTOR_SIDE / image.width, _DETECTOR_SIDE / image.height)
-    width, height = round(image.width * ratio), round(image.height * ratio)
+    # A very thin image keeps one pixel of width or of height.
+    width = max(1, round(image.width * ratio))
+    height = max(1, round(image.height * ratio))
     square = Image.new("RGB", (_DETECTOR_SIDE, _DETECTOR_SIDE), _PADDING_GRAY)
     left = round((_DETECTOR_SIDE - width) / 2 - 0.1)
     top = round((_DETECTOR_SIDE - height) / 2 - 0.1)

@@ -6,8 +6,10 @@ from PIL import Image
 
 from app import nose
 
+from .conftest import SYNTHETIC
 
-def png(image: Image.Image, **options) -> bytes:
+
+def png(image: Image.Image, **options: object) -> bytes:
     buffer = io.BytesIO()
     image.save(buffer, "PNG", **options)
     return buffer.getvalue()
@@ -33,10 +35,23 @@ def test_rn17_refuses_bytes_that_are_not_an_image(data: bytes) -> None:
         nose.open_image(data)
 
 
+def test_rn17_refuses_an_image_file_with_damaged_content() -> None:
+    # The file is a PNG with 3 bytes changed. The reader of the image fails
+    # with an error that is not an error of input and output.
+    damaged = bytearray((SYNTHETIC / "05-checker.png").read_bytes())
+    damaged[36], damaged[342], damaged[373] = 90, 37, 104
+
+    with pytest.raises(nose.InvalidImageError):
+        nose.open_image(bytes(damaged))
+
+
+def test_rn57_accepts_an_image_with_50_million_pixels() -> None:
+    # A one-color image is a small PNG file.
+    assert nose.open_image(png(Image.new("L", (10_000, 5_000)))).size == (10_000, 5_000)
+
+
 def test_rn57_refuses_an_image_with_more_than_50_million_pixels() -> None:
-    # A one-color image of 50,000,001 pixels is a small PNG file.
-    too_many = png(Image.new("L", (7143, 7001)))
-    assert 7143 * 7001 > 50_000_000 and len(too_many) < 1_000_000
+    too_many = png(Image.new("L", (10_000, 5_001)))
 
     with pytest.raises(nose.InvalidImageError, match="pixels"):
         nose.open_image(too_many)
@@ -73,6 +88,14 @@ def test_rn20_quality_has_a_maximum_of_one() -> None:
     assert nose.quality(noise) == 1.0
 
 
+def test_detector_pixels_of_a_very_thin_image_keep_one_pixel() -> None:
+    # 2 x 3000 pixels: the width in the square would round to 0.
+    pixels = nose.detector_pixels(Image.new("RGB", (2, 3000), (255, 255, 255)))
+
+    assert pixels.shape == (1, 3, 640, 640)
+    assert (pixels[0] == 1.0).any()
+
+
 def test_detector_pixels_put_the_image_in_the_center_of_a_gray_square() -> None:
     pixels = nose.detector_pixels(Image.new("RGB", (200, 100), (255, 255, 255)))
 
@@ -81,3 +104,56 @@ def test_detector_pixels_put_the_image_in_the_center_of_a_gray_square() -> None:
     # The image has 640 x 320 pixels, with 160 gray rows over it and under it.
     assert (pixels[0, :, :160] == gray).all() and (pixels[0, :, 480:] == gray).all()
     assert (pixels[0, :, 160:480] == 1.0).all()
+
+
+class StubExtractor(nose.Extractor):
+    """An extractor without the networks, with a fixed answer of the detector."""
+
+    def __init__(self, confidence: float) -> None:
+        self._confidence = confidence
+
+    def nose_confidence(self, image: Image.Image) -> float:
+        return self._confidence
+
+    def embed(self, pixels: np.ndarray) -> np.ndarray:
+        return np.zeros(nose.EMBEDDING_DIMENSIONS, dtype=np.float32)
+
+
+_PHOTO = png(Image.new("RGB", (32, 32)))
+
+
+def test_rn20_refuses_a_quality_below_0_20(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(nose, "quality", lambda pixels: 0.1999)
+
+    with pytest.raises(nose.LowQualityError):
+        StubExtractor(confidence=1.0).extract(_PHOTO)
+
+
+def test_rn20_accepts_a_quality_of_0_20(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(nose, "quality", lambda pixels: 0.20)
+
+    _, quality = StubExtractor(confidence=1.0).extract(_PHOTO)
+
+    assert quality == 0.20
+
+
+def test_rn21_refuses_a_confidence_below_0_25(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(nose, "quality", lambda pixels: 1.0)
+
+    with pytest.raises(nose.NoNoseError):
+        StubExtractor(confidence=0.2499).extract(_PHOTO)
+
+
+def test_rn21_accepts_a_confidence_of_0_25(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(nose, "quality", lambda pixels: 1.0)
+
+    vector, _ = StubExtractor(confidence=0.25).extract(_PHOTO)
+
+    assert vector.shape == (512,)
+
+
+def test_rn20_the_quality_is_checked_before_the_framing(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(nose, "quality", lambda pixels: 0.0)
+
+    with pytest.raises(nose.LowQualityError):
+        StubExtractor(confidence=0.0).extract(_PHOTO)

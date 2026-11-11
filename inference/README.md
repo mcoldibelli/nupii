@@ -16,7 +16,7 @@ Requisitos: Python 3.14 e o GitHub CLI (`gh`) com acesso ao repositório.
    pip install -r requirements-dev.txt
    ```
 
-2. Baixe os arquivos de pesos. O script baixa os dois arquivos da release `model-tinyvit21m-s43` para o diretório `models` e confere o SHA-256 (RN-22):
+2. Baixe os arquivos de pesos. O script baixa os dois arquivos da release da versão do modelo para o diretório `models` e confere o SHA-256 (RN-22):
 
    ```bash
    ./download_weights.sh
@@ -44,7 +44,7 @@ O ambiente local da raiz do repositório também sobe este serviço, em um conta
 pytest
 ```
 
-Os testes usam os arquivos de pesos reais. Sem os arquivos em `models`, eles falham.
+Os testes usam os arquivos de pesos reais. Sem os arquivos em `models`, eles falham. O workflow `inference` do CI executa o lint e estes testes no Linux x86.
 
 O teste de igualdade tem dois conjuntos de imagens ([ADR 0019](../docs/adr/0019-dados-do-teste-de-igualdade.md)):
 
@@ -77,11 +77,11 @@ O lint é o `ruff`: conferências estáticas e formato. Para corrigir o formato:
 
 | Caminho | O que tem |
 |---|---|
-| `app/main.py` | A interface HTTP: caminhos, erros, uma inferência por vez (RN-23) e o log de cada requisição |
+| `app/main.py` | A interface HTTP: caminhos, erros, uma inferência por vez (RN-23) e uma linha de log por requisição (RNF-07) |
 | `app/nose.py` | Da foto ao vetor: abertura da imagem, nitidez (RN-20), detector (RN-21) e vetor (RN-18, RN-19) |
 | `app/weights.py` | Nomes, versão e SHA-256 dos arquivos de pesos (RN-22) |
 | `download_weights.sh` | Baixa os arquivos de pesos e confere o SHA-256 |
 | `Dockerfile` | A imagem do serviço, sem os arquivos de pesos |
 | `tests/data/` | Imagens geradas e valores de referência do teste de igualdade |
 
-Uma versão nova do modelo muda `app/weights.py`, a tag da release em `download_weights.sh` e os dois arquivos de valores de referência.
+Uma versão nova do modelo muda `app/weights.py` e os dois arquivos de valores de referência, e pede uma release nova com a tag `model-<versão>`.
