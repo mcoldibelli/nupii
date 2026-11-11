@@ -25,3 +25,7 @@ SELECT id FROM owners WHERE firebase_uid = $1 AND deleted_at IS NULL FOR UPDATE;
 UPDATE owners
 SET name = 'Conta excluída', email = 'deleted-' || id || '@nupii.invalid', deleted_at = now()
 WHERE id = $1;
+
+-- name: UpdateOwnerName :one
+UPDATE owners SET name = $2 WHERE firebase_uid = $1 AND deleted_at IS NULL
+RETURNING *;

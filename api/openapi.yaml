@@ -94,6 +94,39 @@ paths:
           $ref: "#/components/responses/Unauthenticated"
         default:
           $ref: "#/components/responses/Error"
+    patch:
+      operationId: updateMe
+      tags: [identity]
+      summary: Altera o nome do tutor (RF-06). O e-mail não muda.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  description: Nome do tutor. Não pode ser vazio. Tem no máximo 100 caracteres.
+                  maxLength: 100
+      responses:
+        "200":
+          description: O tutor com o nome novo.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Owner"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/OwnerNotFound"
+        default:
+          $ref: "#/components/responses/Error"
     delete:
       operationId: deleteMe
       tags: [identity]

@@ -36,10 +36,16 @@ export interface paths {
          * @description O e-mail vem do token. Uma segunda chamada da mesma conta não muda o tutor e devolve 200.
          */
         post: operations["registerMe"];
-        delete?: never;
+        /**
+         * Exclui a conta do tutor (RF-08).
+         * @description Anonimiza o tutor e apaga os dados dele (RN-03, RN-84). O usuário sai do provedor de
+         *     identidade logo depois, numa tarefa. Depois desta chamada, o token recebe 401 (RN-04).
+         */
+        delete: operations["deleteMe"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Altera o nome do tutor (RF-06). O e-mail não muda. */
+        patch: operations["updateMe"];
         trace?: never;
     };
     "/v1/pets": {
@@ -1433,6 +1439,58 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthenticated"];
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A conta foi excluída. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    updateMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Nome do tutor. Não pode ser vazio. Tem no máximo 100 caracteres. */
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description O tutor com o nome novo. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Owner"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
             default: components["responses"]["Error"];
         };
     };

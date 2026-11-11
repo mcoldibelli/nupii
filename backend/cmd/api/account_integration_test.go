@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/mcoldibelli/nupii/backend/internal/api"
@@ -150,5 +151,29 @@ func TestAccountDeletion(t *testing.T) {
 	}
 	if !slices.Contains(users.deleted, uid) {
 		t.Errorf("deleted users = %v, want %s", users.deleted, uid)
+	}
+}
+
+// RF-06: o tutor vê e altera o próprio nome.
+func TestProfileName(t *testing.T) {
+	testAPI := petsAPI(t)
+	rec := testAPI.call(http.MethodPatch, "/v1/me", "token-ana", `{"name": "  Ana Souza  "}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("PATCH /v1/me: status = %d, body %s", rec.Code, rec.Body)
+	}
+	if owner := decode[api.Owner](t, rec); owner.Name != "Ana Souza" || owner.Email != "ana@example.com" {
+		t.Errorf("owner = %+v, want the new name and the same e-mail", owner)
+	}
+	if owner := decode[api.Owner](t, testAPI.call(http.MethodGet, "/v1/me", "token-ana", "")); owner.Name != "Ana Souza" {
+		t.Errorf("GET /v1/me: name = %q, want Ana Souza", owner.Name)
+	}
+	// RN-45: o nome do tutor é obrigatório e tem no máximo 100 caracteres.
+	for _, name := range []string{" ", strings.Repeat("a", 101)} {
+		if rec := testAPI.call(http.MethodPatch, "/v1/me", "token-ana", `{"name": "`+name+`"}`); rec.Code != http.StatusBadRequest {
+			t.Errorf("PATCH /v1/me with %d characters: status = %d, want 400", len(name), rec.Code)
+		}
+	}
+	if rec := testAPI.call(http.MethodPatch, "/v1/me", "token-new", `{"name": "X"}`); rec.Code != http.StatusNotFound {
+		t.Errorf("PATCH /v1/me with no owner: status = %d, want 404", rec.Code)
 	}
 }
