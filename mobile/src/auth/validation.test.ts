@@ -1,4 +1,4 @@
-import { validateCredentials, validateProfile } from "./validation";
+import { validateCredentials, validateEmail, validateNewPassword, validateProfile } from "./validation";
 
 describe("validateCredentials", () => {
   it("accepts an e-mail and a password with 8 characters", () => {
@@ -32,5 +32,22 @@ describe("validateProfile", () => {
   // RN-01: o tutor só é registrado com o aceite dos termos de uso.
   it("RN-01: rejects when the terms are not accepted", () => {
     expect(validateProfile("Ana", false)).toBe("Aceite os termos de uso para continuar.");
+  });
+});
+
+describe("validateEmail", () => {
+  it("RF-05: needs an e-mail to send the link", () => {
+    expect(validateEmail(" ana@example.com ")).toBeNull();
+    expect(validateEmail("ana")).toBe("Informe um e-mail válido.");
+  });
+});
+
+describe("validateNewPassword", () => {
+  it("RN-44: a nova senha tem no mínimo 8 caracteres", () => {
+    // Values made by length: the rule only reads the size.
+    const current = "c".repeat(9);
+    expect(validateNewPassword(current, "n".repeat(8))).toBeNull();
+    expect(validateNewPassword("", "n".repeat(8))).toBe("Informe a senha atual.");
+    expect(validateNewPassword(current, "n".repeat(7))).toBe("A senha precisa ter no mínimo 8 caracteres.");
   });
 });

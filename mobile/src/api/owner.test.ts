@@ -1,4 +1,4 @@
-import { getMe, registerMe } from "./owner";
+import { deleteMe, getMe, registerMe, updateMe } from "./owner";
 
 const baseUrl = "http://api.test";
 const owner = {
@@ -65,5 +65,22 @@ describe("registerMe", () => {
     const fetchFn = fetchThatAnswers(400, { error: "invalid_request", message: "the name is empty" });
 
     expect(await registerMe(baseUrl, "the-token", "", fetchFn)).toEqual({ ok: false, code: "invalid_request" });
+  });
+});
+
+describe("profile and account", () => {
+  it("RF-06: changes the name with PATCH /v1/me", async () => {
+    const fetchFn = fetchThatAnswers(200, { ...owner, name: "Ana Souza" });
+    expect(await updateMe(baseUrl, "t", "Ana Souza", fetchFn)).toEqual({ ok: true, value: { ...owner, name: "Ana Souza" } });
+    const [url, init] = (fetchFn as jest.Mock).mock.calls[0];
+    expect(url).toBe("http://api.test/v1/me");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body)).toEqual({ name: "Ana Souza" });
+  });
+
+  it("RF-08: deletes the account with DELETE /v1/me", async () => {
+    const fetchFn = fetchThatAnswers(204, undefined);
+    expect(await deleteMe(baseUrl, "t", fetchFn)).toEqual({ ok: true, value: undefined });
+    expect((fetchFn as jest.Mock).mock.calls[0][1].method).toBe("DELETE");
   });
 });
