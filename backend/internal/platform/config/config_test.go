@@ -7,12 +7,12 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/platform/config"
 )
 
-const databaseURL = "postgres://user:password@localhost:5432/database"
+const _databaseURL = "postgres://user:password@localhost:5432/database"
 
 // env returns a getenv function with a valid configuration, changed by vars.
 // A variable with an empty value in vars is not set.
 func env(vars map[string]string) func(string) string {
-	all := map[string]string{"DATABASE_URL": databaseURL}
+	all := map[string]string{"DATABASE_URL": _databaseURL}
 	maps.Copy(all, vars)
 	return func(key string) string { return all[key] }
 }
@@ -35,8 +35,8 @@ func TestLoad(t *testing.T) {
 			if cfg.HTTPAddr != tt.wantAddr {
 				t.Errorf("HTTPAddr = %q, want %q", cfg.HTTPAddr, tt.wantAddr)
 			}
-			if cfg.DatabaseURL != databaseURL {
-				t.Errorf("DatabaseURL = %q, want %q", cfg.DatabaseURL, databaseURL)
+			if cfg.DatabaseURL != _databaseURL {
+				t.Errorf("DatabaseURL = %q, want %q", cfg.DatabaseURL, _databaseURL)
 			}
 		})
 	}

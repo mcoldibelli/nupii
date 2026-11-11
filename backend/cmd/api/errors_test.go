@@ -22,7 +22,7 @@ import (
 // the contract, for example the 404 of a route that does not exist.
 func validateErrorBody(t *testing.T, body []byte) {
 	t.Helper()
-	doc, err := openapi3.NewLoader().LoadFromFile(contractPath)
+	doc, err := openapi3.NewLoader().LoadFromFile(_contractPath)
 	if err != nil {
 		t.Fatalf("load contract: %v", err)
 	}
@@ -74,10 +74,10 @@ func TestUnknownRouteGetsNotFoundInTheErrorFormat(t *testing.T) {
 // return an error.
 type failingOperations struct{}
 
-const internalDetail = "connection refused to 10.0.0.7:5432"
+const _internalDetail = "connection refused to 10.0.0.7:5432"
 
 func (failingOperations) GetHealth(context.Context, api.GetHealthRequestObject) (api.GetHealthResponseObject, error) {
-	return nil, errors.New(internalDetail)
+	return nil, errors.New(_internalDetail)
 }
 
 func TestOperationErrorGetsInternalErrorInTheErrorFormat(t *testing.T) {
@@ -99,14 +99,14 @@ func TestOperationErrorGetsInternalErrorInTheErrorFormat(t *testing.T) {
 	if body.Error != api.InternalError {
 		t.Errorf("error code = %q, want %q", body.Error, api.InternalError)
 	}
-	if strings.Contains(rec.Body.String(), internalDetail) {
+	if strings.Contains(rec.Body.String(), _internalDetail) {
 		t.Errorf("body %q has the internal detail of the error", rec.Body.String())
 	}
-	validateResponse(t, req, rec)
+	validateResponse(t, req, rec.Code, rec.Header(), rec.Body.Bytes())
 
 	// The detail goes to the log, with the identifier of the request.
 	id := rec.Header().Get(httpx.RequestIDHeader)
-	if !strings.Contains(logs.String(), internalDetail) || !strings.Contains(logs.String(), id) {
+	if !strings.Contains(logs.String(), _internalDetail) || !strings.Contains(logs.String(), id) {
 		t.Errorf("log does not have the error detail and the request id %q:\n%s", id, logs.String())
 	}
 }

@@ -58,16 +58,25 @@ func TestRunMigratesServesAndStops(t *testing.T) {
 	go func() { done <- run(ctx, getenv, io.Discard) }()
 
 	healthURL := "http://" + addr + "/v1/health"
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, healthURL, nil)
+	if err != nil {
+		t.Fatalf("build request: %v", err)
+	}
 	deadline := time.Now().Add(15 * time.Second)
 	for {
-		resp, err := http.Get(healthURL)
+		resp, err := http.DefaultClient.Do(req)
 		if err == nil {
+			body, rerr := io.ReadAll(resp.Body)
 			if cerr := resp.Body.Close(); cerr != nil {
 				t.Fatalf("close response body: %v", cerr)
+			}
+			if rerr != nil {
+				t.Fatalf("read response body: %v", rerr)
 			}
 			if resp.StatusCode != http.StatusOK {
 				t.Fatalf("GET %s: status = %d, want 200", healthURL, resp.StatusCode)
 			}
+			validateResponse(t, req, resp.StatusCode, resp.Header, body)
 			break
 		}
 		select {

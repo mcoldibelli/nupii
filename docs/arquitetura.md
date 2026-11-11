@@ -133,6 +133,7 @@ Concorrência, declarada por regra:
 - Erros em um formato único: `{"error": "<código>", "message": "<texto>"}`. O código é estável e o app decide a mensagem pela tabela de códigos.
 - Os códigos de erro estão no contrato, no schema `ErrorCode`. Um código novo entra no contrato antes de entrar no servidor.
 - Uma rota que não existe e um método que a rota não aceita recebem 404 com o código `not_found`. O 405 não é usado.
+- Uma rota com `GET` atende também `HEAD`, com a mesma resposta sem o corpo. É o comportamento do `http.ServeMux`.
 - Um erro devolvido por uma operação recebe 500 com o código `internal_error`. O detalhe do erro vai só para o log.
 - Rotas em inglês, com versão no caminho: `/v1/...`.
 - Endpoints públicos têm limite de tentativas por IP (RN-43).

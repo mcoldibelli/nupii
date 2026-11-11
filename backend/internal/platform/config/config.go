@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-const defaultHTTPAddr = ":8080"
+const _defaultHTTPAddr = ":8080"
 
 // Config is the configuration of the API process.
 type Config struct {
@@ -25,7 +25,7 @@ type Config struct {
 // must not start the process when Load returns an error.
 func Load(getenv func(string) string) (Config, error) {
 	cfg := Config{
-		HTTPAddr:    defaultHTTPAddr,
+		HTTPAddr:    _defaultHTTPAddr,
 		DatabaseURL: getenv("DATABASE_URL"),
 	}
 	if addr := getenv("HTTP_ADDR"); addr != "" {
@@ -58,8 +58,12 @@ func validateDatabaseURL(raw string) error {
 	}
 	u, err := url.Parse(raw)
 	if err != nil {
-		// The error of url.Parse has the full URL, so it is not wrapped.
-		return errors.New("the value is not a URL")
+		// url.Parse returns a *url.Error that has the full URL. Only its
+		// cause is wrapped, because the URL has the password.
+		if urlErr, ok := errors.AsType[*url.Error](err); ok {
+			err = urlErr.Err
+		}
+		return fmt.Errorf("parse URL: %w", err)
 	}
 	if u.Scheme != "postgres" && u.Scheme != "postgresql" {
 		return errors.New(`the scheme of the URL must be "postgres" or "postgresql"`)
