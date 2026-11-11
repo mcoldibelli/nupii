@@ -53,7 +53,8 @@ func (s *spyStore) SignedURL(key string, _ time.Duration) (string, error) {
 
 // The service has no database: these tests end before the first query.
 func newTestService(species string, embedder Embedder, store PhotoStore) *Service {
-	return NewService(nil, onePet{species: species}, embedder, store, slog.New(slog.DiscardHandler))
+	logger := slog.New(slog.DiscardHandler)
+	return NewService(nil, nil, onePet{species: species}, embedder, store, logger)
 }
 
 func TestRegisterRefusesAPetThatIsNotADog(t *testing.T) {

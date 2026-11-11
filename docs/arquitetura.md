@@ -95,6 +95,8 @@ Leituras com `JOIN` entre módulos, conhecidas pelos requisitos:
 |---|---|---|---|
 | Busca dos focinhos mais parecidos | `biometrics` | `pets` (pet não excluído), `identity` (conta ativa) | RN-10, RN-11 |
 | Trava do pet durante o cadastro do focinho | `biometrics` | `pets` (linha do pet, com `FOR UPDATE`, sem escrita) | RN-09 |
+| Nome e foto de perfil dos candidatos | `biometrics` | `pets` | RN-62 |
+| Avisos de encontro do tutor | `biometrics` | `pets` (pets do tutor, não excluídos) | RN-66 |
 | Tutores perto de um ponto | `alerts` | `identity` (conta ativa) | RN-32, RN-33 |
 | Mural com a foto do pet | `reports` | `pets` | RF-16 |
 
@@ -121,6 +123,7 @@ Concorrência, declarada por regra:
 
 - PostgreSQL com PostGIS (distância) e pgvector (vetores com índice HNSW e cosseno).
 - Um vetor vai para o banco como texto, e a consulta converte para o tipo `vector` ([ADR 0021](adr/0021-vetor-como-texto-nas-consultas.md)).
+- A busca de focinhos muda dois parâmetros do índice HNSW na transação dela: `hnsw.ef_search = 100`, porque o padrão de 40 é menor que os 50 cadastros de RN-10, e `hnsw.iterative_scan = strict_order`, para o índice ler mais cadastros quando os filtros de RN-11 tiram alguns. Um teste de integração força o uso do índice e confere os 50.
 - O esquema nasce das migrations de `backend/db/migrations/`. As migrations são a fonte do modelo de dados.
 - A API aplica as migrations pendentes quando sobe, antes de aceitar requisições. A primeira migration cria as extensões PostGIS e pgvector.
 - `GET /v1/health` responde 503 com o código `unavailable` quando o banco não responde.
@@ -141,7 +144,7 @@ Concorrência, declarada por regra:
 - Uma rota com `GET` atende também `HEAD`, com a mesma resposta sem o corpo. É o comportamento do `http.ServeMux`.
 - Um erro devolvido por uma operação, ou um panic em um handler, recebe 500 com o código `internal_error`. O detalhe do erro vai só para o log, com o identificador da requisição.
 - Rotas em inglês, com versão no caminho: `/v1/...`.
-- Endpoints públicos têm limite de tentativas por IP (RN-43).
+- Endpoints públicos têm limite de tentativas por IP (RN-43). O IP é o endereço da conexão, e a rota é o padrão do contrato, não o caminho com os identificadores. Acima do limite, a resposta é 429 com o código `rate_limited`. Atrás de um proxy, o endereço da conexão é o do proxy: a fatia 10 decide de onde a API lê o endereço do cliente.
 - Autenticação: uma operação do contrato sem `security` é pública. Toda outra operação pede o ID token do Firebase no cabeçalho `Authorization: Bearer`. Sem token válido, a resposta é 401 com o código `unauthenticated` (RN-46). A conferência do token acontece antes da leitura do corpo.
 - O módulo `identity` depende da interface `TokenVerifier`. A implementação com o Firebase Admin SDK fica em `platform/firebase`, e `cmd/api` liga as duas.
 - Um corpo ou um parâmetro que não pode ser lido recebe 400 com o código `invalid_request`. Um dado que quebra uma regra de negócio recebe a mesma resposta, com a regra na mensagem.

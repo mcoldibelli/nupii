@@ -29,6 +29,9 @@ const (
 	// _maxPhotoBodyBytes is the maximum size of the body of a photo
 	// upload: the 5 MB of the photo (RN-54) and the multipart envelope.
 	_maxPhotoBodyBytes = 6 << 20
+	// _publicPostLimit is the number of POST requests that one address
+	// can send to one public route in one minute (RN-43).
+	_publicPostLimit = 10
 	// _maxNosePhotoBodyBytes is the maximum size of the body of an upload
 	// of the photo of a nose: the 8 MB of the photo (RN-59) and the
 	// multipart envelope.
@@ -40,7 +43,9 @@ func bodyLimit(r *http.Request) int64 {
 	switch r.Pattern {
 	case "PUT /v1/pets/{petId}/photo":
 		return _maxPhotoBodyBytes
-	case "POST /v1/pets/{petId}/noseprints":
+	case "POST /v1/pets/{petId}/noseprints",
+		"POST /v1/identifications",
+		"POST /v1/identifications/{identificationId}/confirmation":
 		return _maxNosePhotoBodyBytes
 	default:
 		return _maxBodyBytes
@@ -83,7 +88,7 @@ func newServer(
 ) server {
 	owners := identity.NewService(pool)
 	petService := pets.NewService(pool, owners, photos, logger)
-	noseprints := biometrics.NewService(pool, petService, embedder, photos, logger)
+	noseprints := biometrics.NewService(pool, owners, petService, embedder, photos, logger)
 	return server{
 		identityHandlers:   identity.NewHandlers(owners),
 		petsHandlers:       pets.NewHandlers(petService),
@@ -115,7 +120,22 @@ func (s server) GetHealth(
 // contract has the same information: an operation without "security" is
 // public. A test compares the two.
 func isPublic(r *http.Request) bool {
-	return r.Pattern == "GET /v1/health"
+	switch r.Pattern {
+	case "GET /v1/health",
+		"POST /v1/identifications",
+		"POST /v1/identifications/{identificationId}/confirmation":
+		return true
+	default:
+		return false
+	}
+}
+
+// isRateLimited tells if the request counts for the limit of RN-43.
+//
+// RN-43: um endpoint público aceita no máximo 10 POST por minuto, por IP e
+// por caminho.
+func isRateLimited(r *http.Request) bool {
+	return r.Method == http.MethodPost && isPublic(r)
 }
 
 // tokenVerifier adapts the Firebase verifier to the interface of the
@@ -175,6 +195,7 @@ func newHandler(
 		// runs before the body of the request is read.
 		Middlewares: []api.MiddlewareFunc{
 			httpx.LimitBody(bodyLimit),
+			httpx.RateLimit(logger, _publicPostLimit, time.Minute, isRateLimited, time.Now),
 			identity.RequireIdentity(logger, verifier, isPublic),
 		},
 		// A parameter of the request could not be read.

@@ -319,6 +319,128 @@ paths:
                 $ref: "#/components/schemas/Error"
         default:
           $ref: "#/components/responses/Error"
+  /v1/identifications:
+    post:
+      operationId: identifyNose
+      tags: [biometrics]
+      summary: Busca os pets parecidos com a foto de um focinho.
+      description: |
+        Operação pública: quem encontrou um cão não precisa de conta.
+        A resposta tem no máximo 3 candidatos e nenhum dado do tutor. A foto não é gravada.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Foto do focinho. Imagem JPEG, PNG ou WebP, com no máximo 8 MB.
+                latitude:
+                  type: number
+                  format: double
+                  description: Latitude de quem encontrou o cão. Vem junto com a longitude.
+                longitude:
+                  type: number
+                  format: double
+                  description: Longitude de quem encontrou o cão. Vem junto com a latitude.
+      responses:
+        "200":
+          description: A identificação, com os candidatos do mais parecido para o menos parecido. A lista pode ser vazia.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identification"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "422":
+          $ref: "#/components/responses/NosePhotoRefused"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/identifications/{identificationId}/confirmation:
+    parameters:
+      - name: identificationId
+        in: path
+        required: true
+        description: Identificador da identificação.
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: confirmIdentification
+      tags: [biometrics]
+      summary: Confirma um candidato e deixa o contato para o tutor do pet.
+      description: |
+        Operação pública. O contato vai só para o tutor do pet confirmado.
+        A foto da consulta é gravada na primeira confirmação que envia a foto.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [candidateId, name, phone]
+              properties:
+                candidateId:
+                  type: string
+                  format: uuid
+                  description: Um candidato desta identificação.
+                name:
+                  type: string
+                  description: Nome de quem encontrou o cão, com no máximo 120 caracteres.
+                phone:
+                  type: string
+                  description: Telefone de quem encontrou o cão, de 8 a 30 caracteres.
+                message:
+                  type: string
+                  description: Mensagem para o tutor, com no máximo 500 caracteres.
+                file:
+                  type: string
+                  format: binary
+                  description: A foto usada na identificação. Imagem JPEG, PNG ou WebP, com no máximo 8 MB.
+      responses:
+        "204":
+          description: A confirmação foi gravada.
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "404":
+          description: A identificação ou o candidato não existe. O código do erro é `identification_not_found`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/found-notices:
+    get:
+      operationId: listFoundNotices
+      tags: [biometrics]
+      summary: Lista os avisos de quem encontrou um pet do tutor.
+      description: Os avisos vêm do mais novo para o mais antigo.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Os avisos de encontro dos pets do tutor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FoundNoticeList"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/OwnerNotFound"
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     bearerAuth:
@@ -442,6 +564,75 @@ components:
         capturedAt:
           type: string
           format: date-time
+    Identification:
+      type: object
+      description: Resultado da busca de um focinho no acervo.
+      required: [id, candidates]
+      properties:
+        id:
+          type: string
+          format: uuid
+        candidates:
+          type: array
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/IdentificationCandidate"
+    IdentificationCandidate:
+      type: object
+      description: Um pet parecido com a foto enviada. Não tem dado do tutor.
+      required: [id, petName, similarity, strong]
+      properties:
+        id:
+          type: string
+          format: uuid
+        petName:
+          type: string
+        petPhotoUrl:
+          type: string
+          description: URL temporária da foto de perfil do pet. Vale por 900 segundos.
+        similarity:
+          type: number
+          format: double
+          description: Cosseno entre a foto enviada e a foto mais parecida do pet.
+        strong:
+          type: boolean
+          description: Correspondência forte, a similaridade chega ao limiar do tamanho do acervo.
+    FoundNotice:
+      type: object
+      description: O que o tutor vê de uma confirmação, o pet e o contato de quem encontrou.
+      required: [id, petId, petName, contactName, contactPhone, confirmedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        petId:
+          type: string
+          format: uuid
+        petName:
+          type: string
+        contactName:
+          type: string
+        contactPhone:
+          type: string
+        message:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        confirmedAt:
+          type: string
+          format: date-time
+    FoundNoticeList:
+      type: object
+      required: [notices]
+      properties:
+        notices:
+          type: array
+          items:
+            $ref: "#/components/schemas/FoundNotice"
     Owner:
       type: object
       description: O tutor. Pessoa com conta, responsável por pets.
@@ -508,6 +699,8 @@ components:
         - owner_not_found
         - pet_not_found
         - noseprint_not_found
+        - identification_not_found
+        - rate_limited
         - species_not_supported
         - image_low_quality
         - image_framing
@@ -538,6 +731,12 @@ components:
         `species_not_supported` quando o pet não é um cachorro,
         `image_low_quality` quando a foto não tem nitidez,
         `image_framing` quando a foto não mostra um focinho.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    RateLimited:
+      description: Muitas chamadas deste endereço em pouco tempo. O código do erro é `rate_limited`.
       content:
         application/json:
           schema:

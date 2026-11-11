@@ -20,22 +20,26 @@ import (
 
 // Defines values for ErrorCode.
 const (
-	ErrorCodeImageFraming        ErrorCode = "image_framing"
-	ErrorCodeImageLowQuality     ErrorCode = "image_low_quality"
-	ErrorCodeInternalError       ErrorCode = "internal_error"
-	ErrorCodeInvalidRequest      ErrorCode = "invalid_request"
-	ErrorCodeNoseprintNotFound   ErrorCode = "noseprint_not_found"
-	ErrorCodeNotFound            ErrorCode = "not_found"
-	ErrorCodeOwnerNotFound       ErrorCode = "owner_not_found"
-	ErrorCodePetNotFound         ErrorCode = "pet_not_found"
-	ErrorCodeSpeciesNotSupported ErrorCode = "species_not_supported"
-	ErrorCodeUnauthenticated     ErrorCode = "unauthenticated"
-	ErrorCodeUnavailable         ErrorCode = "unavailable"
+	ErrorCodeIdentificationNotFound ErrorCode = "identification_not_found"
+	ErrorCodeImageFraming           ErrorCode = "image_framing"
+	ErrorCodeImageLowQuality        ErrorCode = "image_low_quality"
+	ErrorCodeInternalError          ErrorCode = "internal_error"
+	ErrorCodeInvalidRequest         ErrorCode = "invalid_request"
+	ErrorCodeNoseprintNotFound      ErrorCode = "noseprint_not_found"
+	ErrorCodeNotFound               ErrorCode = "not_found"
+	ErrorCodeOwnerNotFound          ErrorCode = "owner_not_found"
+	ErrorCodePetNotFound            ErrorCode = "pet_not_found"
+	ErrorCodeRateLimited            ErrorCode = "rate_limited"
+	ErrorCodeSpeciesNotSupported    ErrorCode = "species_not_supported"
+	ErrorCodeUnauthenticated        ErrorCode = "unauthenticated"
+	ErrorCodeUnavailable            ErrorCode = "unavailable"
 )
 
 // Valid indicates whether the value is a known member of the ErrorCode enum.
 func (e ErrorCode) Valid() bool {
 	switch e {
+	case ErrorCodeIdentificationNotFound:
+		return true
 	case ErrorCodeImageFraming:
 		return true
 	case ErrorCodeImageLowQuality:
@@ -51,6 +55,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeOwnerNotFound:
 		return true
 	case ErrorCodePetNotFound:
+		return true
+	case ErrorCodeRateLimited:
 		return true
 	case ErrorCodeSpeciesNotSupported:
 		return true
@@ -170,6 +176,24 @@ type Error struct {
 // Um código novo entra nesta lista antes de entrar no código do servidor.
 type ErrorCode string
 
+// FoundNotice O que o tutor vê de uma confirmação, o pet e o contato de quem encontrou.
+type FoundNotice struct {
+	ConfirmedAt  time.Time          `json:"confirmedAt"`
+	ContactName  string             `json:"contactName"`
+	ContactPhone string             `json:"contactPhone"`
+	Id           openapi_types.UUID `json:"id"`
+	Latitude     *float64           `json:"latitude,omitempty"`
+	Longitude    *float64           `json:"longitude,omitempty"`
+	Message      *string            `json:"message,omitempty"`
+	PetId        openapi_types.UUID `json:"petId"`
+	PetName      string             `json:"petName"`
+}
+
+// FoundNoticeList defines model for FoundNoticeList.
+type FoundNoticeList struct {
+	Notices []FoundNotice `json:"notices"`
+}
+
 // Health defines model for Health.
 type Health struct {
 	Status HealthStatus `json:"status"`
@@ -177,6 +201,27 @@ type Health struct {
 
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
+
+// Identification Resultado da busca de um focinho no acervo.
+type Identification struct {
+	Candidates []IdentificationCandidate `json:"candidates"`
+	Id         openapi_types.UUID        `json:"id"`
+}
+
+// IdentificationCandidate Um pet parecido com a foto enviada. Não tem dado do tutor.
+type IdentificationCandidate struct {
+	Id      openapi_types.UUID `json:"id"`
+	PetName string             `json:"petName"`
+
+	// PetPhotoUrl URL temporária da foto de perfil do pet. Vale por 900 segundos.
+	PetPhotoUrl *string `json:"petPhotoUrl,omitempty"`
+
+	// Similarity Cosseno entre a foto enviada e a foto mais parecida do pet.
+	Similarity float64 `json:"similarity"`
+
+	// Strong Correspondência forte, a similaridade chega ao limiar do tamanho do acervo.
+	Strong bool `json:"strong"`
+}
 
 // Noseprint Cadastro biométrico de um pet, a foto do focinho com o vetor dela.
 type Noseprint struct {
@@ -327,11 +372,44 @@ type OwnerNotFound = Error
 // PetNotFound Formato único de erro. Todo erro da API usa este formato.
 type PetNotFound = Error
 
+// RateLimited Formato único de erro. Todo erro da API usa este formato.
+type RateLimited = Error
+
 // Unauthenticated Formato único de erro. Todo erro da API usa este formato.
 type Unauthenticated = Error
 
 // Unavailable Formato único de erro. Todo erro da API usa este formato.
 type Unavailable = Error
+
+// IdentifyNoseMultipartBody defines parameters for IdentifyNose.
+type IdentifyNoseMultipartBody struct {
+	// File Foto do focinho. Imagem JPEG, PNG ou WebP, com no máximo 8 MB.
+	File openapi_types.File `json:"file"`
+
+	// Latitude Latitude de quem encontrou o cão. Vem junto com a longitude.
+	Latitude *float64 `json:"latitude,omitempty"`
+
+	// Longitude Longitude de quem encontrou o cão. Vem junto com a latitude.
+	Longitude *float64 `json:"longitude,omitempty"`
+}
+
+// ConfirmIdentificationMultipartBody defines parameters for ConfirmIdentification.
+type ConfirmIdentificationMultipartBody struct {
+	// CandidateId Um candidato desta identificação.
+	CandidateId openapi_types.UUID `json:"candidateId"`
+
+	// File A foto usada na identificação. Imagem JPEG, PNG ou WebP, com no máximo 8 MB.
+	File *openapi_types.File `json:"file,omitempty"`
+
+	// Message Mensagem para o tutor, com no máximo 500 caracteres.
+	Message *string `json:"message,omitempty"`
+
+	// Name Nome de quem encontrou o cão, com no máximo 120 caracteres.
+	Name string `json:"name"`
+
+	// Phone Telefone de quem encontrou o cão, de 8 a 30 caracteres.
+	Phone string `json:"phone"`
+}
 
 // RegisterNoseprintMultipartBody defines parameters for RegisterNoseprint.
 type RegisterNoseprintMultipartBody struct {
@@ -344,6 +422,12 @@ type SetPetPhotoMultipartBody struct {
 	// File Imagem JPEG, PNG ou WebP, com no máximo 5 MB.
 	File openapi_types.File `json:"file"`
 }
+
+// IdentifyNoseMultipartRequestBody defines body for IdentifyNose for multipart/form-data ContentType.
+type IdentifyNoseMultipartRequestBody IdentifyNoseMultipartBody
+
+// ConfirmIdentificationMultipartRequestBody defines body for ConfirmIdentification for multipart/form-data ContentType.
+type ConfirmIdentificationMultipartRequestBody ConfirmIdentificationMultipartBody
 
 // RegisterMeJSONRequestBody defines body for RegisterMe for application/json ContentType.
 type RegisterMeJSONRequestBody = RegisterOwnerRequest
@@ -362,9 +446,18 @@ type SetPetPhotoMultipartRequestBody SetPetPhotoMultipartBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// ListFoundNotices Lista os avisos de quem encontrou um pet do tutor.
+	// (GET /v1/found-notices)
+	ListFoundNotices(w http.ResponseWriter, r *http.Request)
 	// GetHealth Informa se o serviço está pronto para atender requisições.
 	// (GET /v1/health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
+	// IdentifyNose Busca os pets parecidos com a foto de um focinho.
+	// (POST /v1/identifications)
+	IdentifyNose(w http.ResponseWriter, r *http.Request)
+	// ConfirmIdentification Confirma um candidato e deixa o contato para o tutor do pet.
+	// (POST /v1/identifications/{identificationId}/confirmation)
+	ConfirmIdentification(w http.ResponseWriter, r *http.Request, identificationId openapi_types.UUID)
 	// GetMe Devolve o tutor da conta que fez a chamada.
 	// (GET /v1/me)
 	GetMe(w http.ResponseWriter, r *http.Request)
@@ -406,11 +499,65 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
+// ListFoundNotices operation middleware
+func (siw *ServerInterfaceWrapper) ListFoundNotices(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFoundNotices(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetHealth operation middleware
 func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// IdentifyNose operation middleware
+func (siw *ServerInterfaceWrapper) IdentifyNose(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.IdentifyNose(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ConfirmIdentification operation middleware
+func (siw *ServerInterfaceWrapper) ConfirmIdentification(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "identificationId" -------------
+	var identificationId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identificationId", r.PathValue("identificationId"), &identificationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identificationId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ConfirmIdentification(w, r, identificationId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -763,6 +910,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/pets/{petId}/photo", wrapper.SetPetPhoto)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/pets/{petId}/noseprints", wrapper.RegisterNoseprint)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/pets/{petId}/noseprint", wrapper.GetNoseprint)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/identifications", wrapper.IdentifyNose)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/identifications/{identificationId}/confirmation", wrapper.ConfirmIdentification)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/found-notices", wrapper.ListFoundNotices)
 
 	return m
 }
@@ -777,9 +927,77 @@ type OwnerNotFoundJSONResponse Error
 
 type PetNotFoundJSONResponse Error
 
+type RateLimitedJSONResponse Error
+
 type UnauthenticatedJSONResponse Error
 
 type UnavailableJSONResponse Error
+
+type ListFoundNoticesRequestObject struct {
+}
+
+type ListFoundNoticesResponseObject interface {
+	VisitListFoundNoticesResponse(w http.ResponseWriter) error
+}
+
+type ListFoundNotices200JSONResponse FoundNoticeList
+
+func (response ListFoundNotices200JSONResponse) VisitListFoundNoticesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFoundNotices401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ListFoundNotices401JSONResponse) VisitListFoundNoticesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFoundNotices404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response ListFoundNotices404JSONResponse) VisitListFoundNoticesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFoundNoticesdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListFoundNoticesdefaultJSONResponse) VisitListFoundNoticesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type GetHealthRequestObject struct {
 }
@@ -822,6 +1040,177 @@ type GetHealthdefaultJSONResponse struct {
 }
 
 func (response GetHealthdefaultJSONResponse) VisitGetHealthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type IdentifyNoseRequestObject struct {
+	Body *multipart.Reader
+}
+
+type IdentifyNoseResponseObject interface {
+	VisitIdentifyNoseResponse(w http.ResponseWriter) error
+}
+
+type IdentifyNose200JSONResponse Identification
+
+func (response IdentifyNose200JSONResponse) VisitIdentifyNoseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type IdentifyNose400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response IdentifyNose400JSONResponse) VisitIdentifyNoseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type IdentifyNose422JSONResponse struct{ NosePhotoRefusedJSONResponse }
+
+func (response IdentifyNose422JSONResponse) VisitIdentifyNoseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type IdentifyNose429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response IdentifyNose429JSONResponse) VisitIdentifyNoseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type IdentifyNose503JSONResponse struct{ UnavailableJSONResponse }
+
+func (response IdentifyNose503JSONResponse) VisitIdentifyNoseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type IdentifyNosedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response IdentifyNosedefaultJSONResponse) VisitIdentifyNoseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmIdentificationRequestObject struct {
+	IdentificationId openapi_types.UUID `json:"identificationId"`
+	Body             *multipart.Reader
+}
+
+type ConfirmIdentificationResponseObject interface {
+	VisitConfirmIdentificationResponse(w http.ResponseWriter) error
+}
+
+type ConfirmIdentification204Response struct {
+}
+
+func (response ConfirmIdentification204Response) VisitConfirmIdentificationResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type ConfirmIdentification400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ConfirmIdentification400JSONResponse) VisitConfirmIdentificationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmIdentification404JSONResponse Error
+
+func (response ConfirmIdentification404JSONResponse) VisitConfirmIdentificationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmIdentification429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response ConfirmIdentification429JSONResponse) VisitConfirmIdentificationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmIdentificationdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ConfirmIdentificationdefaultJSONResponse) VisitConfirmIdentificationResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -1626,9 +2015,18 @@ func (response SetPetPhotodefaultJSONResponse) VisitSetPetPhotoResponse(w http.R
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// ListFoundNotices Lista os avisos de quem encontrou um pet do tutor.
+	// (GET /v1/found-notices)
+	ListFoundNotices(ctx context.Context, request ListFoundNoticesRequestObject) (ListFoundNoticesResponseObject, error)
 	// GetHealth Informa se o serviço está pronto para atender requisições.
 	// (GET /v1/health)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
+	// IdentifyNose Busca os pets parecidos com a foto de um focinho.
+	// (POST /v1/identifications)
+	IdentifyNose(ctx context.Context, request IdentifyNoseRequestObject) (IdentifyNoseResponseObject, error)
+	// ConfirmIdentification Confirma um candidato e deixa o contato para o tutor do pet.
+	// (POST /v1/identifications/{identificationId}/confirmation)
+	ConfirmIdentification(ctx context.Context, request ConfirmIdentificationRequestObject) (ConfirmIdentificationResponseObject, error)
 	// GetMe Devolve o tutor da conta que fez a chamada.
 	// (GET /v1/me)
 	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
@@ -1700,6 +2098,30 @@ type strictHandler struct {
 	options     StrictHTTPServerOptions
 }
 
+// ListFoundNotices operation middleware
+func (sh *strictHandler) ListFoundNotices(w http.ResponseWriter, r *http.Request) {
+	var request ListFoundNoticesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListFoundNotices(ctx, request.(ListFoundNoticesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListFoundNotices")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListFoundNoticesResponseObject); ok {
+		if err := validResponse.VisitListFoundNoticesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetHealth operation middleware
 func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 	var request GetHealthRequestObject
@@ -1717,6 +2139,70 @@ func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetHealthResponseObject); ok {
 		if err := validResponse.VisitGetHealthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// IdentifyNose operation middleware
+func (sh *strictHandler) IdentifyNose(w http.ResponseWriter, r *http.Request) {
+	var request IdentifyNoseRequestObject
+
+	if reader, err := r.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.IdentifyNose(ctx, request.(IdentifyNoseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "IdentifyNose")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(IdentifyNoseResponseObject); ok {
+		if err := validResponse.VisitIdentifyNoseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ConfirmIdentification operation middleware
+func (sh *strictHandler) ConfirmIdentification(w http.ResponseWriter, r *http.Request, identificationId openapi_types.UUID) {
+	var request ConfirmIdentificationRequestObject
+
+	request.IdentificationId = identificationId
+
+	if reader, err := r.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ConfirmIdentification(ctx, request.(ConfirmIdentificationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ConfirmIdentification")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ConfirmIdentificationResponseObject); ok {
+		if err := validResponse.VisitConfirmIdentificationResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
