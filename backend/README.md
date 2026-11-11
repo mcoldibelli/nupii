@@ -6,7 +6,11 @@ Todos os comandos abaixo são executados no diretório `backend`.
 
 ## Como executar
 
-A API precisa do Postgres do ambiente local. Suba o compose antes (ver o [README da raiz](../README.md)).
+A API precisa do Postgres do ambiente local. Crie o `deploy/.env` (ver o [README da raiz](../README.md)) e suba só o banco e o servidor S3. O serviço `api` do compose usa a mesma porta 8080, então ele fica parado:
+
+```bash
+docker compose -f ../deploy/compose.yaml up -d --wait db s3
+```
 
 Carregue as variáveis do `deploy/.env` no terminal e monte o endereço do banco:
 
@@ -93,3 +97,4 @@ A primeira execução baixa o `oapi-codegen` na versão fixada em `internal/api/
 | `internal/platform/httpx/` | Middleware HTTP: identificador e log de cada requisição |
 | `internal/platform/postgres/` | Conexão com o banco e aplicação das migrations |
 | `db/migrations/` | Arquivos SQL das migrations |
+| `Dockerfile` | Imagem da API: compila um binário estático e copia para uma imagem vazia, com usuário sem privilégio |
