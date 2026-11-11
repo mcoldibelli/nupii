@@ -8,7 +8,37 @@ Fase de plano. As decisões de arquitetura estão aceitas. Ainda não existe có
 
 ## Como executar
 
-Ainda não há o que executar. A fatia 0 entrega o `docker compose` e o conteúdo desta seção.
+Requisitos: Docker com o Compose, e Go 1.26 ou mais novo.
+
+1. Suba o banco e o servidor S3 do ambiente local. O comando espera os dois ficarem prontos:
+
+   ```bash
+   docker compose -f deploy/compose.yaml up -d --wait
+   ```
+
+2. Suba a API:
+
+   ```bash
+   cd backend
+   go run ./cmd/api
+   ```
+
+3. Em outro terminal, chame a API:
+
+   ```bash
+   curl -i http://localhost:8080/v1/health
+   ```
+
+Para parar o ambiente local: `docker compose -f deploy/compose.yaml down`. Os dados ficam nos volumes. Para apagar também os dados, use `down -v`.
+
+Se a sua instalação tem só o binário `docker-compose`, use esse nome no lugar de `docker compose`.
+
+| Serviço | Endereço | Credenciais do ambiente local |
+|---|---|---|
+| PostgreSQL 18 com PostGIS e pgvector | `localhost:5432`, banco `nupii` | valores no arquivo `deploy/.env` |
+| SeaweedFS (protocolo S3) | `http://localhost:8333`, bucket `nupii-local` | valores no arquivo `deploy/.env` |
+
+Cada projeto tem um README com os próprios comandos: [backend](backend/README.md).
 
 ## Documentos
 

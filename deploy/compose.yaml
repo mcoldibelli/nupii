@@ -1,0 +1,43 @@
+# Local environment and CI: the state that the API needs.
+# The credentials in this file are for the local environment only.
+name: nupii-local
+
+services:
+  db:
+    build: ./postgres
+    environment:
+      POSTGRES_USER: nupii
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: nupii
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      # The check uses TCP. During the first start, Postgres runs a temporary
+      # server that listens only on the Unix socket.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "nupii", "-d", "nupii"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  s3:
+    image: chrislusf/seaweedfs:4.53
+    environment:
+      # SeaweedFS creates this access key and this bucket when it starts.
+      AWS_ACCESS_KEY_ID: nupii-local
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_BUCKET: nupii-local
+    ports:
+      - "127.0.0.1:8333:8333"
+    volumes:
+      - s3-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+volumes:
+  db-data:
+  s3-data:
