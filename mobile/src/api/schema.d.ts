@@ -504,13 +504,17 @@ export interface components {
         ReportType: "lost" | "found";
         /** @enum {string} */
         ReportStatus: "open" | "resolved";
+        /**
+         * @description A latitude e a longitude são obrigatórias. Sem uma delas, a resposta é 400 `invalid_request`.
+         *     O esquema não as marca como obrigatórias para o servidor saber quando uma delas falta.
+         */
         LostReportInput: {
             /** Format: uuid */
             petId: string;
             /** Format: double */
-            latitude: number;
+            latitude?: number;
             /** Format: double */
-            longitude: number;
+            longitude?: number;
             /** @description Nome do local, com no máximo 200 caracteres. */
             place?: string;
             /** @description Recado, com no máximo 1.000 caracteres. */
@@ -1330,6 +1334,7 @@ export interface operations {
                     "application/json": components["schemas"]["Report"];
                 };
             };
+            400: components["responses"]["InvalidRequest"];
             404: components["responses"]["ReportNotFound"];
             default: components["responses"]["Error"];
         };
@@ -1395,6 +1400,7 @@ export interface operations {
                     "application/json": components["schemas"]["Report"];
                 };
             };
+            400: components["responses"]["InvalidRequest"];
             401: components["responses"]["Unauthenticated"];
             404: components["responses"]["ReportNotFound"];
             default: components["responses"]["Error"];

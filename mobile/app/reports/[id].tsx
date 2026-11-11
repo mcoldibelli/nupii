@@ -1,13 +1,15 @@
 import { useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { getReport, reportSighting, resolveFoundReport, type Report } from "../../src/api/reports";
 import { formatDateTime } from "../../src/biometrics/messages";
 import { apiUrl } from "../../src/config";
 import type { MapMarker, MapPoint } from "../../src/map/mapHtml";
 import { MapView } from "../../src/map/MapView";
+import { codeFromHash } from "../../src/reports/foundLink";
 import { REPORT_LIMITS, reportFailureMessage, reportTitle, toDetails } from "../../src/reports/form";
+import { speciesLabels } from "../../src/pets/labels";
 import { styles } from "../../src/screens/styles";
 
 /** The markers of the detail: the point of the report and the sightings. */
@@ -30,7 +32,9 @@ function markersOf(report: Report): MapMarker[] {
  * (RN-69).
  */
 export default function ReportDetail() {
-  const { id, code } = useLocalSearchParams<{ id: string; code?: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  // RN-69: on the web, the code of a found report is in the fragment of the address.
+  const code = Platform.OS === "web" ? codeFromHash(window.location.hash) : undefined;
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -106,6 +110,7 @@ export default function ReportDetail() {
       <Text testID="report-title" style={styles.title}>
         {reportTitle(report)}
       </Text>
+      {report.petSpecies !== undefined && <Text style={local.line}>{speciesLabels[report.petSpecies]}</Text>}
       <Text style={local.line}>
         {report.type === "lost" ? "Desapareceu em" : "Encontrado em"} {formatDateTime(report.occurredAt)}
       </Text>

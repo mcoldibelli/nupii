@@ -183,6 +183,10 @@ func TestLostReportRefusals(t *testing.T) {
 		{name: "RN-70 place with 201 characters", token: "token-ana",
 			body:       `"latitude": 1, "longitude": 1, "place": "` + strings.Repeat("a", 201) + `"`,
 			wantStatus: http.StatusBadRequest, wantCode: api.ErrorCodeInvalidRequest},
+		{name: "RN-70 no latitude and no longitude", token: "token-ana",
+			body: `"place": "Rua A"`, wantStatus: http.StatusBadRequest, wantCode: api.ErrorCodeInvalidRequest},
+		{name: "RN-70 no longitude", token: "token-ana",
+			body: `"latitude": 1`, wantStatus: http.StatusBadRequest, wantCode: api.ErrorCodeInvalidRequest},
 		{name: "RN-71 date in the future", token: "token-ana",
 			body: `"latitude": 1, "longitude": 1, "occurredAt": "` + future + `"`, wantStatus: http.StatusBadRequest,
 			wantCode: api.ErrorCodeInvalidRequest},
@@ -198,6 +202,10 @@ func TestLostReportRefusals(t *testing.T) {
 	}
 	if rec := testAPI.call(http.MethodPost, "/v1/reports/lost", "", `{}`); rec.Code != http.StatusUnauthorized {
 		t.Errorf("no token: status = %d, want 401", rec.Code)
+	}
+	rec := testAPI.call(http.MethodPost, "/v1/reports/lost", "token-ana", `{"latitude": 1, "longitude": 1}`)
+	if rec.Code != http.StatusBadRequest || decode[api.Error](t, rec).Error != api.ErrorCodeInvalidRequest {
+		t.Errorf("no petId: status = %d, body %s, want 400 invalid_request", rec.Code, rec.Body)
 	}
 }
 
@@ -232,13 +240,25 @@ func TestLostReportOfADeletedPetLeavesTheBoard(t *testing.T) {
 	testAPI := petsAPI(t)
 	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
 	report := testAPI.reportLost("token-ana", pet, `"latitude": 1, "longitude": 1`)
+	before := testAPI.board("1")
+	before.OpenLost--
 	if rec := testAPI.call(http.MethodDelete, "/v1/pets/"+pet.Id.String(), "token-ana", ""); rec.Code != http.StatusNoContent {
 		t.Fatalf("delete the pet: status = %d", rec.Code)
 	}
 
-	// RN-24: um desaparecimento de um pet excluído sai do mural.
-	if onBoard(testAPI.board("1"), report.Id.String()) {
-		t.Error("the report of a deleted pet is on the board")
+	// RN-24: um desaparecimento de um pet excluído sai do mural e das contagens.
+	if board := testAPI.board("1"); onBoard(board, report.Id.String()) || board.OpenLost != before.OpenLost {
+		t.Errorf("the report of a deleted pet is on the board, or open lost = %d, want %d",
+			board.OpenLost, before.OpenLost)
+	}
+	// The author cannot resolve it either: the report does not exist for anyone.
+	if rec := testAPI.call(http.MethodPost, "/v1/reports/"+report.Id.String()+"/resolution", "token-ana", ""); rec.Code != http.StatusNotFound {
+		t.Errorf("resolution of the report of a deleted pet: status = %d, want 404", rec.Code)
+	}
+	var status string
+	const read = "SELECT status FROM reports WHERE id = $1"
+	if err := testAPI.pool.QueryRow(t.Context(), read, report.Id.String()).Scan(&status); err != nil || status != "open" {
+		t.Errorf("status of the report = %q, %v, want open: the 404 must not write", status, err)
 	}
 	if rec := testAPI.publicJSON(http.MethodGet, "/v1/reports/"+report.Id.String(), ""); rec.Code != http.StatusNotFound {
 		t.Errorf("detail of the report of a deleted pet: status = %d, want 404", rec.Code)
@@ -375,5 +395,49 @@ func TestBoardPages(t *testing.T) {
 	}
 	if rec := testAPI.publicJSON(http.MethodGet, "/v1/reports?page=0", ""); rec.Code != http.StatusBadRequest {
 		t.Errorf("page 0: status = %d, want 400", rec.Code)
+	}
+}
+
+// RN-43: um endpoint público aceita no máximo 10 POST por minuto, por IP e
+// por caminho. The found report and the sighting are public POSTs.
+func TestReportPostsHaveARateLimit(t *testing.T) {
+	testAPI := petsAPI(t)
+	const address = "203.0.113.9:4000"
+	post := func() int {
+		req := httptest.NewRequest(http.MethodPost, "/v1/reports/0195f3c8-7a55-7c1e-9d2a-0d1c2b3a4f5e/sightings",
+			strings.NewReader(`{}`))
+		req.Header.Set("Content-Type", "application/json")
+		req.RemoteAddr = address
+		rec := httptest.NewRecorder()
+		testAPI.handler.ServeHTTP(rec, req)
+		return rec.Code
+	}
+	for i := range 10 {
+		if status := post(); status != http.StatusNotFound {
+			t.Fatalf("request %d: status = %d, want 404 (the report does not exist)", i+1, status)
+		}
+	}
+	if status := post(); status != http.StatusTooManyRequests {
+		t.Errorf("request 11: status = %d, want 429", status)
+	}
+}
+
+// A path with an identifier that is not a UUID gets 400, as the contract says.
+func TestReportPathWithAnInvalidIdentifier(t *testing.T) {
+	testAPI := petsAPI(t)
+	for _, path := range []string{"/v1/reports/not-an-id", "/v1/reports/not-an-id/resolution"} {
+		method, token := http.MethodGet, ""
+		if strings.HasSuffix(path, "resolution") {
+			method, token = http.MethodPost, "token-ana"
+		}
+		var rec *httptest.ResponseRecorder
+		if token == "" {
+			rec = testAPI.publicJSON(method, path, "")
+		} else {
+			rec = testAPI.call(method, path, token, "")
+		}
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("%s %s: status = %d, want 400", method, path, rec.Code)
+		}
 	}
 }

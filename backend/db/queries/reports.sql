@@ -12,7 +12,7 @@ VALUES (
     'found', sqlc.arg(photo_key), sqlc.arg(resolve_code_hash), sqlc.arg(latitude),
     sqlc.arg(longitude), sqlc.narg(place), sqlc.narg(description), now()
 )
-RETURNING id;
+RETURNING id, occurred_at, created_at;
 
 -- name: GetReport :one
 SELECT * FROM report_views WHERE id = sqlc.arg(id);
@@ -59,9 +59,12 @@ RETURNING id, latitude, longitude, place, description, created_at;
 
 -- name: ResolveOwnReport :execrows
 -- RN-29: só o autor resolve. Resolver de novo não muda nada.
-UPDATE reports
-SET status = 'resolved', resolved_at = COALESCE(resolved_at, now())
-WHERE id = sqlc.arg(id) AND owner_id = sqlc.arg(owner_id);
+-- A lost report of a deleted pet is not in report_views: it does not exist
+-- for anyone, also for the author.
+UPDATE reports AS r
+SET status = 'resolved', resolved_at = COALESCE(r.resolved_at, now())
+WHERE r.id = sqlc.arg(id) AND r.owner_id = sqlc.arg(owner_id)
+    AND EXISTS (SELECT 1 FROM report_views AS v WHERE v.id = r.id);
 
 -- name: ResolveFoundReport :execrows
 -- RN-69: quem tem o código resolve o achado.

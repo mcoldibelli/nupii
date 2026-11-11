@@ -6,6 +6,7 @@ import { listBoard, type ReportPage } from "../../src/api/reports";
 import { formatDateTime } from "../../src/biometrics/messages";
 import { apiUrl } from "../../src/config";
 import { reportFailureMessage, reportTitle } from "../../src/reports/form";
+import { speciesLabels } from "../../src/pets/labels";
 import { styles } from "../../src/screens/styles";
 
 /** The board: the open lost and found reports (RF-16, RN-24). */
@@ -71,6 +72,12 @@ export default function Board() {
             )}
             <View style={local.rowText}>
               <Text style={local.title}>{reportTitle(item)}</Text>
+              {item.petSpecies !== undefined && (
+                <Text style={local.line}>
+                  {speciesLabels[item.petSpecies]}
+                  {item.petHasNoseprint ? ", com focinho cadastrado" : ""}
+                </Text>
+              )}
               {item.place !== undefined && <Text style={local.line}>{item.place}</Text>}
               <Text style={local.line}>{formatDateTime(item.occurredAt)}</Text>
             </View>

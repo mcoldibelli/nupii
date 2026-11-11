@@ -43,7 +43,7 @@ const limits: { field: "name" | "breed" | "vetName" | "vetClinic" | "vetPhone"; 
 ];
 
 /** Converts DD/MM/AAAA to the date of the API (AAAA-MM-DD), or null. */
-function parseDate(text: string): { iso: string; time: number } | null {
+export function parseDate(text: string): { iso: string; time: number } | null {
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text);
   if (match === null) {
     return null;

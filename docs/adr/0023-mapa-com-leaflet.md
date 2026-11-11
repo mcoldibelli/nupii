@@ -42,7 +42,14 @@ Leaflet 1.9.4 (licença BSD-2-Clause), com os quadros do mapa do OpenStreetMap, 
 - O mapa depende de dois serviços de fora: o `unpkg.com` para o Leaflet e o `tile.openstreetmap.org` para os quadros. Sem internet, o mapa não aparece, e a tela continua com o resto.
 - A política de uso do servidor de quadros do OpenStreetMap não aceita uso pesado. Gatilho para trocar: a publicação com usuários reais (fatia 10). A troca muda só a URL dos quadros em `mobile/src/map/`.
 
-Verificação nas tarefas do app e da web:
+## Não verificado
+
+- O mapa dentro do `WebView` no Expo Go e dentro do `iframe` da web pública. A verificação é feita nas tarefas do app e da web.
+- O mapa em um aparelho real e no iOS.
+
+## Verificação posterior
+
+2026-11-11, nas tarefas do app e da web:
 
 | Onde | Resultado |
 |---|---|
@@ -50,9 +57,7 @@ Verificação nas tarefas do app e da web:
 | `iframe` da web pública, Chrome com a tela de um Pixel 7 | O mapa da ficha aparece (9 quadros), e um toque no mapa do formulário escolhe o ponto do avistamento |
 | Peso das páginas públicas | No máximo 366 KB de JavaScript com gzip, dentro do orçamento de 500 KB |
 
-## Não verificado
+Continua sem verificação: o mapa em um aparelho real e no iOS.
 
-- O mapa em um aparelho real e no iOS.
-- O começo do mapa na posição do aparelho. No emulador, o mapa abriu no centro padrão.
 
 Referências: [Leaflet](https://leafletjs.com/reference.html), [política de uso dos quadros do OpenStreetMap](https://operations.osmfoundation.org/policies/tiles/), [react-native-webview](https://github.com/react-native-webview/react-native-webview/blob/master/docs/Reference.md), [Expo, WebView](https://docs.expo.dev/versions/latest/sdk/webview/).

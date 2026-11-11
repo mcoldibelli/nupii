@@ -100,7 +100,6 @@ Leituras com `JOIN` entre módulos, conhecidas pelos requisitos:
 | Mural e ficha (visão `report_views`) | `reports` | `pets` (nome, espécie, foto, pet não excluído), `biometrics` (o pet tem cadastro) | RN-24, RN-72 |
 | Avisos de encontro do tutor | `biometrics` | `pets` (pets do tutor, não excluídos) | RN-66 |
 | Tutores perto de um ponto | `alerts` | `identity` (conta ativa) | RN-32, RN-33 |
-| Mural com a foto do pet | `reports` | `pets` | RF-16 |
 
 ## Tarefas em segundo plano
 
@@ -153,6 +152,7 @@ Concorrência, declarada por regra:
 - Rotas em inglês, com versão no caminho: `/v1/...`.
 - Endpoints públicos têm limite de tentativas por IP (RN-43). O IP é o endereço da conexão, e a rota é o padrão do contrato, não o caminho com os identificadores. Acima do limite, a resposta é 429 com o código `rate_limited`. Atrás de um proxy, o endereço da conexão é o do proxy: a fatia 10 decide de onde a API lê o endereço do cliente.
 - Uma rota pública responde com `Access-Control-Allow-Origin: *`, para a página pública ler a resposta de outra origem. As rotas com token não têm esse cabeçalho.
+- O mapa da web fica em um `iframe` com `sandbox="allow-scripts"`: os scripts do mapa rodam em uma origem própria, sem acesso à página. Por isso, na web, o mapa não começa na posição do aparelho, e o visitante toca o ponto.
 - A API responde 204 à requisição `OPTIONS` de verificação que o navegador envia antes de um `POST` com JSON para uma rota pública. Uma rota com token recebe 404.
 - Autenticação: uma operação do contrato sem `security` é pública. Toda outra operação pede o ID token do Firebase no cabeçalho `Authorization: Bearer`. Sem token válido, a resposta é 401 com o código `unauthenticated` (RN-46). A conferência do token acontece antes da leitura do corpo.
 - O módulo `identity` depende da interface `TokenVerifier`. A implementação com o Firebase Admin SDK fica em `platform/firebase`, e `cmd/api` liga as duas.
@@ -225,7 +225,7 @@ Os arquivos de pesos ficam em uma release do repositório, com a tag `model-<ver
 
 ### Documentação
 
-- Um ADR por decisão, no formato de [ADR 0001](adr/0001-registrar-decisoes-em-adrs.md). Um ADR aceito não é editado: uma decisão nova cria um ADR novo que substitui o anterior.
+- Um ADR por decisão, no formato de [ADR 0001](adr/0001-registrar-decisoes-em-adrs.md). Um ADR aceito não é editado: uma decisão nova cria um ADR novo que substitui o anterior. A única mudança aceita é o resultado de um item de "Não verificado", em uma seção "Verificação posterior", com a data. O texto da decisão não muda.
 - Uma decisão ou uma implementação que muda o que um documento diz atualiza esse documento no mesmo PR. Isso vale para este documento, para os requisitos, para o roteiro e para os READMEs.
 - Um requisito em rascunho é fechado em [requisitos.md](requisitos.md) antes do código da fatia dele.
 - Cada projeto (`backend`, `mobile`, `inference`) tem um README com três partes: como executar, como testar, variáveis de ambiente.

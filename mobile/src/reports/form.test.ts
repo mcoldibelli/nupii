@@ -1,4 +1,4 @@
-import { openLostReportOf, reportFailureMessage, reportTitle, toDetails } from "./form";
+import { openLostReportOf, reportFailureMessage, reportTitle, toDetails, toOccurredAt } from "./form";
 
 describe("toDetails", () => {
   it("RN-70: removes the spaces around the texts, and an empty text has no value", () => {
@@ -58,5 +58,29 @@ describe("reportTitle", () => {
     expect(reportTitle({ ...base, type: "lost", petName: "Rex" })).toBe("Perdido: Rex");
     expect(reportTitle({ ...base, type: "found" })).toBe("Achado");
     expect(reportTitle({ ...base, type: "lost", petName: "Rex", status: "resolved" })).toBe("Perdido: Rex (resolvido)");
+  });
+});
+
+describe("toOccurredAt", () => {
+  const now = new Date(Date.UTC(2026, 10, 11, 9, 30));
+
+  it("RN-71: an empty date has no value: the API uses the time of the registration", () => {
+    expect(toOccurredAt(" ", now)).toEqual({ ok: true });
+  });
+
+  it("RN-71: the date of today has no value, so it is not after now", () => {
+    expect(toOccurredAt("11/11/2026", now)).toEqual({ ok: true });
+  });
+
+  it("RN-71: a date before today is the middle of that day, in UTC", () => {
+    expect(toOccurredAt("09/11/2026", now)).toEqual({ ok: true, value: "2026-11-09T12:00:00.000Z" });
+  });
+
+  it.each([
+    ["12/11/2026", "A data do desaparecimento não pode ser futura."],
+    ["31/02/2026", "Informe a data no formato DD/MM/AAAA."],
+    ["ontem", "Informe a data no formato DD/MM/AAAA."],
+  ])("RN-71: refuses %s", (text, message) => {
+    expect(toOccurredAt(text, now)).toEqual({ ok: false, message });
   });
 });

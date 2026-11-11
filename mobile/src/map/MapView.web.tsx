@@ -32,7 +32,8 @@ export function MapView({ markers, onPick, style }: MapViewProps) {
 
   return (
     <View style={style}>
-      <iframe ref={frame} title="Mapa" srcDoc={html} allow="geolocation" style={{ border: 0, height: "100%", width: "100%" }} />
+      {/* sandbox: the scripts of the map run in an origin of their own. */}
+      <iframe ref={frame} title="Mapa" srcDoc={html} sandbox="allow-scripts" style={{ border: 0, height: "100%", width: "100%" }} />
     </View>
   );
 }

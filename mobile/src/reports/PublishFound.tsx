@@ -1,4 +1,3 @@
-import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
@@ -57,7 +56,10 @@ export function PublishFound({ photo }: { photo: () => Blob }) {
           testID="found-open-report"
           accessibilityRole="link"
           style={styles.link}
-          onPress={() => router.push({ pathname: "/reports/[id]", params: { id: link.reportId, code: link.code } })}
+          onPress={() => {
+            // The code goes in the fragment, as in the link that the person keeps.
+            window.location.assign(link.url);
+          }}
         >
           <Text style={styles.linkText}>Abrir o achado</Text>
         </Pressable>

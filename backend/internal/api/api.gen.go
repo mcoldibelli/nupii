@@ -278,12 +278,13 @@ type IdentificationCandidate struct {
 	Strong bool `json:"strong"`
 }
 
-// LostReportInput defines model for LostReportInput.
+// LostReportInput A latitude e a longitude são obrigatórias. Sem uma delas, a resposta é 400 `invalid_request`.
+// O esquema não as marca como obrigatórias para o servidor saber quando uma delas falta.
 type LostReportInput struct {
 	// Description Recado, com no máximo 1.000 caracteres.
-	Description *string `json:"description,omitempty"`
-	Latitude    float64 `json:"latitude"`
-	Longitude   float64 `json:"longitude"`
+	Description *string  `json:"description,omitempty"`
+	Latitude    *float64 `json:"latitude,omitempty"`
+	Longitude   *float64 `json:"longitude,omitempty"`
 
 	// OccurredAt Quando o pet desapareceu. Não é futura. Sem valor, vale o momento do registro.
 	OccurredAt *time.Time         `json:"occurredAt,omitempty"`
@@ -2713,6 +2714,20 @@ func (response GetReport200JSONResponse) VisitGetReportResponse(w http.ResponseW
 	return err
 }
 
+type GetReport400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response GetReport400JSONResponse) VisitGetReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetReport404JSONResponse struct{ ReportNotFoundJSONResponse }
 
 func (response GetReport404JSONResponse) VisitGetReportResponse(w http.ResponseWriter) error {
@@ -2844,6 +2859,20 @@ func (response ResolveReport200JSONResponse) VisitResolveReportResponse(w http.R
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveReport400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ResolveReport400JSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
 	_, err := buf.WriteTo(w)
 	return err
 }

@@ -173,7 +173,7 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 | RN-24 | O mural mostra 20 ocorrências abertas por página, da mais nova para a mais antiga, com as contagens de perdidos e de achados abertos. Um desaparecimento de um pet excluído sai do mural. | RF-16 | estável |
 | RN-25 | A ficha de uma ocorrência do tipo perdido mostra os avistamentos dela, do mais antigo para o mais novo. | RF-17 | estável |
 | RN-26 | Só o tutor do pet registra o desaparecimento dele. | RF-18 | estável |
-| RN-27 | Um achado não pede conta e não pede pet cadastrado. A foto do achado é a foto do focinho usada na identificação: uma imagem JPEG, PNG ou WebP de até 8 MB (RN-59). | RF-19 | estável |
+| RN-27 | Um achado não pede conta e não pede pet cadastrado. A foto do achado é a foto do focinho usada na identificação: uma imagem JPEG, PNG ou WebP de até 8 MB (RN-59). A página pública envia a foto da identificação. A API não liga o achado à identificação. | RF-19 | estável |
 | RN-28 | Um avistamento só entra em uma ocorrência do tipo perdido que está aberta. Latitude e longitude vêm juntas ou não vêm. Sem coordenadas, vale o ponto do desaparecimento. | RF-20 | estável |
 | RN-29 | Só o autor resolve a ocorrência. Uma ocorrência resolvida sai do mural e não recebe avistamentos. Resolver de novo não muda nada. | RF-21 | estável |
 | RN-68 | Um pet tem no máximo um desaparecimento aberto. Um segundo registro recebe 409 `lost_report_open`. | RF-18 | estável |

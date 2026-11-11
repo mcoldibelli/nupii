@@ -1,5 +1,6 @@
 import { failureMessage } from "../api/http";
 import type { Report, ReportDetails } from "../api/reports";
+import { parseDate } from "../pets/form";
 
 export type DetailsForm = { place: string; description: string };
 
@@ -51,4 +52,31 @@ export function reportFailureMessage(result: { ok: false; code: string }): strin
 export function reportTitle(report: Report): string {
   const title = report.type === "lost" ? `Perdido: ${report.petName ?? "pet"}` : "Achado";
   return report.status === "resolved" ? `${title} (resolvido)` : title;
+}
+
+export type OccurredAtResult = { ok: true; value?: string } | { ok: false; message: string };
+
+/**
+ * Converts the date of the form (DD/MM/AAAA) to the time of the lost report.
+ * The date of today, or no date, has no value: the API uses the time of the
+ * registration. A date before today is the middle of that day, in UTC.
+ *
+ * RN-71: a data do desaparecimento é opcional e não é futura.
+ */
+export function toOccurredAt(text: string, now: Date = new Date()): OccurredAtResult {
+  if (text.trim() === "") {
+    return { ok: true };
+  }
+  const date = parseDate(text.trim());
+  if (date === null) {
+    return { ok: false, message: "Informe a data no formato DD/MM/AAAA." };
+  }
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  if (date.time > today) {
+    return { ok: false, message: "A data do desaparecimento não pode ser futura." };
+  }
+  if (date.time === today) {
+    return { ok: true };
+  }
+  return { ok: true, value: new Date(date.time + 12 * 60 * 60 * 1000).toISOString() };
 }

@@ -262,7 +262,11 @@ func (s *Service) ReportLost(ctx context.Context, input LostInput) (Report, erro
 	if err != nil {
 		return Report{}, fmt.Errorf("create lost report: %w", err)
 	}
-	return s.Get(ctx, id)
+	report, err := s.Get(ctx, id)
+	if err != nil {
+		return Report{}, fmt.Errorf("read the new lost report: %w", err)
+	}
+	return report, nil
 }
 
 // ReportFound publishes a found dog, with the photo of its nose (RF-19,
@@ -284,7 +288,9 @@ func (s *Service) ReportFound(
 	}
 	contentType, extension, ok := imagefile.Type(photo)
 	if !ok {
-		return Report{}, "", &ValidationError{Message: "the photo must be a JPEG, PNG or WebP image"}
+		return Report{}, "", &ValidationError{
+			Message: "the photo must be a JPEG, PNG or WebP image",
+		}
 	}
 	code, hash, err := newResolveCode()
 	if err != nil {
@@ -296,7 +302,7 @@ func (s *Service) ReportFound(
 	if err != nil {
 		return Report{}, "", fmt.Errorf("store the photo of the found report: %w", err)
 	}
-	id, err := s.queries.CreateFoundReport(ctx, reportsdb.CreateFoundReportParams{
+	row, err := s.queries.CreateFoundReport(ctx, reportsdb.CreateFoundReportParams{
 		PhotoKey:        &key,
 		ResolveCodeHash: hash,
 		Latitude:        point.Latitude,
@@ -313,8 +319,26 @@ func (s *Service) ReportFound(
 		}
 		return Report{}, "", fmt.Errorf("create found report: %w", err)
 	}
-	report, err = s.Get(ctx, id)
-	return report, code, err
+	// The answer comes from the data of the insert. A read after the write
+	// could fail, and the code would not reach the client (RN-69).
+	report = Report{
+		ID:         row.ID,
+		Type:       TypeFound,
+		Status:     StatusOpen,
+		Point:      point,
+		Details:    details,
+		OccurredAt: row.OccurredAt,
+		CreatedAt:  row.CreatedAt,
+	}
+	url, err := s.photos.SignedURL(key, _photoURLExpiry)
+	if err != nil {
+		// The report exists: the client still gets the code, with no photo.
+		s.logger.ErrorContext(ctx, "sign the URL of a new found report",
+			slog.String("report_id", row.ID), slog.Any("error", err))
+		return report, code, nil
+	}
+	report.PhotoURL = &url
+	return report, code, nil
 }
 
 // AddSighting registers that someone saw the pet of the lost report
@@ -393,7 +417,11 @@ func (s *Service) Resolve(ctx context.Context, id string) (Report, error) {
 	if rows == 0 {
 		return Report{}, ErrReportNotFound
 	}
-	return s.Get(ctx, id)
+	report, err := s.Get(ctx, id)
+	if err != nil {
+		return Report{}, fmt.Errorf("read the resolved report: %w", err)
+	}
+	return report, nil
 }
 
 // ResolveWithCode resolves the found report id with the code of its
@@ -410,7 +438,11 @@ func (s *Service) ResolveWithCode(ctx context.Context, id, code string) (Report,
 	if rows == 0 {
 		return Report{}, ErrReportNotFound
 	}
-	return s.Get(ctx, id)
+	report, err := s.Get(ctx, id)
+	if err != nil {
+		return Report{}, fmt.Errorf("read the resolved found report: %w", err)
+	}
+	return report, nil
 }
 
 // Mine returns the reports of the owner that made the request, open and

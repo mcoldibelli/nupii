@@ -36,7 +36,7 @@ VALUES (
     'found', $1, $2, $3,
     $4, $5, $6, now()
 )
-RETURNING id
+RETURNING id, occurred_at, created_at
 `
 
 type CreateFoundReportParams struct {
@@ -48,7 +48,13 @@ type CreateFoundReportParams struct {
 	Description     *string
 }
 
-func (q *Queries) CreateFoundReport(ctx context.Context, arg CreateFoundReportParams) (string, error) {
+type CreateFoundReportRow struct {
+	ID         string
+	OccurredAt time.Time
+	CreatedAt  time.Time
+}
+
+func (q *Queries) CreateFoundReport(ctx context.Context, arg CreateFoundReportParams) (CreateFoundReportRow, error) {
 	row := q.db.QueryRow(ctx, createFoundReport,
 		arg.PhotoKey,
 		arg.ResolveCodeHash,
@@ -57,9 +63,9 @@ func (q *Queries) CreateFoundReport(ctx context.Context, arg CreateFoundReportPa
 		arg.Place,
 		arg.Description,
 	)
-	var id string
-	err := row.Scan(&id)
-	return id, err
+	var i CreateFoundReportRow
+	err := row.Scan(&i.ID, &i.OccurredAt, &i.CreatedAt)
+	return i, err
 }
 
 const createLostReport = `-- name: CreateLostReport :one
@@ -351,9 +357,10 @@ func (q *Queries) ResolveFoundReport(ctx context.Context, arg ResolveFoundReport
 }
 
 const resolveOwnReport = `-- name: ResolveOwnReport :execrows
-UPDATE reports
-SET status = 'resolved', resolved_at = COALESCE(resolved_at, now())
-WHERE id = $1 AND owner_id = $2
+UPDATE reports AS r
+SET status = 'resolved', resolved_at = COALESCE(r.resolved_at, now())
+WHERE r.id = $1 AND r.owner_id = $2
+    AND EXISTS (SELECT 1 FROM report_views AS v WHERE v.id = r.id)
 `
 
 type ResolveOwnReportParams struct {
@@ -362,6 +369,8 @@ type ResolveOwnReportParams struct {
 }
 
 // RN-29: só o autor resolve. Resolver de novo não muda nada.
+// A lost report of a deleted pet is not in report_views: it does not exist
+// for anyone, also for the author.
 func (q *Queries) ResolveOwnReport(ctx context.Context, arg ResolveOwnReportParams) (int64, error) {
 	result, err := q.db.Exec(ctx, resolveOwnReport, arg.ID, arg.OwnerID)
 	if err != nil {
