@@ -109,7 +109,9 @@ Uma tabela `jobs` no Postgres. Workers no mesmo binário leem com `SELECT ... FO
 | Tarefa | Quem cria | Requisito |
 |---|---|---|
 | `notify_lost_report` | `reports`, na mesma transação da ocorrência | RF-24, RNF-01 |
-| `send_push` | `alerts` | RF-26 |
+| `notify_sighting` | `reports`, na mesma transação do avistamento | RN-73 |
+| `notify_found` | `biometrics`, na mesma transação da confirmação | RN-16, RN-73 |
+| `send_push` | `alerts`, na mesma transação da notificação | RF-26 |
 | `reembed_noseprint` | `biometrics`, quando a versão do modelo muda. Até a fila de tarefas existir (fatia 6), o recálculo é executado na subida da API, em uma goroutine (RN-67) | RF-15 |
 | `purge_expired_data` | agenda diária | RF-32, RN-42 |
 | `delete_identity_user` | `identity`, na mesma transação da anonimização | RF-08, RN-03 |
@@ -119,6 +121,8 @@ Concorrência, declarada por regra:
 - O contexto raiz nasce em `main` e é cancelado por `SIGTERM`.
 - Cada worker para quando o contexto é cancelado e termina a tarefa em curso antes de sair.
 - Uma tarefa que falha volta para a fila com espera crescente. Depois do limite de tentativas ela fica marcada como falha.
+- O worker executa a tarefa na mesma transação que trava a linha dela. As escritas da tarefa no banco e o fim da tarefa entram juntos, ou não entram.
+- A tarefa leva os dados de que precisa. O módulo que executa a tarefa não lê as tabelas do módulo que a criou.
 - Toda tarefa precisa ser segura para executar duas vezes.
 - O recálculo dos vetores (RN-67) é uma goroutine que nasce em `main` depois de o servidor HTTP subir. Ela termina quando o recálculo termina ou quando o contexto é cancelado, e `main` espera por ela antes de sair. Se o serviço de inferência não responde, ela escreve um aviso no log e para: os cadastros que faltam ficam para a subida seguinte.
 
@@ -295,6 +299,9 @@ O código usa o termo em inglês. A documentação e as telas usam o termo em po
 | resolver | resolve | O autor fecha a ocorrência: o pet voltou para casa |
 | código do achado | resolve code | Código que quem publicou um achado sem conta usa para resolver o achado |
 | aviso, notificação | notification | Mensagem para um tutor |
+| tarefa | job | Trabalho em segundo plano, gravado na tabela `jobs` |
+| dispositivo | device | O aparelho do tutor, com o token de push |
+| alerta de proximidade | nearby alert | Notificação de um desaparecimento perto do tutor |
 | evento de saúde | health event | Vacina, consulta, medicação, exame ou anotação |
 | carteirinha | health card | Resumo de saúde do pet |
 | compartilhamento | share link | Link público da carteirinha |

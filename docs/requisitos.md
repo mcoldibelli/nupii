@@ -59,10 +59,10 @@
 | ID | Requisito | Fatia | Estado |
 |---|---|---|---|
 | RF-22 | O app envia a localização do tutor para a API. | 6 | estável |
-| RF-23 | O app registra e remove o dispositivo do tutor para receber push. | 6 | rascunho |
+| RF-23 | O app registra e remove o dispositivo do tutor para receber push. A API tem as operações na fatia 6. O app usa as operações na fatia 10 ([ADR 0024](adr/0024-push-no-app.md)). | 6 e 10 | estável |
 | RF-24 | Quando um desaparecimento é registrado, os tutores próximos recebem uma notificação. | 6 | estável |
 | RF-25 | O tutor lista as notificações e marca uma notificação como lida. | 6 | estável |
-| RF-26 | O sistema envia cada notificação também por push. | 6 | rascunho |
+| RF-26 | O sistema envia cada notificação também por push. | 6 | estável |
 
 ### Saúde
 
@@ -187,12 +187,15 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 | ID | Regra | RF | Estado |
 |---|---|---|---|
 | RN-30 | O sistema guarda só a última localização do tutor. | RF-22 | estável |
-| RN-31 | Um token de push pertence ao tutor que fez o último login naquele aparelho. | RF-23 | rascunho |
+| RN-31 | Um token de push pertence ao tutor que fez o último registro dele. Registrar de novo um token de outro tutor passa o token para o tutor atual. O tutor remove só um token dele. | RF-23 | estável |
 | RN-32 | O alerta de proximidade vai para os tutores com a última localização a até 3.000 m do ponto do desaparecimento. | RF-24 | estável |
 | RN-33 | O alerta de proximidade vai para no máximo 100 tutores, os mais próximos. | RF-24 | estável |
 | RN-34 | O autor da ocorrência não recebe o alerta de proximidade. | RF-24 | estável |
 | RN-35 | A lista mostra as 50 notificações mais recentes. A notificação existe na lista mesmo quando o push não sai. | RF-25 | estável |
-| RN-36 | O push só é enviado com a credencial configurada. Um token inválido é desativado. | RF-26 | rascunho |
+| RN-36 | O push só é enviado com a credencial configurada. Sem a credencial, a notificação fica como não enviada. Um token que o Cloud Messaging recusa é desativado. | RF-26 | estável |
+| RN-73 | Um avistamento cria uma notificação para o tutor do pet. Uma confirmação de encontro também (RN-16). | RF-20, RF-13, RF-25 | estável |
+| RN-74 | Uma notificação de outro tutor não existe para quem chama. Marcar de novo como lida não muda a data. | RF-25 | estável |
+| RN-75 | A localização do tutor tem latitude e longitude de um ponto da Terra (RN-61). | RF-22 | estável |
 
 ### Saúde
 
@@ -221,7 +224,7 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 | ID | Requisito | Como é atendido |
 |---|---|---|
 | RNF-01 | Um alerta de desaparecimento não se perde quando o processo para. | A tarefa é gravada na mesma transação da ocorrência ([ADR 0003](adr/0003-estado-postgres-fila-no-banco.md)). |
-| RNF-02 | Uma tarefa em segundo plano que falha é tentada de novo, com espera crescente. Toda tarefa é segura para executar duas vezes. | Fila de tarefas ([ADR 0003](adr/0003-estado-postgres-fila-no-banco.md)). |
+| RNF-02 | Uma tarefa em segundo plano que falha é tentada de novo, com espera crescente: 10 s, 20 s, 40 s e 80 s. Depois de 5 tentativas, a tarefa fica marcada como falha. Toda tarefa é segura para executar duas vezes. | Fila de tarefas ([ADR 0003](adr/0003-estado-postgres-fila-no-banco.md)). |
 | RNF-03 | A API não guarda senha. O token da carteirinha fica no banco só como hash. A política de privacidade diz onde ficam o e-mail e a senha do tutor. | [ADR 0008](adr/0008-autenticacao-firebase.md), RN-39. |
 | RNF-04 | O visitante usa os fluxos públicos sem conta e sem instalar nada. | Web pública ([ADR 0006](adr/0006-mobile-expo-web-publica.md)). |
 | RNF-05 | O app funciona em Android e iOS. A web pública funciona em um navegador de celular. | [ADR 0006](adr/0006-mobile-expo-web-publica.md). |
