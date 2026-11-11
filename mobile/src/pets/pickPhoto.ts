@@ -17,6 +17,22 @@ export async function pickPhoto(): Promise<LocalFile | null> {
 }
 
 /**
+ * Opens the camera of the device. Returns the photo, null when the owner
+ * cancels, or "denied" when the app has no permission to use the camera.
+ */
+export async function takePhoto(): Promise<LocalFile | null | "denied"> {
+  const permission = await ImagePicker.requestCameraPermissionsAsync();
+  if (!permission.granted) {
+    return "denied";
+  }
+  const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.9 });
+  if (result.canceled || result.assets.length === 0) {
+    return null;
+  }
+  return { uri: result.assets[0].uri };
+}
+
+/**
  * Returns the content of a file of the device as the part of a multipart
  * body. The fetch of Expo reads the bytes of the file from this object.
  */

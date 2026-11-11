@@ -93,6 +93,9 @@ export default function PetList() {
           </Pressable>
         )}
       />
+      <Pressable testID="found-notices-link" accessibilityRole="button" style={styles.link} onPress={() => router.push("/found-notices")}>
+        <Text style={styles.linkText}>Avisos de encontro</Text>
+      </Pressable>
       <Pressable testID="new-pet-button" accessibilityRole="button" style={styles.button} onPress={() => router.push("/pets/new")}>
         <Text style={styles.buttonText}>Novo pet</Text>
       </Pressable>
