@@ -1,6 +1,6 @@
 # ADR 0010: Ferramentas de teste
 
-Data: 2026-11-10. Estado: proposto. Este ADR aprova seis dependências de teste. Nenhuma entra no binário da API, no app publicado ou na imagem do serviço de inferência.
+Data: 2026-11-10. Estado: aceito. Este ADR aprova seis dependências de teste. Nenhuma entra no binário da API, no app publicado ou na imagem do serviço de inferência.
 
 ## Contexto
 
