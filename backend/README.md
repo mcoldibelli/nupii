@@ -81,6 +81,22 @@ As migrations ficam em `db/migrations/`, em SQL, no formato do goose: um arquivo
 
 Uma migration aplicada não é editada. Uma mudança no esquema é um arquivo novo.
 
+## Consultas SQL com sqlc
+
+As consultas ficam em `db/queries/`, um arquivo por módulo. O `sqlc` lê as consultas e as migrations e gera um pacote Go por módulo (por exemplo `internal/identity/identitydb/`). O código gerado não é editado à mão.
+
+Depois de mudar uma consulta ou uma migration:
+
+```bash
+go generate ./...
+go test -race -tags=integration ./...
+```
+
+Regras das consultas:
+
+- Cada consulta lista as colunas. `SELECT *` não é usado.
+- Os testes de integração de consultas usam uma transação que é desfeita no fim. Eles não deixam linhas no banco.
+
 ## Código gerado do contrato
 
 O arquivo `internal/api/api.gen.go` é gerado a partir de [api/openapi.yaml](../api/openapi.yaml). Ele não é editado à mão.
@@ -106,4 +122,8 @@ A primeira execução baixa o `oapi-codegen` na versão fixada em `internal/api/
 | `internal/platform/httpx/` | Middleware HTTP: identificador e log de cada requisição |
 | `internal/platform/postgres/` | Conexão com o banco e aplicação das migrations |
 | `db/migrations/` | Arquivos SQL das migrations |
+| `db/queries/` | Arquivos SQL das consultas, a entrada do `sqlc` |
+| `sqlc.yaml` | Configuração do `sqlc`: qual arquivo de consultas gera qual pacote |
+| `internal/identity/` | Módulo do tutor. `identitydb/` é o código gerado das consultas |
+| `internal/platform/postgres/postgrestest/` | Banco para os testes de integração |
 | `Dockerfile` | Imagem da API: compila um binário estático e copia para uma imagem vazia, com usuário sem privilégio |

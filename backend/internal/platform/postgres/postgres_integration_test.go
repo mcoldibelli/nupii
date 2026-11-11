@@ -3,26 +3,16 @@
 package postgres_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/mcoldibelli/nupii/backend/db/migrations"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres/postgrestest"
 )
-
-// An integration test without a database fails. It is not skipped.
-func databaseURL(t *testing.T) string {
-	t.Helper()
-	url := os.Getenv("DATABASE_URL")
-	if url == "" {
-		t.Fatal("DATABASE_URL is not set: start the compose and set the variable (see backend/README.md)")
-	}
-	return url
-}
 
 func TestMigrateCreatesTheExtensionsAndCanRunAgain(t *testing.T) {
 	ctx := t.Context()
-	pool, err := postgres.Open(ctx, databaseURL(t))
+	pool, err := postgres.Open(ctx, postgrestest.URL(t))
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
