@@ -152,7 +152,8 @@ func isPublic(r *http.Request) bool {
 		"GET /v1/reports/{reportId}",
 		"POST /v1/reports/found",
 		"POST /v1/reports/{reportId}/sightings",
-		"POST /v1/reports/{reportId}/code-resolution":
+		"POST /v1/reports/{reportId}/code-resolution",
+		"POST /v1/share-links/opening":
 		return true
 	default:
 		return false

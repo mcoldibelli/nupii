@@ -170,6 +170,37 @@ func (q *Queries) CreateHealthEvent(ctx context.Context, arg CreateHealthEventPa
 	return i, err
 }
 
+const createShareLink = `-- name: CreateShareLink :one
+INSERT INTO share_links (pet_id, token_hash, expires_at)
+VALUES ($1, $2, now() + interval '30 days')
+RETURNING id, expires_at, opens, created_at
+`
+
+type CreateShareLinkParams struct {
+	PetID     string
+	TokenHash []byte
+}
+
+type CreateShareLinkRow struct {
+	ID        string
+	ExpiresAt time.Time
+	Opens     int32
+	CreatedAt time.Time
+}
+
+// RN-40: o link vale 30 dias.
+func (q *Queries) CreateShareLink(ctx context.Context, arg CreateShareLinkParams) (CreateShareLinkRow, error) {
+	row := q.db.QueryRow(ctx, createShareLink, arg.PetID, arg.TokenHash)
+	var i CreateShareLinkRow
+	err := row.Scan(
+		&i.ID,
+		&i.ExpiresAt,
+		&i.Opens,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const deleteHealthAttachment = `-- name: DeleteHealthAttachment :one
 DELETE FROM health_attachments AS a
 USING health_events AS h
@@ -245,6 +276,91 @@ func (q *Queries) HealthEventExists(ctx context.Context, arg HealthEventExistsPa
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const listCardParasiteControl = `-- name: ListCardParasiteControl :many
+SELECT name, medication_category, date, interval_days FROM health_events
+WHERE pet_id = $1 AND type = 'medication'
+    AND medication_category IN ('flea', 'deworm')
+ORDER BY date DESC, created_at DESC
+`
+
+type ListCardParasiteControlRow struct {
+	Name               *string
+	MedicationCategory *string
+	Date               time.Time
+	IntervalDays       *int32
+}
+
+// RN-83: as medicações antipulgas e vermífugo da carteirinha.
+func (q *Queries) ListCardParasiteControl(ctx context.Context, petID string) ([]ListCardParasiteControlRow, error) {
+	rows, err := q.db.Query(ctx, listCardParasiteControl, petID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCardParasiteControlRow
+	for rows.Next() {
+		var i ListCardParasiteControlRow
+		if err := rows.Scan(
+			&i.Name,
+			&i.MedicationCategory,
+			&i.Date,
+			&i.IntervalDays,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCardVaccines = `-- name: ListCardVaccines :many
+SELECT name, date, next_dose_date, manufacturer, batch, dose, vet FROM health_events
+WHERE pet_id = $1 AND type = 'vaccine'
+ORDER BY date DESC, created_at DESC
+`
+
+type ListCardVaccinesRow struct {
+	Name         *string
+	Date         time.Time
+	NextDoseDate *time.Time
+	Manufacturer *string
+	Batch        *string
+	Dose         *string
+	Vet          *string
+}
+
+// RN-83: as vacinas da carteirinha, da mais nova para a mais antiga.
+func (q *Queries) ListCardVaccines(ctx context.Context, petID string) ([]ListCardVaccinesRow, error) {
+	rows, err := q.db.Query(ctx, listCardVaccines, petID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCardVaccinesRow
+	for rows.Next() {
+		var i ListCardVaccinesRow
+		if err := rows.Scan(
+			&i.Name,
+			&i.Date,
+			&i.NextDoseDate,
+			&i.Manufacturer,
+			&i.Batch,
+			&i.Dose,
+			&i.Vet,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listHealthAttachments = `-- name: ListHealthAttachments :many
@@ -333,6 +449,45 @@ func (q *Queries) ListHealthEvents(ctx context.Context, petID string) ([]HealthE
 			&i.Remind,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listShareLinks = `-- name: ListShareLinks :many
+SELECT id, expires_at, opens, created_at FROM share_links
+WHERE pet_id = $1 AND revoked_at IS NULL AND expires_at > now()
+ORDER BY created_at DESC
+`
+
+type ListShareLinksRow struct {
+	ID        string
+	ExpiresAt time.Time
+	Opens     int32
+	CreatedAt time.Time
+}
+
+// RN-40: os links ativos, com as aberturas.
+func (q *Queries) ListShareLinks(ctx context.Context, petID string) ([]ListShareLinksRow, error) {
+	rows, err := q.db.Query(ctx, listShareLinks, petID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListShareLinksRow
+	for rows.Next() {
+		var i ListShareLinksRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ExpiresAt,
+			&i.Opens,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -437,6 +592,72 @@ func (q *Queries) LockHealthEvent(ctx context.Context, arg LockHealthEventParams
 	var id string
 	err := row.Scan(&id)
 	return id, err
+}
+
+const openShareLink = `-- name: OpenShareLink :one
+UPDATE share_links AS l SET opens = l.opens + 1
+FROM pets AS p
+WHERE l.token_hash = $1 AND l.revoked_at IS NULL AND l.expires_at > now()
+    AND p.id = l.pet_id AND p.deleted_at IS NULL
+RETURNING l.pet_id, l.expires_at, p.name, p.species, p.breed, p.sex, p.birth_date,
+    p.weight_kg, p.neutered, p.photo_key, p.vet_name, p.vet_clinic, p.vet_phone
+`
+
+type OpenShareLinkRow struct {
+	PetID     string
+	ExpiresAt time.Time
+	Name      string
+	Species   string
+	Breed     *string
+	Sex       *string
+	BirthDate *time.Time
+	WeightKg  *float64
+	Neutered  *bool
+	PhotoKey  *string
+	VetName   *string
+	VetClinic *string
+	VetPhone  *string
+}
+
+// RN-41: um link revogado, vencido ou de um pet excluído não abre. The
+// check and the count of the open are one statement.
+func (q *Queries) OpenShareLink(ctx context.Context, tokenHash []byte) (OpenShareLinkRow, error) {
+	row := q.db.QueryRow(ctx, openShareLink, tokenHash)
+	var i OpenShareLinkRow
+	err := row.Scan(
+		&i.PetID,
+		&i.ExpiresAt,
+		&i.Name,
+		&i.Species,
+		&i.Breed,
+		&i.Sex,
+		&i.BirthDate,
+		&i.WeightKg,
+		&i.Neutered,
+		&i.PhotoKey,
+		&i.VetName,
+		&i.VetClinic,
+		&i.VetPhone,
+	)
+	return i, err
+}
+
+const revokeShareLink = `-- name: RevokeShareLink :execrows
+UPDATE share_links SET revoked_at = COALESCE(revoked_at, now())
+WHERE id = $1 AND pet_id = $2
+`
+
+type RevokeShareLinkParams struct {
+	ID    string
+	PetID string
+}
+
+func (q *Queries) RevokeShareLink(ctx context.Context, arg RevokeShareLinkParams) (int64, error) {
+	result, err := q.db.Exec(ctx, revokeShareLink, arg.ID, arg.PetID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const updateHealthEvent = `-- name: UpdateHealthEvent :one

@@ -174,7 +174,7 @@ A primeira execução baixa o `oapi-codegen` na versão fixada em `internal/api/
 | `internal/identity/` | Módulo do tutor: validação do token das requisições, regras do registro, handlers de `/v1/me`. `identitydb/` é o código gerado das consultas |
 | `internal/biometrics/` | Módulo de biometria: cadastro do focinho (RN-07 a RN-09, RN-59, RN-60), identificação (RN-10 a RN-15, RN-61, RN-62), confirmação (RN-16, RN-63 a RN-65), avisos de encontro (RN-66) e recálculo dos vetores (RN-67). `biometricsdb/` é o código gerado das consultas |
 | `internal/alerts/` | Módulo de alertas: última localização (RN-30), dispositivos (RN-31), notificações (RN-35, RN-74), as tarefas que criam as notificações (RN-32 a RN-34, RN-73) e o envio de push (RN-36). `alertsdb/` é o código gerado das consultas |
-| `internal/health/` | Módulo de saúde: eventos dos cinco tipos (RN-37, RN-38, RN-76 a RN-80), anexos (RN-82) e próximos cuidados (RN-81). `healthdb/` é o código gerado das consultas |
+| `internal/health/` | Módulo de saúde: eventos dos cinco tipos (RN-37, RN-38, RN-76 a RN-80), anexos (RN-82), próximos cuidados (RN-81) e links da carteirinha (RN-39 a RN-41, RN-83). `healthdb/` é o código gerado das consultas |
 | `internal/reports/` | Módulo de ocorrências: perdido, achado, avistamento, resolver, mural e ficha (RN-24 a RN-29, RN-68 a RN-72). `reportsdb/` é o código gerado das consultas |
 | `internal/platform/inference/` | Cliente do serviço de inferência |
 | `internal/platform/jobs/` | Fila de tarefas no banco (ADR 0003, RNF-01, RNF-02) |

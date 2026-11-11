@@ -37,6 +37,10 @@ func classify(err error) (int, api.Error) {
 		return http.StatusBadRequest, api.Error{
 			Error: api.ErrorCodeInvalidRequest, Message: validation.Message,
 		}
+	case errors.Is(err, ErrShareLinkNotFound):
+		return http.StatusNotFound, api.Error{
+			Error: api.ErrorCodeShareLinkNotFound, Message: "the share link does not exist",
+		}
 	case errors.Is(err, ErrEventNotFound):
 		return http.StatusNotFound, api.Error{
 			Error: api.ErrorCodeHealthEventNotFound, Message: "the health event does not exist",
@@ -382,4 +386,144 @@ func (h *Handlers) DeleteHealthAttachment(
 		return nil, fmt.Errorf("delete health attachment: %w", err)
 	}
 	return api.DeleteHealthAttachment204Response{}, nil
+}
+
+// toShareLink converts a share link of the service to the contract.
+func toShareLink(link ShareLink) (api.ShareLink, error) {
+	converted := api.ShareLink{
+		ExpiresAt: link.ExpiresAt, Opens: link.Opens, CreatedAt: link.CreatedAt,
+	}
+	if err := converted.Id.UnmarshalText([]byte(link.ID)); err != nil {
+		return api.ShareLink{}, fmt.Errorf("parse the share link id %q: %w", link.ID, err)
+	}
+	return converted, nil
+}
+
+// CreateShareLink creates a share link of the health card of a pet.
+func (h *Handlers) CreateShareLink(
+	ctx context.Context,
+	request api.CreateShareLinkRequestObject,
+) (api.CreateShareLinkResponseObject, error) {
+	link, err := h.service.CreateShareLink(ctx, request.PetId.String())
+	if err != nil {
+		if status, body := classify(err); status == http.StatusNotFound {
+			return api.CreateShareLink404JSONResponse{
+				ShareLinkNotFoundJSONResponse: api.ShareLinkNotFoundJSONResponse(body),
+			}, nil
+		}
+		return nil, fmt.Errorf("create share link: %w", err)
+	}
+	converted, err := toShareLink(link)
+	if err != nil {
+		return nil, err
+	}
+	return api.CreateShareLink201JSONResponse{
+		Id: converted.Id, Token: link.Token, ExpiresAt: converted.ExpiresAt,
+		Opens: converted.Opens, CreatedAt: converted.CreatedAt,
+	}, nil
+}
+
+// ListShareLinks returns the active share links of a pet.
+func (h *Handlers) ListShareLinks(
+	ctx context.Context,
+	request api.ListShareLinksRequestObject,
+) (api.ListShareLinksResponseObject, error) {
+	links, err := h.service.ShareLinks(ctx, request.PetId.String())
+	if err != nil {
+		if status, body := classify(err); status == http.StatusNotFound {
+			return api.ListShareLinks404JSONResponse{
+				ShareLinkNotFoundJSONResponse: api.ShareLinkNotFoundJSONResponse(body),
+			}, nil
+		}
+		return nil, fmt.Errorf("list share links: %w", err)
+	}
+	list := api.ShareLinkList{Links: make([]api.ShareLink, 0, len(links))}
+	for _, link := range links {
+		converted, err := toShareLink(link)
+		if err != nil {
+			return nil, err
+		}
+		list.Links = append(list.Links, converted)
+	}
+	return api.ListShareLinks200JSONResponse(list), nil
+}
+
+// RevokeShareLink revokes a share link of a pet.
+func (h *Handlers) RevokeShareLink(
+	ctx context.Context,
+	request api.RevokeShareLinkRequestObject,
+) (api.RevokeShareLinkResponseObject, error) {
+	err := h.service.RevokeShareLink(ctx, request.PetId.String(), request.ShareLinkId.String())
+	if err != nil {
+		if status, body := classify(err); status == http.StatusNotFound {
+			return api.RevokeShareLink404JSONResponse{
+				ShareLinkNotFoundJSONResponse: api.ShareLinkNotFoundJSONResponse(body),
+			}, nil
+		}
+		return nil, fmt.Errorf("revoke share link: %w", err)
+	}
+	return api.RevokeShareLink204Response{}, nil
+}
+
+// OpenShareLink returns the health card of a share link. It is public.
+func (h *Handlers) OpenShareLink(
+	ctx context.Context,
+	request api.OpenShareLinkRequestObject,
+) (api.OpenShareLinkResponseObject, error) {
+	card, err := h.service.OpenCard(ctx, request.Body.Token)
+	if err != nil {
+		if status, body := classify(err); status == http.StatusNotFound {
+			return api.OpenShareLink404JSONResponse{
+				ShareLinkNotFoundJSONResponse: api.ShareLinkNotFoundJSONResponse(body),
+			}, nil
+		}
+		return nil, fmt.Errorf("open share link: %w", err)
+	}
+	pet := card.Pet
+	converted := api.HealthCard{
+		Pet: api.HealthCardPet{
+			Name: pet.Name, Species: api.Species(pet.Species), Breed: pet.Breed,
+			Sex: (*api.Sex)(pet.Sex), WeightKg: pet.WeightKg, Neutered: pet.Neutered,
+			VetName: pet.VetName, VetClinic: pet.VetClinic, VetPhone: pet.VetPhone,
+		},
+		Vaccines:        make([]api.HealthCardVaccine, 0, len(card.Vaccines)),
+		ParasiteControl: make([]api.HealthCardMedication, 0, len(card.ParasiteControl)),
+		ExpiresAt:       pet.ExpiresAt,
+	}
+	if pet.BirthDate != nil {
+		converted.Pet.BirthDate = &types.Date{Time: *pet.BirthDate}
+	}
+	if card.PhotoURL != "" {
+		converted.Pet.PhotoUrl = &card.PhotoURL
+	}
+	for _, vaccine := range card.Vaccines {
+		item := api.HealthCardVaccine{
+			Date: types.Date{Time: vaccine.Date}, Manufacturer: vaccine.Manufacturer,
+			Batch: vaccine.Batch, Dose: vaccine.Dose, Vet: vaccine.Vet,
+		}
+		// RN-77: uma vacina tem nome.
+		if vaccine.Name != nil {
+			item.Name = *vaccine.Name
+		}
+		if vaccine.NextDoseDate != nil {
+			item.NextDoseDate = &types.Date{Time: *vaccine.NextDoseDate}
+		}
+		converted.Vaccines = append(converted.Vaccines, item)
+	}
+	for _, medication := range card.ParasiteControl {
+		item := api.HealthCardMedication{Date: types.Date{Time: medication.Date}}
+		// RN-37: uma medicação tem nome e categoria.
+		if medication.Name != nil {
+			item.Name = *medication.Name
+		}
+		if medication.MedicationCategory != nil {
+			item.Category = api.HealthCardMedicationCategory(*medication.MedicationCategory)
+		}
+		if medication.IntervalDays != nil {
+			days := int(*medication.IntervalDays)
+			item.IntervalDays = &days
+		}
+		converted.ParasiteControl = append(converted.ParasiteControl, item)
+	}
+	return api.OpenShareLink200JSONResponse(converted), nil
 }
