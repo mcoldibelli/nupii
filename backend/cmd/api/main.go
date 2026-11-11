@@ -20,14 +20,14 @@ import (
 )
 
 const (
-	// databaseStartTimeout is the time the process waits for the database
+	// _databaseStartTimeout is the time the process waits for the database
 	// to respond and for the migrations to end, when the process starts.
-	databaseStartTimeout = 30 * time.Second
-	// readHeaderTimeout is the time a client has to send the request headers.
-	readHeaderTimeout = 10 * time.Second
-	// shutdownTimeout is the time the requests in progress have to end
+	_databaseStartTimeout = 30 * time.Second
+	// _readHeaderTimeout is the time a client has to send the request headers.
+	_readHeaderTimeout = 10 * time.Second
+	// _shutdownTimeout is the time the requests in progress have to end
 	// after the process gets a stop signal.
-	shutdownTimeout = 10 * time.Second
+	_shutdownTimeout = 10 * time.Second
 )
 
 func main() {
@@ -51,7 +51,7 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	}
 	logger := slog.New(httpx.NewLogHandler(slog.NewJSONHandler(logOutput, nil)))
 
-	startCtx, cancelStart := context.WithTimeout(ctx, databaseStartTimeout)
+	startCtx, cancelStart := context.WithTimeout(ctx, _databaseStartTimeout)
 	defer cancelStart()
 	pool, err := postgres.Open(startCtx, cfg.DatabaseURL)
 	if err != nil {
@@ -69,7 +69,7 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	}
 	srv := &http.Server{
 		Handler:           newHandler(logger, server{logger: logger, database: pool}),
-		ReadHeaderTimeout: readHeaderTimeout,
+		ReadHeaderTimeout: _readHeaderTimeout,
 	}
 
 	// The goroutine ends when Serve returns: after a failure, or after
@@ -85,7 +85,7 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	}
 
 	logger.InfoContext(ctx, "http server stopping")
-	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), shutdownTimeout)
+	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), _shutdownTimeout)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("shut down http server: %w", err)

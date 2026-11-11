@@ -21,14 +21,14 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 )
 
-// contractPath is the contract file, relative to this package.
-const contractPath = "../../../api/openapi.yaml"
+// _contractPath is the contract file, relative to this package.
+const _contractPath = "../../../api/openapi.yaml"
 
-// validateResponse fails the test if the recorded response is not a
-// response that the contract declares for the request (RNF-08).
-func validateResponse(t *testing.T, req *http.Request, rec *httptest.ResponseRecorder) {
+// validateResponse fails the test if the response is not a response that
+// the contract declares for the request (RNF-08).
+func validateResponse(t *testing.T, req *http.Request, status int, header http.Header, body []byte) {
 	t.Helper()
-	doc, err := openapi3.NewLoader().LoadFromFile(contractPath)
+	doc, err := openapi3.NewLoader().LoadFromFile(_contractPath)
 	if err != nil {
 		t.Fatalf("load contract: %v", err)
 	}
@@ -46,11 +46,11 @@ func validateResponse(t *testing.T, req *http.Request, rec *httptest.ResponseRec
 			PathParams: pathParams,
 			Route:      route,
 		},
-		Status:  rec.Code,
-		Header:  rec.Header(),
+		Status:  status,
+		Header:  header,
 		Options: &openapi3filter.Options{IncludeResponseStatus: true},
 	}
-	input.SetBodyBytes(rec.Body.Bytes())
+	input.SetBodyBytes(body)
 	if err := openapi3filter.ValidateResponse(t.Context(), input); err != nil {
 		t.Errorf("response does not match the contract: %v", err)
 	}
@@ -86,7 +86,7 @@ func TestGetHealth(t *testing.T) {
 	if body["status"] != "ok" {
 		t.Errorf(`body["status"] = %v, want "ok"`, body["status"])
 	}
-	validateResponse(t, req, rec)
+	validateResponse(t, req, rec.Code, rec.Header(), rec.Body.Bytes())
 }
 
 func TestGetHealthWhenTheDatabaseDoesNotRespond(t *testing.T) {
@@ -113,7 +113,7 @@ func TestGetHealthWhenTheDatabaseDoesNotRespond(t *testing.T) {
 	if strings.Contains(rec.Body.String(), detail) {
 		t.Errorf("body %q has the internal detail of the error", rec.Body.String())
 	}
-	validateResponse(t, req, rec)
+	validateResponse(t, req, rec.Code, rec.Header(), rec.Body.Bytes())
 	if !strings.Contains(logs.String(), detail) {
 		t.Errorf("log does not have the cause of the failure:\n%s", logs.String())
 	}

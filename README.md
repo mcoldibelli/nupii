@@ -4,7 +4,7 @@ Plataforma para tutores de pets, com três partes: saúde do pet, mural de perdi
 
 ## Estado
 
-Fase de plano. As decisões de arquitetura estão aceitas. Ainda não existe código. O próximo passo é a fatia 0 do [roteiro](docs/roteiro.md).
+A fatia 0 do [roteiro](docs/roteiro.md) está pronta: a API responde `GET /v1/health`, o ambiente local sobe com um comando, o app mostra a resposta da API e o CI confere os três. O andamento de cada fatia está nos milestones do GitHub.
 
 ## Como executar
 
@@ -28,6 +28,16 @@ Requisitos: Docker com o Compose. Para desenvolver a API: Go 1.26 ou mais novo.
 
    ```bash
    curl -i http://localhost:8080/v1/health
+   ```
+
+   Resposta esperada:
+
+   ```
+   HTTP/1.1 200 OK
+   Content-Type: application/json
+   X-Request-Id: <identificador da requisição>
+
+   {"status":"ok"}
    ```
 
 Para parar o ambiente local: `docker compose -f deploy/compose.yaml down`. Os dados ficam nos volumes. Para apagar também os dados, use `down -v`.

@@ -14,16 +14,17 @@ const RequestIDHeader = "X-Request-Id"
 
 type requestIDKey struct{}
 
+// logHandler adds the request identifier of the context to each record.
+type logHandler struct {
+	slog.Handler
+}
+
 // NewLogHandler wraps next. The returned handler adds the attribute
 // request_id to each record that is logged with the context of a request.
 // Use the Context functions of slog (InfoContext, ErrorContext) so that the
 // handler gets that context.
 func NewLogHandler(next slog.Handler) slog.Handler {
 	return logHandler{Handler: next}
-}
-
-type logHandler struct {
-	slog.Handler
 }
 
 func (h logHandler) Handle(ctx context.Context, record slog.Record) error {
@@ -75,9 +76,4 @@ type statusRecorder struct {
 func (r *statusRecorder) WriteHeader(status int) {
 	r.status = status
 	r.ResponseWriter.WriteHeader(status)
-}
-
-// Unwrap gives http.ResponseController access to the original writer.
-func (r *statusRecorder) Unwrap() http.ResponseWriter {
-	return r.ResponseWriter
 }
