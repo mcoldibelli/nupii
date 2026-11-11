@@ -82,6 +82,8 @@ Para executar o app, veja o README do [mobile](mobile/README.md).
 | [0010](docs/adr/0010-ferramentas-de-teste.md) | Ferramentas de teste | aceito |
 | [0011](docs/adr/0011-runtime-do-oapi-codegen.md) | Biblioteca de runtime do código gerado pelo oapi-codegen | aceito |
 | [0012](docs/adr/0012-servidor-s3-local.md) | SeaweedFS como servidor S3 do ambiente local | aceito |
+| [0013](docs/adr/0013-firebase-no-app.md) | SDK JavaScript do Firebase no app | aceito |
+| [0014](docs/adr/0014-emulador-do-firebase-auth.md) | Emulador do Firebase Authentication no ambiente local e no CI | aceito |
 
 ## Regras do projeto
 

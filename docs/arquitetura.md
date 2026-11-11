@@ -26,7 +26,7 @@ flowchart LR
 | Postgres | Único estado: dados, busca geográfica, busca por vetor, fila de tarefas. | [0003](adr/0003-estado-postgres-fila-no-banco.md) |
 | Armazenamento S3 | Fotos e anexos. SeaweedFS no ambiente local. | [0003](adr/0003-estado-postgres-fila-no-banco.md), [0012](adr/0012-servidor-s3-local.md) |
 | Inferência Python | Foto do focinho para vetor. Sem estado. | [0007](adr/0007-inferencia-python-onnx.md) |
-| Firebase Authentication | Identidade do tutor: senha, sessão, login com Google, redefinição de senha. | [0008](adr/0008-autenticacao-firebase.md) |
+| Firebase Authentication | Identidade do tutor: senha, sessão, login com Google, redefinição de senha. No ambiente local e no CI, o emulador. | [0008](adr/0008-autenticacao-firebase.md), [0013](adr/0013-firebase-no-app.md), [0014](adr/0014-emulador-do-firebase-auth.md) |
 
 ## Estrutura do repositório
 
