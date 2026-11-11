@@ -101,6 +101,7 @@ Leituras com `JOIN` entre módulos, conhecidas pelos requisitos:
 | Mural e ficha (visão `report_views`) | `reports` | `pets` (nome, espécie, foto, pet não excluído), `biometrics` (o pet tem cadastro) | RN-24, RN-72 |
 | Avisos de encontro do tutor | `biometrics` | `pets` (pets do tutor, não excluídos) | RN-66 |
 | Próximos cuidados | `health` | `pets` (nome, pets do tutor, não excluídos) | RN-81 |
+| Carteirinha aberta pelo link | `health` | `pets` (dados e foto do pet, pet não excluído) | RN-41, RN-83 |
 | Tutores perto de um ponto | `alerts` | `identity` (conta ativa). A leitura entra na fatia 9, com os estados da conta. Hoje a consulta lê só `owner_locations` | RN-32, RN-33 |
 
 ## Tarefas em segundo plano
@@ -320,7 +321,8 @@ O código usa o termo em inglês. A documentação e as telas usam o termo em po
 | carteirinha | health card | Resumo de saúde do pet |
 | próximo cuidado | upcoming care | Data da próxima dose de uma vacina ou de uma medicação |
 | anexo | attachment | Arquivo de um evento de saúde: foto ou PDF |
-| compartilhamento | share link | Link público da carteirinha |
+| compartilhamento, link da carteirinha | share link | Link público da carteirinha, com validade de 30 dias |
+| abertura | opening | Uma carga da carteirinha pelo link |
 
 ## Fora da v1
 
