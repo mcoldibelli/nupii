@@ -147,6 +147,43 @@ func (q *Queries) CreateNoseprint(ctx context.Context, arg CreateNoseprintParams
 	return i, err
 }
 
+const deleteOwnerCandidates = `-- name: DeleteOwnerCandidates :exec
+DELETE FROM identification_candidates
+WHERE pet_id IN (SELECT id FROM pets WHERE owner_id = $1)
+`
+
+// RN-84: the candidates point to the noseprints of the pets of the owner.
+func (q *Queries) DeleteOwnerCandidates(ctx context.Context, ownerID string) error {
+	_, err := q.db.Exec(ctx, deleteOwnerCandidates, ownerID)
+	return err
+}
+
+const deleteOwnerNoseprints = `-- name: DeleteOwnerNoseprints :many
+DELETE FROM noseprints
+WHERE pet_id IN (SELECT id FROM pets WHERE owner_id = $1)
+RETURNING image_key
+`
+
+func (q *Queries) DeleteOwnerNoseprints(ctx context.Context, ownerID string) ([]string, error) {
+	rows, err := q.db.Query(ctx, deleteOwnerNoseprints, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var image_key string
+		if err := rows.Scan(&image_key); err != nil {
+			return nil, err
+		}
+		items = append(items, image_key)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const demotePrimaryNoseprint = `-- name: DemotePrimaryNoseprint :exec
 UPDATE noseprints
 SET is_primary = false

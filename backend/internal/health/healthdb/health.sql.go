@@ -260,6 +260,55 @@ func (q *Queries) DeleteHealthEvent(ctx context.Context, arg DeleteHealthEventPa
 	return i, err
 }
 
+const deleteOwnerAttachments = `-- name: DeleteOwnerAttachments :many
+DELETE FROM health_attachments
+WHERE event_id IN (
+    SELECT h.id FROM health_events AS h JOIN pets AS p ON p.id = h.pet_id
+    WHERE p.owner_id = $1
+)
+RETURNING key
+`
+
+func (q *Queries) DeleteOwnerAttachments(ctx context.Context, ownerID string) ([]string, error) {
+	rows, err := q.db.Query(ctx, deleteOwnerAttachments, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var key string
+		if err := rows.Scan(&key); err != nil {
+			return nil, err
+		}
+		items = append(items, key)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const deleteOwnerHealthEvents = `-- name: DeleteOwnerHealthEvents :exec
+DELETE FROM health_events
+WHERE pet_id IN (SELECT id FROM pets WHERE owner_id = $1)
+`
+
+func (q *Queries) DeleteOwnerHealthEvents(ctx context.Context, ownerID string) error {
+	_, err := q.db.Exec(ctx, deleteOwnerHealthEvents, ownerID)
+	return err
+}
+
+const deleteOwnerShareLinks = `-- name: DeleteOwnerShareLinks :exec
+DELETE FROM share_links
+WHERE pet_id IN (SELECT id FROM pets WHERE owner_id = $1)
+`
+
+func (q *Queries) DeleteOwnerShareLinks(ctx context.Context, ownerID string) error {
+	_, err := q.db.Exec(ctx, deleteOwnerShareLinks, ownerID)
+	return err
+}
+
 const healthEventExists = `-- name: HealthEventExists :one
 SELECT EXISTS (
     SELECT 1 FROM health_events WHERE id = $1 AND pet_id = $2
@@ -592,6 +641,18 @@ func (q *Queries) LockHealthEvent(ctx context.Context, arg LockHealthEventParams
 	var id string
 	err := row.Scan(&id)
 	return id, err
+}
+
+const lockOwnerHealthEvents = `-- name: LockOwnerHealthEvents :exec
+SELECT h.id FROM health_events AS h JOIN pets AS p ON p.id = h.pet_id
+WHERE p.owner_id = $1
+FOR UPDATE OF h
+`
+
+// RN-84: the lock puts an upload of an attachment before the delete.
+func (q *Queries) LockOwnerHealthEvents(ctx context.Context, ownerID string) error {
+	_, err := q.db.Exec(ctx, lockOwnerHealthEvents, ownerID)
+	return err
 }
 
 const openShareLink = `-- name: OpenShareLink :one

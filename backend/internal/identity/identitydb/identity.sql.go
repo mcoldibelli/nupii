@@ -10,11 +10,24 @@ import (
 	"time"
 )
 
+const anonymizeOwner = `-- name: AnonymizeOwner :exec
+UPDATE owners
+SET name = 'Conta excluída', email = 'deleted-' || id || '@nupii.invalid', deleted_at = now()
+WHERE id = $1
+`
+
+// RN-03: o tutor fica com o nome "Conta excluída", um e-mail sem dono e a
+// data da exclusão.
+func (q *Queries) AnonymizeOwner(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, anonymizeOwner, id)
+	return err
+}
+
 const createOwner = `-- name: CreateOwner :one
 INSERT INTO owners (firebase_uid, email, name, terms_version, terms_accepted_at)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (firebase_uid) DO NOTHING
-RETURNING id, firebase_uid, email, name, terms_version, terms_accepted_at, created_at
+RETURNING id, firebase_uid, email, name, terms_version, terms_accepted_at, created_at, deleted_at
 `
 
 type CreateOwnerParams struct {
@@ -44,14 +57,13 @@ func (q *Queries) CreateOwner(ctx context.Context, arg CreateOwnerParams) (Owner
 		&i.TermsVersion,
 		&i.TermsAcceptedAt,
 		&i.CreatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getOwnerByFirebaseUID = `-- name: GetOwnerByFirebaseUID :one
-SELECT id, firebase_uid, email, name, terms_version, terms_accepted_at, created_at
-FROM owners
-WHERE firebase_uid = $1
+SELECT id, firebase_uid, email, name, terms_version, terms_accepted_at, created_at, deleted_at FROM owners WHERE firebase_uid = $1
 `
 
 func (q *Queries) GetOwnerByFirebaseUID(ctx context.Context, firebaseUid string) (Owner, error) {
@@ -65,6 +77,33 @@ func (q *Queries) GetOwnerByFirebaseUID(ctx context.Context, firebaseUid string)
 		&i.TermsVersion,
 		&i.TermsAcceptedAt,
 		&i.CreatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const isOwnerDeleted = `-- name: IsOwnerDeleted :one
+SELECT EXISTS (
+    SELECT 1 FROM owners WHERE firebase_uid = $1 AND deleted_at IS NOT NULL
+)::boolean
+`
+
+// RN-04: uma conta excluída recebe 401.
+func (q *Queries) IsOwnerDeleted(ctx context.Context, firebaseUid string) (bool, error) {
+	row := q.db.QueryRow(ctx, isOwnerDeleted, firebaseUid)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const lockOwner = `-- name: LockOwner :one
+SELECT id FROM owners WHERE firebase_uid = $1 AND deleted_at IS NULL FOR UPDATE
+`
+
+// The lock puts two deletes of the same account in sequence.
+func (q *Queries) LockOwner(ctx context.Context, firebaseUid string) (string, error) {
+	row := q.db.QueryRow(ctx, lockOwner, firebaseUid)
+	var id string
+	err := row.Scan(&id)
+	return id, err
 }

@@ -137,3 +137,13 @@ JOIN identifications AS i ON i.id = c.identification_id
 JOIN pets AS p ON p.id = c.pet_id
 WHERE p.owner_id = sqlc.arg(owner_id) AND p.deleted_at IS NULL AND c.confirmed_at IS NOT NULL
 ORDER BY c.confirmed_at DESC, c.id DESC;
+
+-- name: DeleteOwnerCandidates :exec
+-- RN-84: the candidates point to the noseprints of the pets of the owner.
+DELETE FROM identification_candidates
+WHERE pet_id IN (SELECT id FROM pets WHERE owner_id = sqlc.arg(owner_id));
+
+-- name: DeleteOwnerNoseprints :many
+DELETE FROM noseprints
+WHERE pet_id IN (SELECT id FROM pets WHERE owner_id = sqlc.arg(owner_id))
+RETURNING image_key;

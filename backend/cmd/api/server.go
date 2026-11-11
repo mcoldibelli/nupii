@@ -87,6 +87,8 @@ type server struct {
 	*alertsHandlers
 	*healthHandlers
 
+	// owners tells the middleware which accounts are deleted (RN-04).
+	owners *identity.Service
 	// noseprints runs the recompute of the vectors when the API starts.
 	noseprints *biometrics.Service
 
@@ -107,18 +109,25 @@ func newServer(
 	owners := identity.NewService(pool)
 	petService := pets.NewService(pool, owners, photos, logger)
 	noseprints := biometrics.NewService(pool, owners, petService, embedder, photos, logger)
+	reportService := reports.NewService(pool, owners, petService, photos, logger)
+	alertService := alerts.NewService(pool, owners)
+	healthService := health.NewService(pool, owners, petService, photos, logger)
+	// RN-84: each module erases its data when an account is deleted. The
+	// pets go first: their lock puts a registration of a noseprint or an
+	// upload before the delete.
+	accounts := identity.NewAccounts(pool, photos, logger,
+		petService, noseprints, healthService, reportService, alertService)
 	return server{
-		identityHandlers:   identity.NewHandlers(owners),
+		identityHandlers:   identity.NewHandlers(owners, accounts),
 		petsHandlers:       pets.NewHandlers(petService),
 		biometricsHandlers: biometrics.NewHandlers(noseprints, logger),
-		reportsHandlers: reports.NewHandlers(
-			reports.NewService(pool, owners, petService, photos, logger)),
-		alertsHandlers: alerts.NewHandlers(alerts.NewService(pool, owners)),
-		healthHandlers: health.NewHandlers(
-			health.NewService(pool, owners, petService, photos, logger)),
-		noseprints: noseprints,
-		logger:     logger,
-		database:   pool,
+		reportsHandlers:    reports.NewHandlers(reportService),
+		alertsHandlers:     alerts.NewHandlers(alertService),
+		healthHandlers:     health.NewHandlers(healthService),
+		owners:             owners,
+		noseprints:         noseprints,
+		logger:             logger,
+		database:           pool,
 	}
 }
 
@@ -252,6 +261,7 @@ func newHandler(
 	logger *slog.Logger,
 	operations api.StrictServerInterface,
 	verifier identity.TokenVerifier,
+	accounts identity.AccountChecker,
 ) http.Handler {
 	invalidRequest := func(w http.ResponseWriter, r *http.Request, err error) {
 		httpx.WriteError(r.Context(), logger, w,
@@ -282,7 +292,7 @@ func newHandler(
 		Middlewares: []api.MiddlewareFunc{
 			httpx.LimitBody(bodyLimit),
 			httpx.RateLimit(logger, _publicPostLimit, time.Minute, isRateLimited, time.Now),
-			identity.RequireIdentity(logger, verifier, isPublic),
+			identity.RequireIdentity(logger, verifier, accounts, isPublic),
 			allowOtherOrigins,
 		},
 		// A parameter of the request could not be read.

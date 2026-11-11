@@ -71,3 +71,12 @@ UPDATE devices SET active = false, updated_at = now() WHERE token = ANY(sqlc.arg
 
 -- name: SetPushStatus :exec
 UPDATE notifications SET push_status = sqlc.arg(push_status) WHERE id = sqlc.arg(id);
+
+-- name: DeleteOwnerLocation :exec
+DELETE FROM owner_locations WHERE owner_id = sqlc.arg(owner_id);
+
+-- name: DeleteOwnerNotifications :exec
+DELETE FROM notifications WHERE owner_id = sqlc.arg(owner_id);
+
+-- name: DeleteOwnerDevices :exec
+DELETE FROM devices WHERE owner_id = sqlc.arg(owner_id);

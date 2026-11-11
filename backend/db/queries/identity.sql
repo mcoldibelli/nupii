@@ -4,9 +4,24 @@
 INSERT INTO owners (firebase_uid, email, name, terms_version, terms_accepted_at)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (firebase_uid) DO NOTHING
-RETURNING id, firebase_uid, email, name, terms_version, terms_accepted_at, created_at;
+RETURNING *;
 
 -- name: GetOwnerByFirebaseUID :one
-SELECT id, firebase_uid, email, name, terms_version, terms_accepted_at, created_at
-FROM owners
-WHERE firebase_uid = $1;
+SELECT * FROM owners WHERE firebase_uid = $1;
+
+-- name: IsOwnerDeleted :one
+-- RN-04: uma conta excluída recebe 401.
+SELECT EXISTS (
+    SELECT 1 FROM owners WHERE firebase_uid = $1 AND deleted_at IS NOT NULL
+)::boolean;
+
+-- name: LockOwner :one
+-- The lock puts two deletes of the same account in sequence.
+SELECT id FROM owners WHERE firebase_uid = $1 AND deleted_at IS NULL FOR UPDATE;
+
+-- name: AnonymizeOwner :exec
+-- RN-03: o tutor fica com o nome "Conta excluída", um e-mail sem dono e a
+-- data da exclusão.
+UPDATE owners
+SET name = 'Conta excluída', email = 'deleted-' || id || '@nupii.invalid', deleted_at = now()
+WHERE id = $1;

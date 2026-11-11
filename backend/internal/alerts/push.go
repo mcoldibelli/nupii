@@ -3,6 +3,7 @@ package alerts
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -59,6 +60,10 @@ func (j pushJob) run(ctx context.Context, tx pgx.Tx, payload json.RawMessage) er
 	}
 	queries := alertsdb.New(tx)
 	notification, err := queries.LockNotificationForPush(ctx, push.NotificationID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// RN-84: the delete of the account deleted the notification.
+		return nil
+	}
 	if err != nil {
 		return fmt.Errorf("lock the notification of the push: %w", err)
 	}

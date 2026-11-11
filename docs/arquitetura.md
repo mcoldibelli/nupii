@@ -66,6 +66,7 @@ Regras, iguais para todos os módulos:
 3. Um módulo chama outro módulo por uma interface declarada em quem consome. Exemplo: `reports` declara a interface `PetOwnerChecker`, e `pets` a satisfaz.
 4. Leitura com `JOIN` entre tabelas de módulos diferentes é permitida e fica listada abaixo. É o custo aceito de um banco único.
 5. `platform` não conhece nenhum módulo de domínio.
+6. Um módulo que guarda dados de um tutor implementa `identity.Eraser`, e `cmd/api` o coloca na lista da exclusão da conta (RN-84, [ADR 0028](adr/0028-exclusao-da-conta-e-limpeza.md)).
 
 Dependências permitidas:
 
@@ -171,6 +172,7 @@ Limites conhecidos da fila:
 - O módulo `identity` depende da interface `TokenVerifier`. A implementação com o Firebase Admin SDK fica em `platform/firebase`, e `cmd/api` liga as duas.
 - Um corpo ou um parâmetro que não pode ser lido recebe 400 com o código `invalid_request`. Um dado que quebra uma regra de negócio recebe a mesma resposta, com a regra na mensagem.
 - Um recurso de outro tutor não existe para quem chama: a resposta é 404, igual à de um recurso que nunca existiu (RN-52).
+- Uma conta excluída recebe 401 em toda rota com token. O middleware de autenticação lê a data da exclusão do tutor em cada requisição (RN-04).
 - Uma conta sem tutor registrado recebe 404 com o código `owner_not_found` nas operações que precisam do tutor.
 - O corpo de uma requisição JSON tem no máximo 1 MiB. O corpo de um envio de foto de perfil tem no máximo 6 MiB, o de uma foto de focinho 9 MiB e o de um anexo de saúde 11 MiB. Um corpo maior recebe a mesma resposta 400.
 - Uma foto de focinho recusada recebe 422, com o motivo no código: `species_not_supported`, `image_low_quality` ou `image_framing`.

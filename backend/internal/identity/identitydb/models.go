@@ -16,4 +16,5 @@ type Owner struct {
 	TermsVersion    string
 	TermsAcceptedAt time.Time
 	CreatedAt       time.Time
+	DeletedAt       *time.Time
 }
