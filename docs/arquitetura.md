@@ -120,6 +120,7 @@ Concorrência, declarada por regra:
 - O contexto raiz nasce em `main` e é cancelado por `SIGTERM`.
 - Cada worker para quando o contexto é cancelado e termina a tarefa em curso antes de sair.
 - Uma tarefa que falha volta para a fila com espera crescente. Depois do limite de tentativas ela fica marcada como falha.
+- O código da fila fica em `platform/jobs`. Um runner pega uma tarefa vencida com `FOR UPDATE SKIP LOCKED`, só dos tipos que ele conhece, e espera 1 segundo quando nenhuma tarefa vence. Uma tarefa tem 1 minuto.
 - O worker executa a tarefa na mesma transação que trava a linha dela. As escritas da tarefa no banco e o fim da tarefa entram juntos, ou não entram.
 - A tarefa leva os dados de que precisa. O módulo que executa a tarefa não lê as tabelas do módulo que a criou.
 - Toda tarefa precisa ser segura para executar duas vezes.
