@@ -50,7 +50,6 @@ A versão sem detector no aparelho é o padrão da fatia 4. O detector no aparel
 
 | Decisão | Fatia |
 |---|---|
-| Biblioteca cliente de S3 no backend (ADR novo) | 2 |
 | Forma da web pública: mesmo projeto Expo ou projeto web separado (critérios no [ADR 0006](adr/0006-mobile-expo-web-publica.md)) | 4 |
 | Orçamento de JavaScript da web pública, em KB (critério do [ADR 0006](adr/0006-mobile-expo-web-publica.md)) | 4 |
 | Biblioteca de push no app e de mapa no app | 5 e 6 |
