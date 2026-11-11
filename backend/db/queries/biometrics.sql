@@ -96,9 +96,10 @@ WHERE p.id = ANY(sqlc.arg(ids)::uuid[]);
 -- name: LockCandidate :one
 -- RN-64: o candidato da confirmação é da mesma identificação. The lock of
 -- the identification puts two confirmations in sequence.
-SELECT c.id, i.photo_key
+SELECT c.id, i.photo_key, p.owner_id, p.name AS pet_name
 FROM identification_candidates AS c
 JOIN identifications AS i ON i.id = c.identification_id
+JOIN pets AS p ON p.id = c.pet_id
 WHERE c.id = sqlc.arg(candidate_id) AND i.id = sqlc.arg(identification_id)
 FOR UPDATE OF i;
 
@@ -112,7 +113,7 @@ SET contact_name = sqlc.arg(contact_name),
     photo_key = COALESCE(photo_key, sqlc.narg(photo_key))
 WHERE id = sqlc.arg(id);
 
--- name: ConfirmCandidate :exec
+-- name: ConfirmCandidate :execrows
 -- RN-65: a data da confirmação fica a da primeira vez.
 UPDATE identification_candidates
 SET confirmed_at = now()

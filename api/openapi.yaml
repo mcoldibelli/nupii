@@ -703,6 +703,81 @@ paths:
           $ref: "#/components/responses/OwnerNotFound"
         default:
           $ref: "#/components/responses/Error"
+  /v1/me/location:
+    put:
+      operationId: setMyLocation
+      tags: [alerts]
+      summary: Guarda a última localização do tutor.
+      description: O sistema guarda só a última localização. Ela decide quem recebe o alerta de proximidade.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Location"
+      responses:
+        "204":
+          description: A localização foi guardada.
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/OwnerNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/notifications:
+    get:
+      operationId: listNotifications
+      tags: [alerts]
+      summary: As 50 notificações mais recentes do tutor.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: As notificações, da mais nova para a mais antiga.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationList"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/OwnerNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/notifications/{notificationId}/read:
+    parameters:
+      - name: notificationId
+        in: path
+        required: true
+        description: Identificador da notificação.
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: markNotificationRead
+      tags: [alerts]
+      summary: Marca uma notificação do tutor como lida.
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: A notificação está lida.
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          description: A notificação não existe para este tutor. O código do erro é `notification_not_found`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     bearerAuth:
@@ -1046,6 +1121,56 @@ components:
         resolveCode:
           type: string
           description: Código que resolve o achado. Ele aparece só nesta resposta.
+    Location:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+    NotificationKind:
+      type: string
+      description: |
+        `lost_nearby`: um pet desapareceu perto do tutor. `sighting`: alguém viu o pet do tutor.
+        `found`: alguém encontrou o pet do tutor pela foto do focinho.
+      enum: [lost_nearby, sighting, found]
+    Notification:
+      type: object
+      required: [id, kind, title, body, createdAt, read]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          $ref: "#/components/schemas/NotificationKind"
+        title:
+          type: string
+        body:
+          type: string
+        reportId:
+          type: string
+          format: uuid
+          description: A ocorrência da notificação, quando existe.
+        distanceMeters:
+          type: integer
+          description: Distância até o ponto do desaparecimento, no alerta de proximidade.
+        createdAt:
+          type: string
+          format: date-time
+        read:
+          type: boolean
+    NotificationList:
+      type: object
+      required: [notifications]
+      properties:
+        notifications:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/Notification"
     Owner:
       type: object
       description: O tutor. Pessoa com conta, responsável por pets.
@@ -1116,6 +1241,7 @@ components:
         - report_not_found
         - lost_report_open
         - report_not_open
+        - notification_not_found
         - rate_limited
         - species_not_supported
         - image_low_quality

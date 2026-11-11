@@ -380,6 +380,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Guarda a última localização do tutor.
+         * @description O sistema guarda só a última localização. Ela decide quem recebe o alerta de proximidade.
+         */
+        put: operations["setMyLocation"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** As 50 notificações mais recentes do tutor. */
+        get: operations["listNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notifications/{notificationId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da notificação. */
+                notificationId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marca uma notificação do tutor como lida. */
+        post: operations["markNotificationRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -595,6 +652,38 @@ export interface components {
             /** @description Código que resolve o achado. Ele aparece só nesta resposta. */
             resolveCode: string;
         };
+        Location: {
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+        };
+        /**
+         * @description `lost_nearby`: um pet desapareceu perto do tutor. `sighting`: alguém viu o pet do tutor.
+         *     `found`: alguém encontrou o pet do tutor pela foto do focinho.
+         * @enum {string}
+         */
+        NotificationKind: "lost_nearby" | "sighting" | "found";
+        Notification: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["NotificationKind"];
+            title: string;
+            body: string;
+            /**
+             * Format: uuid
+             * @description A ocorrência da notificação, quando existe.
+             */
+            reportId?: string;
+            /** @description Distância até o ponto do desaparecimento, no alerta de proximidade. */
+            distanceMeters?: number;
+            /** Format: date-time */
+            createdAt: string;
+            read: boolean;
+        };
+        NotificationList: {
+            notifications: components["schemas"]["Notification"][];
+        };
         /** @description O tutor. Pessoa com conta, responsável por pets. */
         Owner: {
             /** @description Identificador do tutor, um UUID. */
@@ -632,7 +721,7 @@ export interface components {
          *     Um código novo entra nesta lista antes de entrar no código do servidor.
          * @enum {string}
          */
-        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found" | "pet_not_found" | "noseprint_not_found" | "identification_not_found" | "report_not_found" | "lost_report_open" | "report_not_open" | "rate_limited" | "species_not_supported" | "image_low_quality" | "image_framing";
+        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found" | "pet_not_found" | "noseprint_not_found" | "identification_not_found" | "report_not_found" | "lost_report_open" | "report_not_open" | "notification_not_found" | "rate_limited" | "species_not_supported" | "image_low_quality" | "image_framing";
     };
     responses: {
         /** @description O corpo ou um parâmetro é inválido. O código do erro é `invalid_request`. */
@@ -1459,6 +1548,88 @@ export interface operations {
             };
             401: components["responses"]["Unauthenticated"];
             404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    setMyLocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Location"];
+            };
+        };
+        responses: {
+            /** @description A localização foi guardada. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description As notificações, da mais nova para a mais antiga. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    markNotificationRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da notificação. */
+                notificationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A notificação está lida. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            /** @description A notificação não existe para este tutor. O código do erro é `notification_not_found`. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             default: components["responses"]["Error"];
         };
     };

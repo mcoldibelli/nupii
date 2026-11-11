@@ -10,16 +10,19 @@ import (
 	"time"
 )
 
-const confirmCandidate = `-- name: ConfirmCandidate :exec
+const confirmCandidate = `-- name: ConfirmCandidate :execrows
 UPDATE identification_candidates
 SET confirmed_at = now()
 WHERE id = $1 AND confirmed_at IS NULL
 `
 
 // RN-65: a data da confirmação fica a da primeira vez.
-func (q *Queries) ConfirmCandidate(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, confirmCandidate, id)
-	return err
+func (q *Queries) ConfirmCandidate(ctx context.Context, id string) (int64, error) {
+	result, err := q.db.Exec(ctx, confirmCandidate, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const countGalleryPets = `-- name: CountGalleryPets :one
@@ -315,9 +318,10 @@ func (q *Queries) ListNoseprintsOfOtherVersions(ctx context.Context, modelVersio
 }
 
 const lockCandidate = `-- name: LockCandidate :one
-SELECT c.id, i.photo_key
+SELECT c.id, i.photo_key, p.owner_id, p.name AS pet_name
 FROM identification_candidates AS c
 JOIN identifications AS i ON i.id = c.identification_id
+JOIN pets AS p ON p.id = c.pet_id
 WHERE c.id = $1 AND i.id = $2
 FOR UPDATE OF i
 `
@@ -330,6 +334,8 @@ type LockCandidateParams struct {
 type LockCandidateRow struct {
 	ID       string
 	PhotoKey *string
+	OwnerID  string
+	PetName  string
 }
 
 // RN-64: o candidato da confirmação é da mesma identificação. The lock of
@@ -337,7 +343,12 @@ type LockCandidateRow struct {
 func (q *Queries) LockCandidate(ctx context.Context, arg LockCandidateParams) (LockCandidateRow, error) {
 	row := q.db.QueryRow(ctx, lockCandidate, arg.CandidateID, arg.IdentificationID)
 	var i LockCandidateRow
-	err := row.Scan(&i.ID, &i.PhotoKey)
+	err := row.Scan(
+		&i.ID,
+		&i.PhotoKey,
+		&i.OwnerID,
+		&i.PetName,
+	)
 	return i, err
 }
 
