@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { failureMessage } from "../api/http";
+import { failureMessage, SESSION_FAILURE } from "../api/http";
 import { getMe, registerMe, type Owner } from "../api/owner";
 import { currentIdToken, signOutAccount, subscribeToAccount } from "../auth/firebase";
 import { apiUrl, missingConfig } from "../config";
@@ -23,9 +23,6 @@ type Session = {
   /** Returns the ID token for a call of the API, or null when it cannot get one. */
   idToken: () => Promise<string | null>;
 };
-
-/** Message for a failure of the renewal of the session. */
-const SESSION_FAILURE = "Não foi possível confirmar a sua sessão. Confira a internet e tente de novo.";
 
 const SessionContext = createContext<Session | null>(null);
 

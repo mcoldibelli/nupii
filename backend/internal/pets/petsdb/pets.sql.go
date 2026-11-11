@@ -77,10 +77,18 @@ func (q *Queries) CreatePet(ctx context.Context, arg CreatePetParams) (Pet, erro
 	return i, err
 }
 
-const deletePet = `-- name: DeletePet :execrows
+const deletePet = `-- name: DeletePet :one
+WITH previous AS (
+    SELECT p.id, p.photo_key
+    FROM pets AS p
+    WHERE p.id = $1 AND p.owner_id = $2 AND p.deleted_at IS NULL
+    FOR UPDATE
+)
 UPDATE pets
 SET deleted_at = now(), updated_at = now(), photo_key = NULL
-WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL
+FROM previous
+WHERE pets.id = previous.id
+RETURNING previous.photo_key AS previous_photo_key
 `
 
 type DeletePetParams struct {
@@ -89,13 +97,12 @@ type DeletePetParams struct {
 }
 
 // Logical delete: the row stays, with the date of the delete and without
-// the key of the photo.
-func (q *Queries) DeletePet(ctx context.Context, arg DeletePetParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deletePet, arg.ID, arg.OwnerID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+// the key of the photo. Returns the key that the pet had.
+func (q *Queries) DeletePet(ctx context.Context, arg DeletePetParams) (*string, error) {
+	row := q.db.QueryRow(ctx, deletePet, arg.ID, arg.OwnerID)
+	var previous_photo_key *string
+	err := row.Scan(&previous_photo_key)
+	return previous_photo_key, err
 }
 
 const getPet = `-- name: GetPet :one
@@ -184,11 +191,20 @@ func (q *Queries) ListPets(ctx context.Context, ownerID string) ([]Pet, error) {
 }
 
 const setPetPhoto = `-- name: SetPetPhoto :one
+WITH previous AS (
+    SELECT p.id, p.photo_key
+    FROM pets AS p
+    WHERE p.id = $2 AND p.owner_id = $3 AND p.deleted_at IS NULL
+    FOR UPDATE
+)
 UPDATE pets
 SET photo_key = $1, updated_at = now()
-WHERE id = $2 AND owner_id = $3 AND deleted_at IS NULL
-RETURNING id, owner_id, name, species, breed, sex, size, birth_date, weight_kg, neutered,
-    vet_name, vet_clinic, vet_phone, created_at, updated_at, deleted_at, photo_key
+FROM previous
+WHERE pets.id = previous.id
+RETURNING pets.id, pets.owner_id, pets.name, pets.species, pets.breed, pets.sex, pets.size,
+    pets.birth_date, pets.weight_kg, pets.neutered, pets.vet_name, pets.vet_clinic, pets.vet_phone,
+    pets.created_at, pets.updated_at, pets.deleted_at, pets.photo_key,
+    previous.photo_key AS previous_photo_key
 `
 
 type SetPetPhotoParams struct {
@@ -197,10 +213,33 @@ type SetPetPhotoParams struct {
 	OwnerID  string
 }
 
-// Sets the key of the profile photo of a pet of the owner.
-func (q *Queries) SetPetPhoto(ctx context.Context, arg SetPetPhotoParams) (Pet, error) {
+type SetPetPhotoRow struct {
+	ID               string
+	OwnerID          string
+	Name             string
+	Species          string
+	Breed            *string
+	Sex              *string
+	Size             *string
+	BirthDate        *time.Time
+	WeightKg         *float64
+	Neutered         *bool
+	VetName          *string
+	VetClinic        *string
+	VetPhone         *string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	DeletedAt        *time.Time
+	PhotoKey         *string
+	PreviousPhotoKey *string
+}
+
+// Sets the key of the profile photo of a pet of the owner, and returns the
+// key that the pet had. The row lock makes two requests for the same pet
+// run one after the other, so each one gets the key that it replaced.
+func (q *Queries) SetPetPhoto(ctx context.Context, arg SetPetPhotoParams) (SetPetPhotoRow, error) {
 	row := q.db.QueryRow(ctx, setPetPhoto, arg.PhotoKey, arg.ID, arg.OwnerID)
-	var i Pet
+	var i SetPetPhotoRow
 	err := row.Scan(
 		&i.ID,
 		&i.OwnerID,
@@ -219,6 +258,7 @@ func (q *Queries) SetPetPhoto(ctx context.Context, arg SetPetPhotoParams) (Pet, 
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.PhotoKey,
+		&i.PreviousPhotoKey,
 	)
 	return i, err
 }

@@ -217,8 +217,12 @@ O código usa o termo em inglês. A documentação e as telas usam o termo em po
 | pet | pet | Animal cadastrado |
 | espécie | species | Cachorro, gato ou outro |
 | raça | breed | Texto livre |
+| sexo | sex | Macho, fêmea ou não informado |
 | porte | size | Pequeno, médio ou grande |
 | castrado | neutered | Sim ou não |
+| data de nascimento | birth date | Data sem hora |
+| peso | weight | Peso do pet em quilos |
+| veterinário | vet | Nome, clínica e telefone de quem atende o pet |
 | foto de perfil | profile photo | A foto que identifica o pet nas listas |
 | focinho | nose | Região usada na biometria |
 | cadastro biométrico | noseprint | Foto do focinho com o vetor |

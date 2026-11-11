@@ -13,12 +13,7 @@ export async function pickPhoto(): Promise<LocalFile | null> {
   if (result.canceled || result.assets.length === 0) {
     return null;
   }
-  const asset = result.assets[0];
-  return {
-    uri: asset.uri,
-    name: asset.fileName ?? "photo.jpg",
-    type: asset.mimeType ?? "image/jpeg",
-  };
+  return { uri: result.assets[0].uri };
 }
 
 /**

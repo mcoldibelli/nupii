@@ -22,6 +22,10 @@ const CurrentTermsVersion = "2026-11-10"
 const _maxNameLength = 100
 
 var (
+	// ErrNoIdentity means that the request has no identity in the context:
+	// the operation ran without RequireIdentity. It is a wiring error, so
+	// the client gets the internal error.
+	ErrNoIdentity = errors.New("the request has no identity in the context")
 	// ErrOwnerNotFound means that the account did not register an owner yet.
 	ErrOwnerNotFound = errors.New("owner not found")
 	// ErrInvalidName means that the name of the owner is empty or too long.
@@ -95,6 +99,17 @@ func (s *Service) Owner(ctx context.Context, who Identity) (Owner, error) {
 		return Owner{}, fmt.Errorf("get owner: %w", err)
 	}
 	return ownerFromRow(row), nil
+}
+
+// CurrentOwner returns the owner of the account that made the request of
+// ctx. It returns ErrOwnerNotFound when the account did not register an
+// owner. The other modules use this method to find who makes a request.
+func (s *Service) CurrentOwner(ctx context.Context) (Owner, error) {
+	who, ok := FromContext(ctx)
+	if !ok {
+		return Owner{}, ErrNoIdentity
+	}
+	return s.Owner(ctx, who)
 }
 
 // validateRegistration applies the rules of the registration and returns

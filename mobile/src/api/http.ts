@@ -9,6 +9,9 @@ type ApiError = components["schemas"]["Error"];
  */
 export type ApiResult<T> = { ok: true; value: T } | { ok: false; code: ApiError["error"] | "network" };
 
+/** Message for the user when the app cannot get the ID token of the session. */
+export const SESSION_FAILURE = "Não foi possível confirmar a sua sessão. Confira a internet e tente de novo.";
+
 /** Message for the user for a failure of a call of the API. */
 export function failureMessage(result: { ok: false; code: string }): string {
   if (result.code === "network") {

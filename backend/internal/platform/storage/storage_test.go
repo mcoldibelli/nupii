@@ -37,7 +37,7 @@ func TestSignedURLUsesThePublicEndpointAndThePathOfTheObject(t *testing.T) {
 		t.Errorf("escaped path = %q, want %q", u.EscapedPath(), want)
 	}
 	query := u.Query()
-	// RN-06: the temporary URL is valid for 15 minutes.
+	// RN-06: a URL temporária é válida por 15 minutos.
 	if got := query.Get("X-Amz-Expires"); got != "900" {
 		t.Errorf("X-Amz-Expires = %q, want 900", got)
 	}
@@ -97,5 +97,25 @@ func TestPresignSignsThePathWithTheLeadingSlash(t *testing.T) {
 	}
 	if !strings.HasPrefix(without, "http://internal:8333/photos/a.jpg?") {
 		t.Errorf("URL = %q, want the path /photos/a.jpg", without)
+	}
+}
+
+func TestEscapePath(t *testing.T) {
+	tests := []struct {
+		path string
+		want string
+	}{
+		{path: "/bucket/pets/0195f3c8/profile/abc.jpg", want: "/bucket/pets/0195f3c8/profile/abc.jpg"},
+		{path: "/bucket/a b/ç.jpg", want: "/bucket/a%20b/%C3%A7.jpg"},
+		{path: "/bucket/a+b=c@d,e:f;g&h$i.jpg", want: "/bucket/a%2Bb%3Dc%40d%2Ce%3Af%3Bg%26h%24i.jpg"},
+		{path: "/bucket/keep-_.~", want: "/bucket/keep-_.~"},
+		{path: "/bucket/100%.jpg", want: "/bucket/100%25.jpg"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			if got := escapePath(tt.path); got != tt.want {
+				t.Errorf("escapePath(%q) = %q, want %q", tt.path, got, tt.want)
+			}
+		})
 	}
 }

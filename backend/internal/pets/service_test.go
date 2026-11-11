@@ -46,6 +46,11 @@ func TestValidate(t *testing.T) {
 		{name: "RN-51 zero weight", input: valid(func(in *Input) { in.WeightKg = ptr(0.0) }), wantErr: "weightKg"},
 		{name: "RN-51 weight over the maximum", input: valid(func(in *Input) { in.WeightKg = ptr(1000.0) }), wantErr: "weightKg"},
 		{name: "RN-51 weight with 3 decimal places", input: valid(func(in *Input) { in.WeightKg = ptr(12.345) }), wantErr: "weightKg"},
+		{
+			name:    "RN-51 weight with 9 decimal places",
+			input:   valid(func(in *Input) { in.WeightKg = ptr(12.340000001) }),
+			wantErr: "weightKg",
+		},
 		// RN-56: tamanhos máximos dos textos do pet.
 		{name: "RN-56 name with 100 characters", input: valid(func(in *Input) { in.Name = strings.Repeat("é", 100) })},
 		{name: "RN-56 name with 101 characters", input: valid(func(in *Input) { in.Name = strings.Repeat("é", 101) }), wantErr: "name must have at most 100"},

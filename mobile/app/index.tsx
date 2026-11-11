@@ -2,7 +2,7 @@ import { router, Stack, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { failureMessage } from "../src/api/http";
+import { failureMessage, SESSION_FAILURE } from "../src/api/http";
 import { listPets, type Pet } from "../src/api/pets";
 import { apiUrl } from "../src/config";
 import { speciesLabels } from "../src/pets/labels";
@@ -18,7 +18,7 @@ export default function PetList() {
   const load = useCallback(async () => {
     const token = await idToken();
     if (token === null) {
-      setError("Não foi possível confirmar a sua sessão. Tente de novo.");
+      setError(SESSION_FAILURE);
       return;
     }
     const result = await listPets(apiUrl, token);

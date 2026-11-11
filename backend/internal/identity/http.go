@@ -8,10 +8,6 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/api"
 )
 
-// errNoIdentity means that an operation ran without RequireIdentity. It is
-// a wiring error, so the client gets the internal error.
-var errNoIdentity = errors.New("identity: the request has no identity in the context")
-
 // Handlers implements the operations of the contract for the owner.
 type Handlers struct {
 	service *Service
@@ -29,7 +25,7 @@ func (h *Handlers) GetMe(
 ) (api.GetMeResponseObject, error) {
 	who, ok := FromContext(ctx)
 	if !ok {
-		return nil, errNoIdentity
+		return nil, ErrNoIdentity
 	}
 	owner, err := h.service.Owner(ctx, who)
 	if errors.Is(err, ErrOwnerNotFound) {
@@ -51,7 +47,7 @@ func (h *Handlers) RegisterMe(
 ) (api.RegisterMeResponseObject, error) {
 	who, ok := FromContext(ctx)
 	if !ok {
-		return nil, errNoIdentity
+		return nil, ErrNoIdentity
 	}
 	owner, created, err := h.service.Register(
 		ctx, who, request.Body.Name, string(request.Body.AcceptedTermsVersion))

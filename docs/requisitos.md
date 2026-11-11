@@ -108,13 +108,13 @@
 | RN-06 | A foto fica no armazenamento de objetos. A API devolve uma URL temporária, válida por 15 minutos. | RF-10 | estável |
 | RN-48 | O nome e a espécie do pet são obrigatórios. A espécie é cachorro, gato ou outro. | RF-09 | estável |
 | RN-49 | O sexo é macho, fêmea ou indefinido. O porte é pequeno, médio ou grande. Os dois são opcionais. | RF-09 | estável |
-| RN-50 | A data de nascimento, quando informada, não é uma data futura. | RF-09 | estável |
+| RN-50 | A data de nascimento, quando informada, não é uma data futura. A data de hoje é a data em UTC. | RF-09 | estável |
 | RN-51 | O peso, quando informado, fica entre 0,01 kg e 999,99 kg, com no máximo 2 casas decimais. | RF-09 | estável |
 | RN-52 | Só o tutor do pet vê, altera e exclui o pet. Para outro tutor, o pet não existe. | RF-09, RF-10 | estável |
 | RN-53 | A lista mostra os pets do tutor que não foram excluídos, em ordem de nome. | RF-09 | estável |
-| RN-54 | A foto de perfil é uma imagem JPEG, PNG ou WebP, com no máximo 5 MB. | RF-10 | estável |
+| RN-54 | A foto de perfil é uma imagem JPEG, PNG ou WebP, com no máximo 5 MB (5 × 1.048.576 bytes). | RF-10 | estável |
 | RN-55 | Uma foto nova substitui a anterior, e a anterior é apagada do armazenamento. | RF-10 | estável |
-| RN-56 | Tamanhos máximos dos textos do pet: nome e raça com 100 caracteres, nome do veterinário e clínica com 120, telefone do veterinário com 30. | RF-09 | estável |
+| RN-56 | Tamanhos máximos dos textos do pet: nome e raça com 100 caracteres, nome do veterinário e clínica com 120, telefone do veterinário com 30. Os espaços do começo e do fim de cada texto são removidos antes da contagem. Um texto opcional vazio fica sem valor. | RF-09 | estável |
 
 ### Biometria do focinho
 
@@ -226,6 +226,7 @@ Cada item é fechado na fatia indicada, antes do código.
 | 4 | Qual limiar de RN-15 vale para um acervo com tamanho entre duas linhas da tabela, ou acima de 300? | RN-15 |
 | 5 | Quem resolve um achado registrado sem conta? | RN-29 |
 | 7 | Onde o lembrete é calculado: no app ou em uma tarefa do backend? | RF-29 |
+| 7 | Em qual fuso horário vale a data de hoje para uma data que o tutor informa? Hoje a API usa a data em UTC. | RN-50 |
 | 8 | Qual é a validade do link da carteirinha? | RN-40 |
 | 9 | Quais são os dados do perfil? | RF-06 |
 | 9 | O que a API faz quando o e-mail da conta muda no provedor de identidade? Hoje ela guarda o e-mail do registro. | RF-06 |

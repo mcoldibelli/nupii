@@ -5,7 +5,7 @@ export type Pet = components["schemas"]["Pet"];
 export type PetInput = components["schemas"]["PetInput"];
 
 /** A file that the owner chose on the device. */
-export type LocalFile = { uri: string; name: string; type: string };
+export type LocalFile = { uri: string };
 
 /** Calls GET /v1/pets. The pets come in name order. */
 export async function listPets(baseUrl: string, idToken: string, fetchFn: typeof fetch = fetch): Promise<ApiResult<Pet[]>> {
