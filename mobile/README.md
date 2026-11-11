@@ -36,6 +36,8 @@ Requisitos: Node 22.13 ou mais novo, e o ambiente local em execução (ver o [RE
 
    Use `npm run ios` para o simulador iOS. Use `npm start` e leia o QR code com o Expo Go para um aparelho real.
 
+Para usar o projeto real do Firebase no lugar do emulador, execute `./deploy/firebase-setup.sh` na raiz do repositório. O roteiro preenche o `mobile/.env`.
+
 ## O que o app faz hoje
 
 1. Tela de entrada: entrar ou criar conta, com e-mail e senha de no mínimo 8 caracteres.
