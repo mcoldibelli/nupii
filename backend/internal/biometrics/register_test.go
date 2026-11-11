@@ -35,6 +35,10 @@ func (e *refusingEmbedder) Embed(context.Context, []byte) (inference.Embedding, 
 	return inference.Embedding{}, e.err
 }
 
+func (e *refusingEmbedder) ModelVersion(context.Context) (string, error) {
+	return "test-model", nil
+}
+
 // spyStore records the keys of the objects that were stored.
 type spyStore struct {
 	stored []string
@@ -46,6 +50,8 @@ func (s *spyStore) Put(_ context.Context, key, _ string, _ io.Reader, _ int64) e
 }
 
 func (s *spyStore) Delete(context.Context, string) error { return nil }
+
+func (s *spyStore) Get(context.Context, string, int64) ([]byte, error) { return nil, nil }
 
 func (s *spyStore) SignedURL(key string, _ time.Duration) (string, error) {
 	return "http://store.test/" + key, nil

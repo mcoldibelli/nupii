@@ -29,6 +29,22 @@ SELECT n.id, n.image_key, n.model_version, n.quality, n.captured_at
 FROM noseprints AS n
 WHERE n.pet_id = sqlc.arg(pet_id) AND n.is_primary;
 
+-- name: ListNoseprintsOfOtherVersions :many
+-- RN-67: os cadastros de outra versão do modelo, de pets não excluídos.
+SELECT n.id, n.image_key, n.model_version
+FROM noseprints AS n
+JOIN pets AS p ON p.id = n.pet_id
+WHERE n.model_version <> sqlc.arg(model_version) AND p.deleted_at IS NULL
+ORDER BY n.id;
+
+-- name: UpdateNoseprintEmbedding :execrows
+-- The update does nothing when another recompute changed the noseprint.
+UPDATE noseprints
+SET embedding = sqlc.arg(embedding)::text::vector,
+    model_version = sqlc.arg(model_version),
+    quality = sqlc.arg(quality)
+WHERE id = sqlc.arg(id) AND model_version = sqlc.arg(previous_model_version);
+
 -- name: SearchNoseprints :many
 -- RN-10: a busca lê os 50 cadastros mais parecidos pelo cosseno, só da mesma
 -- versão do modelo. RN-11: ficam fora da busca os pets excluídos.

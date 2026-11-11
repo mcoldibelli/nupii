@@ -32,7 +32,8 @@ func newGallery(testAPI testAPI) *gallery {
 	testAPI.embedder.embed = func(image []byte) (inference.Embedding, error) {
 		vector, ok := g.vectors[string(image)]
 		if !ok {
-			return inference.Embedding{}, fmt.Errorf("the test gave no vector to this photo")
+			// A photo of another test, which the recompute reads.
+			return inference.Embedding{}, inference.ErrInvalidImage
 		}
 		return inference.Embedding{Vector: vector, ModelVersion: g.modelVersion, Quality: 0.9}, nil
 	}

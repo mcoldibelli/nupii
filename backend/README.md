@@ -30,6 +30,8 @@ Com `FIREBASE_AUTH_EMULATOR_HOST`, a API aceita os tokens do emulador e não con
 
 Na subida, a API espera o banco responder e aplica as migrations que faltam. Se o banco não responde em 30 segundos, o processo termina com erro.
 
+Depois de subir, a API calcula de novo os vetores dos focinhos gravados com outra versão do modelo (RF-15). Ela atende requisições durante esse trabalho, e o resultado aparece em uma linha do log: `recompute of the noseprint vectors ended` ou `stopped`.
+
 Em outro terminal:
 
 ```bash
@@ -174,6 +176,6 @@ A primeira execução baixa o `oapi-codegen` na versão fixada em `internal/api/
 | `internal/platform/imagefile/` | Tipo de um arquivo de imagem pelo conteúdo |
 | `internal/pets/` | Módulo de pets: regras dos dados (RN-48 a RN-56), operações de `/v1/pets`. `petsdb/` é o código gerado das consultas |
 | `internal/platform/firebase/` | Validação do ID token com o Firebase Admin SDK |
-| `internal/platform/storage/` | Armazenamento de objetos por URLs pré-assinadas (ADR 0015). `storagetest/` dá a configuração para os testes de integração |
+| `internal/platform/storage/` | Armazenamento de objetos por URLs pré-assinadas (ADR 0015), com a leitura de um objeto (ADR 0020). `storagetest/` dá a configuração para os testes de integração |
 | `internal/platform/postgres/postgrestest/` | Banco para os testes de integração |
 | `Dockerfile` | Imagem da API: compila um binário estático e copia para uma imagem vazia, com usuário sem privilégio |

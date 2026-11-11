@@ -72,6 +72,9 @@ type server struct {
 	*petsHandlers
 	*biometricsHandlers
 
+	// noseprints runs the recompute of the vectors when the API starts.
+	noseprints *biometrics.Service
+
 	logger   *slog.Logger
 	database pinger
 }
@@ -93,6 +96,7 @@ func newServer(
 		identityHandlers:   identity.NewHandlers(owners),
 		petsHandlers:       pets.NewHandlers(petService),
 		biometricsHandlers: biometrics.NewHandlers(noseprints, logger),
+		noseprints:         noseprints,
 		logger:             logger,
 		database:           pool,
 	}

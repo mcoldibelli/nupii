@@ -78,6 +78,8 @@ type PetFinder interface {
 // implements it.
 type Embedder interface {
 	Embed(ctx context.Context, image []byte) (inference.Embedding, error)
+	// ModelVersion returns the label of the model that the service has now.
+	ModelVersion(ctx context.Context) (string, error)
 }
 
 // PhotoStore keeps the photos of the noses. *storage.Store implements it.
@@ -85,6 +87,8 @@ type PhotoStore interface {
 	Put(ctx context.Context, key, contentType string, body io.Reader, size int64) error
 	Delete(ctx context.Context, key string) error
 	SignedURL(key string, expires time.Duration) (string, error)
+	// Get returns the content of an object with at most maxBytes.
+	Get(ctx context.Context, key string, maxBytes int64) ([]byte, error)
 }
 
 // Service has the rules of the noseprints.

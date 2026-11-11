@@ -279,6 +279,41 @@ func (q *Queries) ListFoundNotices(ctx context.Context, ownerID string) ([]ListF
 	return items, nil
 }
 
+const listNoseprintsOfOtherVersions = `-- name: ListNoseprintsOfOtherVersions :many
+SELECT n.id, n.image_key, n.model_version
+FROM noseprints AS n
+JOIN pets AS p ON p.id = n.pet_id
+WHERE n.model_version <> $1 AND p.deleted_at IS NULL
+ORDER BY n.id
+`
+
+type ListNoseprintsOfOtherVersionsRow struct {
+	ID           string
+	ImageKey     string
+	ModelVersion string
+}
+
+// RN-67: os cadastros de outra versão do modelo, de pets não excluídos.
+func (q *Queries) ListNoseprintsOfOtherVersions(ctx context.Context, modelVersion string) ([]ListNoseprintsOfOtherVersionsRow, error) {
+	rows, err := q.db.Query(ctx, listNoseprintsOfOtherVersions, modelVersion)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListNoseprintsOfOtherVersionsRow
+	for rows.Next() {
+		var i ListNoseprintsOfOtherVersionsRow
+		if err := rows.Scan(&i.ID, &i.ImageKey, &i.ModelVersion); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockCandidate = `-- name: LockCandidate :one
 SELECT c.id, i.photo_key
 FROM identification_candidates AS c
@@ -397,4 +432,35 @@ func (q *Queries) SetIdentificationContact(ctx context.Context, arg SetIdentific
 	var photo_key *string
 	err := row.Scan(&photo_key)
 	return photo_key, err
+}
+
+const updateNoseprintEmbedding = `-- name: UpdateNoseprintEmbedding :execrows
+UPDATE noseprints
+SET embedding = $1::text::vector,
+    model_version = $2,
+    quality = $3
+WHERE id = $4 AND model_version = $5
+`
+
+type UpdateNoseprintEmbeddingParams struct {
+	Embedding            string
+	ModelVersion         string
+	Quality              float64
+	ID                   string
+	PreviousModelVersion string
+}
+
+// The update does nothing when another recompute changed the noseprint.
+func (q *Queries) UpdateNoseprintEmbedding(ctx context.Context, arg UpdateNoseprintEmbeddingParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateNoseprintEmbedding,
+		arg.Embedding,
+		arg.ModelVersion,
+		arg.Quality,
+		arg.ID,
+		arg.PreviousModelVersion,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
