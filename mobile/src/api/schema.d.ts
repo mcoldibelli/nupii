@@ -400,6 +400,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Registra o dispositivo do tutor para receber push.
+         * @description Um token de outro tutor passa para o tutor que chama (RN-31).
+         */
+        put: operations["registerDevice"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/devices/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description O token de push do dispositivo. */
+                token: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove um dispositivo do tutor.
+         * @description Um token de outro tutor fica como está, com a mesma resposta (RN-31).
+         */
+        delete: operations["removeDevice"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/notifications": {
         parameters: {
             query?: never;
@@ -657,6 +700,12 @@ export interface components {
             latitude: number;
             /** Format: double */
             longitude: number;
+        };
+        Device: {
+            /** @description Token de push do Firebase Cloud Messaging, com no máximo 4.096 caracteres. */
+            token: string;
+            /** @enum {string} */
+            platform: "android" | "ios" | "web";
         };
         /**
          * @description `lost_nearby`: um pet desapareceu perto do tutor. `sighting`: alguém viu o pet do tutor.
@@ -1572,6 +1621,56 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    registerDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Device"];
+            };
+        };
+        responses: {
+            /** @description O dispositivo está registrado. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    removeDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description O token de push do dispositivo. */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O dispositivo não recebe mais push deste tutor. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             401: components["responses"]["Unauthenticated"];
             404: components["responses"]["OwnerNotFound"];
             default: components["responses"]["Error"];

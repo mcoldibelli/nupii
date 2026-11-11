@@ -113,6 +113,17 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 		AccessKeyID:     cfg.StorageAccessKeyID,
 		SecretAccessKey: cfg.StorageSecretAccessKey,
 	})
+	var pusher alerts.Pusher
+	// RN-36: o push só é enviado com a credencial configurada.
+	if cfg.PushEnabled {
+		sender, err := firebase.NewPusher(startCtx, cfg.FirebaseProjectID)
+		if err != nil {
+			return fmt.Errorf("create the push sender: %w", err)
+		}
+		pusher = firebasePusher{firebase: sender}
+	} else {
+		logger.InfoContext(ctx, "push notifications are off: no credential of firebase")
+	}
 	operations := newServer(logger, pool, photos, inference.New(cfg.InferenceURL))
 
 	listener, err := net.Listen("tcp", cfg.HTTPAddr)
@@ -142,7 +153,7 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	background.Go(func() { reembedNoseprints(backgroundCtx, logger, operations.noseprints) })
 	// RNF-01: the jobs that wait in the database run from the start of the
 	// API. Run ends the job in progress and returns when the context ends.
-	runner := jobs.NewRunner(pool, logger, alerts.JobHandlers())
+	runner := jobs.NewRunner(pool, logger, alerts.JobHandlers(pusher))
 	background.Go(func() { runner.Run(backgroundCtx) })
 	defer func() {
 		cancelBackground()

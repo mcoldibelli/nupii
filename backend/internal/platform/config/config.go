@@ -38,6 +38,10 @@ type Config struct {
 
 	// InferenceURL is the address of the inference service.
 	InferenceURL string
+	// PushEnabled tells if the API sends push notifications. It is true
+	// when GOOGLE_APPLICATION_CREDENTIALS has the file of a credential of
+	// the Firebase project, and the emulator is not in use (RN-36).
+	PushEnabled bool
 
 	// StorageEndpoint is the address that the API uses to reach the
 	// object store.
@@ -63,6 +67,8 @@ func Load(getenv func(string) string) (Config, error) {
 		FirebaseAuthEmulatorHost: getenv("FIREBASE_AUTH_EMULATOR_HOST"),
 
 		InferenceURL: getenv("INFERENCE_URL"),
+		PushEnabled: getenv("GOOGLE_APPLICATION_CREDENTIALS") != "" &&
+			getenv("FIREBASE_AUTH_EMULATOR_HOST") == "",
 
 		StorageEndpoint:        getenv("S3_ENDPOINT"),
 		StoragePublicEndpoint:  getenv("S3_PUBLIC_ENDPOINT"),

@@ -122,6 +122,7 @@ Concorrência, declarada por regra:
 - Uma tarefa que falha volta para a fila com espera crescente. Depois do limite de tentativas ela fica marcada como falha.
 - O código da fila fica em `platform/jobs`. Um runner pega uma tarefa vencida com `FOR UPDATE SKIP LOCKED`, só dos tipos que ele conhece, e espera 1 segundo quando nenhuma tarefa vence. Uma tarefa tem 1 minuto.
 - O worker executa a tarefa na mesma transação que trava a linha dela. As escritas da tarefa no banco e o fim da tarefa entram juntos, ou não entram.
+- Cada notificação grava, na mesma transação, a tarefa `send_push`. A tarefa envia só uma notificação com o push pendente. Sem a credencial do Firebase, ela marca o push como não enviado (RN-36).
 - A tarefa leva os dados de que precisa. O módulo que executa a tarefa não lê as tabelas do módulo que a criou.
 - Toda tarefa precisa ser segura para executar duas vezes.
 - O recálculo dos vetores (RN-67) é uma goroutine que nasce em `main` depois de o servidor HTTP subir. Ela termina quando o recálculo termina ou quando o contexto é cancelado, e `main` espera por ela antes de sair. Se o serviço de inferência não responde, ela escreve um aviso no log e para: os cadastros que faltam ficam para a subida seguinte.

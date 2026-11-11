@@ -195,6 +195,24 @@ func answerPreflight(mux *http.ServeMux, next http.Handler) http.Handler {
 	})
 }
 
+// firebasePusher adapts the sender of Firebase Cloud Messaging to the
+// interface of the alerts module.
+type firebasePusher struct {
+	firebase *firebase.Pusher
+}
+
+func (p firebasePusher) Send(
+	ctx context.Context,
+	tokens []string,
+	message alerts.PushMessage,
+) (alerts.PushResult, error) {
+	result, err := p.firebase.Send(ctx, tokens, message.Title, message.Body, message.Data)
+	if err != nil {
+		return alerts.PushResult{}, fmt.Errorf("send with firebase: %w", err)
+	}
+	return alerts.PushResult{Sent: result.Sent, InvalidTokens: result.InvalidTokens}, nil
+}
+
 // tokenVerifier adapts the Firebase verifier to the interface of the
 // identity module.
 type tokenVerifier struct {
