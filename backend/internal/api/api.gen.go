@@ -579,7 +579,8 @@ type HealthEventInput struct {
 	// Reason Consulta. Obrigatório na consulta.
 	Reason *string `json:"reason,omitempty"`
 
-	// Remind Vacina e medicação. O evento entra nos próximos cuidados.
+	// Remind Vacina e medicação. O evento entra nos próximos cuidados. Com esta opção, a vacina tem
+	// `nextDoseDate` e a medicação tem `intervalDays`.
 	Remind *bool `json:"remind,omitempty"`
 
 	// Result Exame.

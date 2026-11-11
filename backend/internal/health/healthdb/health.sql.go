@@ -10,6 +10,17 @@ import (
 	"time"
 )
 
+const countHealthAttachments = `-- name: CountHealthAttachments :one
+SELECT count(*)::int FROM health_attachments WHERE event_id = $1
+`
+
+func (q *Queries) CountHealthAttachments(ctx context.Context, eventID string) (int32, error) {
+	row := q.db.QueryRow(ctx, countHealthAttachments, eventID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createHealthAttachment = `-- name: CreateHealthAttachment :one
 INSERT INTO health_attachments (event_id, key, content_type, file_name, size_bytes)
 VALUES ($1, $2, $3, $4, $5)
@@ -184,7 +195,6 @@ const deleteHealthEvent = `-- name: DeleteHealthEvent :one
 WITH event AS (
     SELECT h.id FROM health_events AS h
     WHERE h.id = $1 AND h.pet_id = $2
-    FOR UPDATE
 ), attachments AS (
     DELETE FROM health_attachments AS a USING event
     WHERE a.event_id = event.id
@@ -211,6 +221,7 @@ type DeleteHealthEventRow struct {
 
 // RN-82: apagar um evento apaga os anexos dele. The statement returns the
 // keys of the objects, which the service deletes from the store.
+// The service locks the event first (LockHealthEvent).
 func (q *Queries) DeleteHealthEvent(ctx context.Context, arg DeleteHealthEventParams) (DeleteHealthEventRow, error) {
 	row := q.db.QueryRow(ctx, deleteHealthEvent, arg.ID, arg.PetID)
 	var i DeleteHealthEventRow
@@ -407,9 +418,7 @@ func (q *Queries) ListUpcomingCare(ctx context.Context, ownerID string) ([]ListU
 }
 
 const lockHealthEvent = `-- name: LockHealthEvent :one
-SELECT h.id,
-    (SELECT count(*) FROM health_attachments AS a WHERE a.event_id = h.id)::int AS attachments
-FROM health_events AS h
+SELECT h.id FROM health_events AS h
 WHERE h.id = $1 AND h.pet_id = $2
 FOR UPDATE
 `
@@ -419,17 +428,15 @@ type LockHealthEventParams struct {
 	PetID string
 }
 
-type LockHealthEventRow struct {
-	ID          string
-	Attachments int32
-}
-
-// The lock puts two uploads to the same event in sequence (RN-82: 10 anexos).
-func (q *Queries) LockHealthEvent(ctx context.Context, arg LockHealthEventParams) (LockHealthEventRow, error) {
+// The lock puts the uploads and the delete of the same event in sequence
+// (RN-82). The statements that read the attachments come after this one:
+// a statement reads the rows that were committed when it started, and the
+// lock can wait for a commit.
+func (q *Queries) LockHealthEvent(ctx context.Context, arg LockHealthEventParams) (string, error) {
 	row := q.db.QueryRow(ctx, lockHealthEvent, arg.ID, arg.PetID)
-	var i LockHealthEventRow
-	err := row.Scan(&i.ID, &i.Attachments)
-	return i, err
+	var id string
+	err := row.Scan(&id)
+	return id, err
 }
 
 const updateHealthEvent = `-- name: UpdateHealthEvent :one

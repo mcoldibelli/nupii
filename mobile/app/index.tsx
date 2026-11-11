@@ -30,7 +30,7 @@ export default function PetList() {
     const [result, upcoming] = await Promise.all([listPets(apiUrl, token), listUpcomingCare(apiUrl, token)]);
     // RF-29: the next care of the pets, on the first screen.
     if (upcoming.ok) {
-      setCare(upcoming.value.slice(0, 3));
+      setCare(upcoming.value);
     }
     if (result.ok) {
       setPets(result.value);

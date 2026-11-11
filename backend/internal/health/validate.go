@@ -213,6 +213,14 @@ func validate(in Input, today time.Time) (Input, error) {
 			return invalid("%s is required for the type %s", name, in.Type)
 		}
 	}
+	// RN-37, RN-77: com a opção de lembrar, a medicação tem o intervalo e a
+	// vacina tem a próxima dose.
+	if in.Remind && in.Type == TypeMedication && in.IntervalDays == nil {
+		return invalid("intervalDays is required with remind")
+	}
+	if in.Remind && in.Type == TypeVaccine && in.NextDoseDate == nil {
+		return invalid("nextDoseDate is required with remind")
+	}
 	category := in.MedicationCategory
 	if category != nil && !slices.Contains(_medicationCategories, *category) {
 		return invalid("medicationCategory must be medication, flea or deworm")

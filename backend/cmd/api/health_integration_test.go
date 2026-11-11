@@ -4,11 +4,16 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/mcoldibelli/nupii/backend/internal/api"
 )
@@ -74,6 +79,7 @@ func TestHealthEventsOfTheFiveTypes(t *testing.T) {
 }
 
 // RN-76: só o tutor do pet vê e muda os eventos dele.
+// RN-52, RN-76: só o tutor do pet vê e muda os eventos dele.
 func TestHealthEventsOfAnotherOwner(t *testing.T) {
 	testAPI := petsAPI(t)
 	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
@@ -109,6 +115,10 @@ func TestHealthEventRefusals(t *testing.T) {
 		`{"type": "exam", "date": "` + dateText(0) + `", "name": "X", "reason": "Tosse"}`,
 		`{"type": "medication", "date": "` + dateText(0) + `", "name": "X", "medicationCategory": "flea", "intervalDays": 400}`,
 		`{"type": "note", "date": "` + dateText(0) + `", "noteCategory": "weight"}`,
+		// RN-37, RN-77: com a opção de lembrar, a medicação tem o intervalo e a
+		// vacina tem a próxima dose.
+		`{"type": "medication", "date": "` + dateText(0) + `", "name": "X", "medicationCategory": "flea", "remind": true}`,
+		`{"type": "vaccine", "date": "` + dateText(0) + `", "name": "V10", "remind": true}`,
 	} {
 		rec := testAPI.call(http.MethodPost, "/v1/pets/"+pet.Id.String()+"/health-events", "token-ana", body)
 		if rec.Code != http.StatusBadRequest {
@@ -118,7 +128,8 @@ func TestHealthEventRefusals(t *testing.T) {
 }
 
 // RN-81: os próximos cuidados, da data mais próxima para a mais distante, e só
-// o evento mais novo de cada vacina pelo nome e de cada medicação pela categoria.
+// o evento mais novo de cada vacina pelo nome e de cada medicação pela categoria
+// ou pelo nome.
 func TestUpcomingCare(t *testing.T) {
 	testAPI := petsAPI(t)
 	rex := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
@@ -134,6 +145,18 @@ func TestUpcomingCare(t *testing.T) {
 	// Not in the list: no reminder, not in use, and the pet of Bia.
 	testAPI.createEvent("token-ana", rex, `{"type": "vaccine", "date": "`+dateText(-1)+`", "name": "Raiva", "nextDoseDate": "`+dateText(364)+`"}`)
 	testAPI.createEvent("token-ana", mel, `{"type": "medication", "date": "`+dateText(-1)+`", "name": "Antibiótico", "medicationCategory": "medication", "intervalDays": 1, "inUse": false, "remind": true}`)
+	// Other medications group by the name: only the new Prednisona counts.
+	testAPI.createEvent("token-ana", mel, `{"type": "medication", "date": "`+dateText(-50)+`", "name": "Prednisona", "medicationCategory": "medication", "intervalDays": 10, "remind": true}`)
+	pred := testAPI.createEvent("token-ana", mel, `{"type": "medication", "date": "`+dateText(-2)+`", "name": "prednisona", "medicationCategory": "medication", "intervalDays": 100, "remind": true}`)
+	// The newest Gripe has no reminder, so the old Gripe is not in the list.
+	testAPI.createEvent("token-ana", rex, `{"type": "vaccine", "date": "`+dateText(-300)+`", "name": "Gripe", "nextDoseDate": "`+dateText(65)+`", "remind": true}`)
+	testAPI.createEvent("token-ana", rex, `{"type": "vaccine", "date": "`+dateText(-3)+`", "name": "Gripe"}`)
+	// A deleted pet is not in the list.
+	gone := testAPI.createPet("token-ana", `{"name": "Zeca", "species": "dog"}`)
+	testAPI.createEvent("token-ana", gone, `{"type": "vaccine", "date": "`+dateText(0)+`", "name": "V8", "nextDoseDate": "`+dateText(2)+`", "remind": true}`)
+	if rec := testAPI.call(http.MethodDelete, "/v1/pets/"+gone.Id.String(), "token-ana", ""); rec.Code != http.StatusNoContent {
+		t.Fatalf("DELETE pet: status = %d", rec.Code)
+	}
 	bob := testAPI.createPet("token-bia", `{"name": "Bob", "species": "dog"}`)
 	testAPI.createEvent("token-bia", bob, `{"type": "vaccine", "date": "`+dateText(0)+`", "name": "V8", "nextDoseDate": "`+dateText(1)+`", "remind": true}`)
 
@@ -149,6 +172,7 @@ func TestUpcomingCare(t *testing.T) {
 	}{
 		{late, "Mel", dateText(-5)},
 		{flea, "Rex", dateText(80)},
+		{pred, "Mel", dateText(98)},
 		{v10, "Rex", dateText(335)},
 	}
 	if len(items) != len(want) {
@@ -179,6 +203,9 @@ func TestHealthAttachments(t *testing.T) {
 	if first.ContentType != "application/pdf" || first.SizeBytes != len(pdf) || first.FileName != "photo" {
 		t.Errorf("attachment = %+v, want a PDF of %d bytes with the name of the part", first, len(pdf))
 	}
+	if !strings.Contains(first.Url, "X-Amz-Expires=900") {
+		t.Errorf("url = %q, want a validity of 900 seconds (RN-06)", first.Url)
+	}
 	if status, body := readURL(t, first.Url); status != http.StatusOK || string(body) != string(pdf) {
 		t.Errorf("read of the attachment: status %d, want 200 and the file", status)
 	}
@@ -201,7 +228,7 @@ func TestHealthAttachments(t *testing.T) {
 		t.Fatalf("%d attachments, want 10 with the first one first", len(list.Attachments))
 	}
 
-	// Another owner does not see the attachments.
+	// RN-52: para outro tutor, o pet não existe, nem os anexos dele.
 	if rec := testAPI.call(http.MethodGet, path, "token-bia", ""); rec.Code != http.StatusNotFound {
 		t.Errorf("GET by Bia: status = %d, want 404", rec.Code)
 	}
@@ -227,7 +254,7 @@ func TestHealthAttachments(t *testing.T) {
 	}
 }
 
-// RN-82: um anexo tem até 10 MB, also through the body limit of the API.
+// RN-82: um anexo tem até 10 MB, também pelo limite do corpo da API.
 func TestHealthAttachmentOf10MB(t *testing.T) {
 	testAPI := petsAPI(t)
 	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
@@ -274,5 +301,91 @@ func TestHealthAttachmentName(t *testing.T) {
 
 	if rec.Code != http.StatusCreated || decode[api.HealthAttachment](t, rec).FileName != "hemograma.pdf" {
 		t.Errorf("status = %d, body %s, want 201 with the name hemograma.pdf", rec.Code, rec.Body)
+	}
+}
+
+// RN-82: um evento tem no máximo 10 anexos, também com envios ao mesmo tempo.
+func TestHealthAttachmentsAtTheSameTime(t *testing.T) {
+	testAPI := petsAPI(t)
+	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
+	event := testAPI.createEvent("token-ana", pet, `{"type": "exam", "date": "`+dateText(0)+`", "name": "Hemograma"}`)
+	path := "/v1/pets/" + pet.Id.String() + "/health-events/" + event.Id.String() + "/attachments"
+	const uploads = 12
+	codes := make(chan int, uploads)
+	var wg sync.WaitGroup
+	for range uploads {
+		wg.Go(func() { codes <- testAPI.upload(http.MethodPost, "token-ana", path, nosePhoto()).Code })
+	}
+	wg.Wait()
+	close(codes)
+	count := map[int]int{}
+	for code := range codes {
+		count[code]++
+	}
+	if count[http.StatusCreated] != 10 || count[http.StatusConflict] != 2 {
+		t.Errorf("status codes = %v, want 10 times 201 and 2 times 409", count)
+	}
+}
+
+// RN-82: apagar um evento apaga os anexos dele, também o anexo que outro
+// pedido grava enquanto o evento é apagado.
+func TestHealthEventDeleteDuringAnUpload(t *testing.T) {
+	testAPI := petsAPI(t)
+	ctx := t.Context()
+	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
+	event := testAPI.createEvent("token-ana", pet, `{"type": "exam", "date": "`+dateText(0)+`", "name": "Hemograma"}`)
+
+	// The transaction does what an upload does: it locks the event and adds
+	// an attachment.
+	tx, err := testAPI.pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			t.Errorf("rollback: %v", err)
+		}
+	}()
+	if _, err := tx.Exec(ctx, `SELECT id FROM health_events WHERE id = $1 FOR UPDATE`, event.Id); err != nil {
+		t.Fatalf("lock the event: %v", err)
+	}
+	const insert = `INSERT INTO health_attachments (event_id, key, content_type, file_name, size_bytes)
+		VALUES ($1, 'health/race.pdf', 'application/pdf', 'race.pdf', 1)`
+	if _, err := tx.Exec(ctx, insert, event.Id); err != nil {
+		t.Fatalf("add an attachment: %v", err)
+	}
+
+	path := "/v1/pets/" + pet.Id.String() + "/health-events/" + event.Id.String()
+	code := make(chan int, 1)
+	go func() { code <- testAPI.call(http.MethodDelete, path, "token-ana", "").Code }()
+	// The delete waits for the lock of the upload.
+	const waiting = `SELECT count(*) FROM pg_stat_activity
+		WHERE wait_event_type = 'Lock' AND query LIKE '%health_events%'`
+	for deadline := time.Now().Add(5 * time.Second); ; {
+		var count int
+		if err := testAPI.pool.QueryRow(ctx, waiting).Scan(&count); err != nil {
+			t.Fatalf("read the waiting queries: %v", err)
+		}
+		if count > 0 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the delete does not wait for the lock of the event")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+	if got := <-code; got != http.StatusNoContent {
+		t.Fatalf("DELETE event: status = %d, want 204", got)
+	}
+	var left int
+	const count = `SELECT count(*) FROM health_attachments WHERE event_id = $1`
+	if err := testAPI.pool.QueryRow(ctx, count, event.Id).Scan(&left); err != nil {
+		t.Fatalf("count the attachments: %v", err)
+	}
+	if left != 0 {
+		t.Errorf("%d attachments of the deleted event, want 0", left)
 	}
 }

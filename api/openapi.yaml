@@ -1566,7 +1566,9 @@ components:
           description: Anotação. Obrigatório na anotação.
         remind:
           type: boolean
-          description: Vacina e medicação. O evento entra nos próximos cuidados.
+          description: |
+            Vacina e medicação. O evento entra nos próximos cuidados. Com esta opção, a vacina tem
+            `nextDoseDate` e a medicação tem `intervalDays`.
     HealthEvent:
       type: object
       required: [id, petId, type, date, remind, createdAt]

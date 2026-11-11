@@ -920,7 +920,10 @@ export interface components {
             noteCategory?: components["schemas"]["NoteCategory"];
             /** @description Anotação. Obrigatório na anotação. */
             title?: string;
-            /** @description Vacina e medicação. O evento entra nos próximos cuidados. */
+            /**
+             * @description Vacina e medicação. O evento entra nos próximos cuidados. Com esta opção, a vacina tem
+             *     `nextDoseDate` e a medicação tem `intervalDays`.
+             */
             remind?: boolean;
         };
         HealthEvent: {
