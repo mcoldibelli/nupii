@@ -25,7 +25,7 @@ flowchart LR
 | API Go | Um binário. Regras de negócio, acesso ao banco, tarefas em segundo plano. | [0002](adr/0002-backend-go-monolito-modular.md) |
 | Postgres | Único estado: dados, busca geográfica, busca por vetor, fila de tarefas. | [0003](adr/0003-estado-postgres-fila-no-banco.md) |
 | Armazenamento S3 | Fotos e anexos. SeaweedFS no ambiente local. | [0003](adr/0003-estado-postgres-fila-no-banco.md), [0012](adr/0012-servidor-s3-local.md), [0015](adr/0015-cliente-de-armazenamento.md) |
-| Inferência Python | Foto do focinho para vetor. Sem estado. | [0007](adr/0007-inferencia-python-onnx.md) |
+| Inferência Python | Foto do focinho para vetor. Sem estado. | [0007](adr/0007-inferencia-python-onnx.md), [0018](adr/0018-python-e-dependencias-da-inferencia.md) |
 | Firebase Authentication | Identidade do tutor: senha, sessão, login com Google, redefinição de senha. No ambiente local e no CI, o emulador. | [0008](adr/0008-autenticacao-firebase.md), [0013](adr/0013-firebase-no-app.md), [0014](adr/0014-emulador-do-firebase-auth.md) |
 
 ## Estrutura do repositório
@@ -148,17 +148,41 @@ Concorrência, declarada por regra:
 - O emulador do Authentication só é aceito com um projeto de demonstração (`FIREBASE_PROJECT_ID` com o prefixo `demo-`). Com outro projeto, a API não sobe.
 - Toda resposta tem o cabeçalho `X-Request-Id`, com o identificador que aparece nas linhas de log da requisição (RNF-07).
 
+## Serviço de inferência
+
+Só a API chama o serviço de inferência. Ele não tem autenticação e não fica exposto fora da rede interna.
+
+| Caminho | Entrada | Resposta |
+|---|---|---|
+| `POST /v1/nose/embedding` | O conteúdo da imagem no corpo | 200 com `embedding` (512 números), `modelVersion` e `quality` |
+| `GET /v1/model-info` | Nada | 200 com `modelVersion` e `dimensions` |
+| `GET /health` | Nada | 200 com `status` |
+
+Erros de `POST /v1/nose/embedding`, no mesmo formato da API (`error` e `message`):
+
+| Estado | `error` | Quando | Regra |
+|---|---|---|---|
+| 400 | `image_invalid` | O conteúdo não é uma imagem, ou a imagem tem pixels demais | RN-17, RN-57 |
+| 413 | `image_too_large` | O corpo passa de 8 MB | RN-17 |
+| 422 | `image_low_quality` | A nitidez está abaixo do mínimo | RN-20 |
+| 422 | `image_framing` | O detector não achou um focinho | RN-21 |
+
+A ordem das conferências é a ordem da tabela. O serviço só responde depois de carregar os pesos e conferir o SHA-256 deles (RN-22). Antes disso, a porta não aceita conexão.
+
+Os arquivos de pesos ficam em uma release do repositório, com a tag `model-<versão do modelo>`. O script `inference/download_weights.sh` baixa os arquivos e confere o SHA-256.
+
 ## Convenções
 
 ### Código
 
 - Go: Effective Go, Go Code Review Comments e o guia de estilo da Uber. `gofmt` e `go vet` em toda mudança.
-- Lint: um comando por projeto, usado no ambiente local e no CI. No backend é `./lint.sh` (`gofmt` e `go vet`). No app é `npm run lint` (conferência de tipos do TypeScript).
+- Lint: um comando por projeto, usado no ambiente local e no CI. No backend é `./lint.sh` (`gofmt` e `go vet`). No app é `npm run lint` (conferência de tipos do TypeScript). Na inferência é `./lint.sh` (`ruff`).
 - Erros em Go: sempre com contexto e `%w`. Nenhum erro descartado.
 - Log: `log/slog` com saída JSON e um identificador por requisição.
 - Configuração: variáveis de ambiente, lidas uma vez em `main` e validadas na subida. O processo não sobe com configuração inválida.
 - Segredos: nenhuma senha, chave secreta ou token fica no repositório, em issue ou em PR. Onde há segredo, um arquivo `.env.example` versionado tem os nomes das variáveis, sem os valores secretos. Os valores ficam em um arquivo `.env`, que o `.gitignore` exclui. No CI, eles ficam nos secrets do GitHub Actions ou são gerados em cada execução.
 - TypeScript: modo `strict`.
+- Python: PEP 8, com `ruff` para o lint e para o formato. Anotações de tipo nas funções.
 
 ### Git
 
@@ -184,10 +208,10 @@ Concorrência, declarada por regra:
 | Unidade (Go) | Regras de domínio: limiares, agrupamento por pet, estados da ocorrência | Testes de tabela, sem banco |
 | Integração (Go) | Consultas SQL, PostGIS, pgvector, fila de tarefas | Postgres do compose, testes com a build tag `integration` |
 | Contrato | A API responde o que o OpenAPI declara | Validação das respostas contra o `api/openapi.yaml` nos testes de integração |
-| Inferência | O vetor do serviço é igual ao vetor de referência da calibração | Vetores de referência versionados junto do teste ([ADR 0007](adr/0007-inferencia-python-onnx.md)) |
+| Inferência | O vetor do serviço é igual ao vetor de referência da calibração, com as mesmas decisões de nitidez e de enquadramento | Valores de referência versionados junto do teste, com imagens geradas e com fotos reais ([ADR 0007](adr/0007-inferencia-python-onnx.md), [ADR 0019](adr/0019-dados-do-teste-de-igualdade.md)) |
 | Mobile | Lógica pura e chamadas da API | Testes de unidade com Jest |
 
-As ferramentas de cada nível estão no [ADR 0010](adr/0010-ferramentas-de-teste.md).
+As ferramentas de cada nível estão no [ADR 0010](adr/0010-ferramentas-de-teste.md). As do serviço de inferência estão no [ADR 0018](adr/0018-python-e-dependencias-da-inferencia.md).
 
 Regra: toda regra de negócio de [requisitos.md](requisitos.md) tem um teste que cita o identificador dela e usa o mesmo valor (exemplo: RN-13, similaridade mínima 0,351).
 
@@ -225,6 +249,11 @@ O código usa o termo em inglês. A documentação e as telas usam o termo em po
 | veterinário | vet | Nome, clínica e telefone de quem atende o pet |
 | foto de perfil | profile photo | A foto que identifica o pet nas listas |
 | focinho | nose | Região usada na biometria |
+| vetor | embedding | Lista de 512 números que representa um focinho |
+| nitidez | quality | Medida de foco da foto, de 0 a 1 |
+| enquadramento | framing | A foto tem um focinho que o detector acha |
+| pesos | weights | Arquivos do modelo treinado |
+| versão do modelo | model version | Rótulo gravado com cada vetor |
 | cadastro biométrico | noseprint | Foto do focinho com o vetor |
 | identificação | identification | Busca de um focinho no acervo |
 | candidato | candidate | Pet devolvido por uma identificação |

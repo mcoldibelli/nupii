@@ -147,13 +147,15 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 
 | ID | Regra | RF | Estado |
 |---|---|---|---|
-| RN-17 | A entrada é uma imagem de até 8 MB. | RF-11, RF-12 | estável |
-| RN-18 | A saída tem o vetor de 512 dimensões com norma L2, a versão do modelo e a nitidez. | RF-11, RF-12 | estável |
+| RN-17 | A entrada é uma imagem de até 8 MB (8 × 1.048.576 bytes). Uma imagem maior é recusada com 413 `image_too_large`. Um conteúdo que não é uma imagem é recusado com 400 `image_invalid`. | RF-11, RF-12 | estável |
+| RN-18 | A saída tem o vetor de 512 dimensões com norma L2 igual a 1, a versão do modelo e a nitidez com 4 casas decimais. | RF-11, RF-12 | estável |
 | RN-19 | O modelo é o TinyViT-21M, versão `tinyvit21m-s43`, em ONNX. O vetor final é a soma do vetor da imagem com o vetor do espelho horizontal, normalizada. | RF-11, RF-12 | estável |
-| RN-20 | A nitidez é a variância do laplaciano dividida por 0,000832, com máximo de 1,0. Abaixo de 0,20 a foto é recusada com 422 `image_low_quality`. | RF-11, RF-12 | estável |
-| RN-21 | Um detector YOLO11n precisa achar um focinho na foto. Sem focinho, a foto é recusada com 422 `image_framing`. | RF-11, RF-12 | estável |
-| RN-22 | O SHA-256 dos arquivos de pesos é conferido na carga. | RF-11, RF-12 | estável |
+| RN-20 | A nitidez é a variância do laplaciano dividida por 0,000832, com máximo de 1,0. A variância divide por N-1. Abaixo de 0,20 a foto é recusada com 422 `image_low_quality`. A nitidez é conferida antes do enquadramento. | RF-11, RF-12 | estável |
+| RN-21 | Um detector YOLO11n precisa achar um focinho na foto, com confiança de pelo menos 0,25. Sem focinho, a foto é recusada com 422 `image_framing`. | RF-11, RF-12 | estável |
+| RN-22 | O SHA-256 dos arquivos de pesos é conferido na carga. Com um arquivo ausente ou diferente, o serviço não sobe. | RF-11, RF-12 | estável |
 | RN-23 | O serviço executa uma inferência por vez. | RF-11, RF-12 | estável |
+| RN-57 | A imagem tem no máximo 50 milhões de pixels. Uma imagem maior é recusada com 400 `image_invalid`, antes de os pixels serem lidos. | RF-11, RF-12 | estável |
+| RN-58 | A rotação gravada no EXIF da foto é aplicada antes de qualquer cálculo. | RF-11, RF-12 | estável |
 
 ### Ocorrências e mural
 
@@ -223,6 +225,7 @@ Cada item é fechado na fatia indicada, antes do código.
 | Fatia | Pergunta | Item |
 |---|---|---|
 | 10 | O que acontece quando um login com Google usa o e-mail de uma conta que já tem senha? | RN-02 |
+| 10 | Os termos de uso do conjunto de dados do treino do modelo permitem o uso do modelo em um serviço publicado? Sem essa permissão, a publicação pede um modelo treinado com outro conjunto. | RN-19 |
 | 4 | Qual limiar de RN-15 vale para um acervo com tamanho entre duas linhas da tabela, ou acima de 300? | RN-15 |
 | 5 | Quem resolve um achado registrado sem conta? | RN-29 |
 | 7 | Onde o lembrete é calculado: no app ou em uma tarefa do backend? | RF-29 |
