@@ -158,10 +158,12 @@ Concorrência, declarada por regra:
 | Nível | O que cobre | Como |
 |---|---|---|
 | Unidade (Go) | Regras de domínio: limiares, agrupamento por pet, estados da ocorrência | Testes de tabela, sem banco |
-| Integração (Go) | Consultas SQL, PostGIS, pgvector, fila de tarefas | Postgres real em container |
-| Contrato | A API responde o que o OpenAPI declara | Validação das respostas nos testes de integração |
+| Integração (Go) | Consultas SQL, PostGIS, pgvector, fila de tarefas | Postgres do compose, testes com a build tag `integration` |
+| Contrato | A API responde o que o OpenAPI declara | Validação das respostas contra o `api/openapi.yaml` nos testes de integração |
 | Inferência | O vetor do serviço é igual ao vetor de referência da calibração | Vetores de referência versionados junto do teste ([ADR 0007](adr/0007-inferencia-python-onnx.md)) |
-| Mobile | Lógica pura e chamadas da API | Testes de unidade |
+| Mobile | Lógica pura e chamadas da API | Testes de unidade com Jest |
+
+As ferramentas de cada nível estão no [ADR 0010](adr/0010-ferramentas-de-teste.md).
 
 Regra: toda regra de negócio de [requisitos.md](requisitos.md) tem um teste que cita o identificador dela e usa o mesmo valor (exemplo: RN-13, similaridade mínima 0,351).
 

@@ -1,6 +1,6 @@
 # ADR 0011: Biblioteca de runtime do código gerado pelo oapi-codegen
 
-Data: 2026-11-10. Estado: proposto. Este ADR aprova uma dependência no backend.
+Data: 2026-11-10. Estado: aceito. Este ADR aprova uma dependência no backend.
 
 ## Contexto
 
