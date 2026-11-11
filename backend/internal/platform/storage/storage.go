@@ -52,7 +52,12 @@ func New(cfg Config) *Store {
 }
 
 // Put writes body as the object key, with the content type.
-func (s *Store) Put(ctx context.Context, key, contentType string, body io.Reader, size int64) error {
+func (s *Store) Put(
+	ctx context.Context,
+	key, contentType string,
+	body io.Reader,
+	size int64,
+) error {
 	signed, err := s.presign(http.MethodPut, s.cfg.Endpoint, key, time.Now(), _requestExpiry)
 	if err != nil {
 		return fmt.Errorf("sign put of %q: %w", key, err)
@@ -124,11 +129,11 @@ func (s *Store) presign(
 	if err != nil {
 		return "", fmt.Errorf("parse endpoint: %w", err)
 	}
-	// Path style: the bucket is the first part of the path. The path is
-	// set here in its plain form, and EscapedPath gives the escaped form
-	// that the signature needs. The path always starts with "/".
+	// Path style: the bucket is the first part of the path. The path always
+	// starts with "/". The request must send the path with the same escapes
+	// that the signature uses, so the escaped form is set as RawPath.
 	u.Path = strings.TrimSuffix(u.Path, "/") + "/" + s.cfg.Bucket + "/" + key
-	u.RawPath = ""
+	u.RawPath = escapePath(u.Path)
 
 	date := now.UTC().Format("20060102")
 	timestamp := now.UTC().Format("20060102T150405Z")
@@ -145,7 +150,7 @@ func (s *Store) presign(
 	canonicalQuery := strings.ReplaceAll(query.Encode(), "+", "%20")
 	canonicalRequest := strings.Join([]string{
 		method,
-		u.EscapedPath(),
+		u.RawPath,
 		canonicalQuery,
 		"host:" + u.Host + "\n",
 		"host",
@@ -167,6 +172,28 @@ func (s *Store) presign(
 
 	u.RawQuery = canonicalQuery + "&X-Amz-Signature=" + signature
 	return u.String(), nil
+}
+
+// escapePath escapes a path as AWS Signature Version 4 needs: each byte is
+// percent-encoded, except the letters, the digits, "-", "_", ".", "~" and
+// the "/" between the parts. The escapes of net/url keep more characters,
+// for example "+" and "=".
+func escapePath(path string) string {
+	const hexDigits = "0123456789ABCDEF"
+	var escaped strings.Builder
+	for i := range len(path) {
+		c := path[i]
+		unreserved := c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' ||
+			c == '-' || c == '_' || c == '.' || c == '~' || c == '/'
+		if unreserved {
+			escaped.WriteByte(c)
+			continue
+		}
+		escaped.WriteByte('%')
+		escaped.WriteByte(hexDigits[c>>4])
+		escaped.WriteByte(hexDigits[c&0x0F])
+	}
+	return escaped.String()
 }
 
 func hmacSHA256(key []byte, data string) []byte {

@@ -40,7 +40,8 @@ func fetch(t *testing.T, url string) (status int, contentType string, body []byt
 func TestPutSignedURLAndDelete(t *testing.T) {
 	ctx := t.Context()
 	store := storage.New(storagetest.Config(t))
-	key := "test/" + rand.Text() + "/a b ç.jpg"
+	// The key has characters that the signature escapes in its own way.
+	key := "test/" + rand.Text() + "/a b ç +=@,$&;:100%.jpg"
 	content := []byte("the content of the object " + rand.Text())
 	t.Cleanup(func() {
 		if err := store.Delete(context.WithoutCancel(ctx), key); err != nil {
@@ -52,7 +53,7 @@ func TestPutSignedURLAndDelete(t *testing.T) {
 		t.Fatalf("Put: %v", err)
 	}
 
-	// RN-06: the API gives a temporary URL that reads the object.
+	// RN-06: a API devolve uma URL temporária que lê o objeto.
 	signed, err := store.SignedURL(key, 15*time.Minute)
 	if err != nil {
 		t.Fatalf("SignedURL: %v", err)

@@ -99,6 +99,13 @@ describe("toPetInput", () => {
   });
 
   // RN-56: tamanhos máximos dos textos do pet.
+  it("RN-56: counts a character out of the basic plane as one character", () => {
+    const name = "🐶".repeat(100);
+
+    expect(toPetInput(form({ name }), today)).toEqual({ ok: true, input: { name, species: "dog" } });
+    expect(toPetInput(form({ name: name + "🐶" }), today).ok).toBe(false);
+  });
+
   it("RN-56: rejects a name with more than 100 characters", () => {
     expect(toPetInput(form({ name: "a".repeat(101) }), today)).toEqual({
       ok: false,

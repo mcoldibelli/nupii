@@ -78,7 +78,8 @@ export function toPetInput(form: PetForm, now: Date = new Date()): FormResult {
   // RN-56: tamanhos máximos dos textos do pet.
   for (const limit of limits) {
     const value = form[limit.field].trim();
-    if (value.length > limit.max) {
+    // The API counts characters, and the length of a string counts UTF-16 units.
+    if ([...value].length > limit.max) {
       return invalid(`${limit.label} pode ter no máximo ${limit.max} caracteres.`);
     }
     if (value !== "" && limit.field !== "name") {

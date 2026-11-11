@@ -2,16 +2,15 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, Text, View } from "react-native";
 
-import { failureMessage } from "../../src/api/http";
-import { deletePet, getPet, updatePet, uploadPetPhoto, type LocalFile, type Pet, type PetInput } from "../../src/api/pets";
+import { failureMessage, SESSION_FAILURE } from "../../src/api/http";
+import { deletePet, getPet, type LocalFile, type Pet, type PetInput } from "../../src/api/pets";
 import { apiUrl } from "../../src/config";
 import { formFromPet } from "../../src/pets/form";
 import { PetFormView } from "../../src/pets/PetFormView";
 import { filePart } from "../../src/pets/pickPhoto";
+import { savePet } from "../../src/pets/save";
 import { styles } from "../../src/screens/styles";
 import { useSession } from "../../src/session/SessionContext";
-
-const SESSION_FAILURE = "Não foi possível confirmar a sua sessão. Tente de novo.";
 
 /** Changes or deletes a pet of the owner. */
 export default function EditPet() {
@@ -48,22 +47,16 @@ export default function EditPet() {
   }, [id, idToken]);
 
   async function save(input: PetInput, photo: LocalFile | null): Promise<string | null> {
-    const token = await idToken();
-    if (token === null) {
-      return SESSION_FAILURE;
+    const outcome = await savePet({ baseUrl: apiUrl, idToken }, id, input, photo && filePart(photo));
+    switch (outcome.kind) {
+      case "saved":
+        router.back();
+        return null;
+      case "photoFailed":
+        return `Os dados foram salvos, mas a foto não foi enviada. ${outcome.message}`;
+      case "failed":
+        return outcome.message;
     }
-    const updated = await updatePet(apiUrl, token, id, input);
-    if (!updated.ok) {
-      return failureMessage(updated);
-    }
-    if (photo !== null) {
-      const uploaded = await uploadPetPhoto(apiUrl, token, id, filePart(photo));
-      if (!uploaded.ok) {
-        return `Os dados foram salvos, mas a foto não foi enviada. ${failureMessage(uploaded)}`;
-      }
-    }
-    router.back();
-    return null;
   }
 
   function confirmDelete() {

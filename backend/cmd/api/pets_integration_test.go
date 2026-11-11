@@ -5,11 +5,13 @@ package main
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/json"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/mcoldibelli/nupii/backend/internal/api"
@@ -300,6 +302,77 @@ func TestPetPhoto(t *testing.T) {
 }
 
 // RN-54: a foto de perfil é uma imagem JPEG, PNG ou WebP, com no máximo 5 MB.
+// A photo larger than the limit of a JSON body and smaller than the limit of
+// RN-54 passes through all the middleware.
+func TestPetPhotoOfTwoMebibytes(t *testing.T) {
+	testAPI := petsAPI(t)
+	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
+	photo := make([]byte, 2<<20)
+	copy(photo, "\xFF\xD8\xFF\xE0")
+
+	rec := testAPI.uploadPhoto("token-ana", "/v1/pets/"+pet.Id.String()+"/photo", photo)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200, body %s", rec.Code, rec.Body)
+	}
+	got := decode[api.Pet](t, rec)
+	if got.PhotoUrl == nil {
+		t.Fatal("the pet has no photoUrl after the upload")
+	}
+	if status, body := readURL(t, *got.PhotoUrl); status != http.StatusOK || len(body) != len(photo) {
+		t.Errorf("read of photoUrl: status %d and %d bytes, want 200 and %d bytes",
+			status, len(body), len(photo))
+	}
+}
+
+// RN-55: with uploads at the same time, only the photo that the pet keeps
+// stays in the store.
+func TestPetPhotoUploadsAtTheSameTime(t *testing.T) {
+	testAPI := petsAPI(t)
+	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
+	path := "/v1/pets/" + pet.Id.String()
+
+	const uploads = 8
+	urls := make([]string, uploads)
+	var group sync.WaitGroup
+	for i := range uploads {
+		group.Go(func() {
+			photo := []byte("\xFF\xD8\xFF\xE0photo " + rand.Text())
+			rec := testAPI.uploadPhoto("token-ana", path+"/photo", photo)
+			if rec.Code != http.StatusOK {
+				t.Errorf("upload %d: status = %d, want 200, body %s", i, rec.Code, rec.Body)
+				return
+			}
+			var got api.Pet
+			if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil || got.PhotoUrl == nil {
+				t.Errorf("upload %d: body %s, want a pet with photoUrl (%v)", i, rec.Body, err)
+				return
+			}
+			urls[i] = *got.PhotoUrl
+		})
+	}
+	group.Wait()
+	if t.Failed() {
+		return
+	}
+
+	stored := 0
+	for _, url := range urls {
+		if status, _ := readURL(t, url); status == http.StatusOK {
+			stored++
+		}
+	}
+	if stored != 1 {
+		t.Errorf("%d of the %d photos are in the store, want only the photo of the pet", stored, uploads)
+	}
+	got := decode[api.Pet](t, testAPI.call(http.MethodGet, path, "token-ana", ""))
+	if got.PhotoUrl == nil {
+		t.Fatal("the pet has no photoUrl after the uploads")
+	}
+	if status, _ := readURL(t, *got.PhotoUrl); status != http.StatusOK {
+		t.Errorf("read of the photoUrl of the pet: status %d, want 200", status)
+	}
+}
+
 func TestPetPhotoThatIsNotValid(t *testing.T) {
 	testAPI := petsAPI(t)
 	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)

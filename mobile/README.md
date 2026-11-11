@@ -106,6 +106,7 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `src/api/http.ts` | Envio de uma requisição com o token e leitura da resposta |
 | `src/api/owner.ts`, `src/api/pets.ts` | Chamadas da API, com testes |
 | `src/pets/form.ts` | Regras do formulário do pet (RN-48, RN-50, RN-51, RN-56), com testes |
+| `src/pets/save.ts` | Salva os dados do pet e depois envia a foto, com testes |
 | `src/pets/PetFormView.tsx` | O formulário do pet |
 | `src/pets/pickPhoto.ts` | O único arquivo que importa a galeria e o sistema de arquivos do aparelho |
 | `src/screens/` | Telas de entrada e de primeiro acesso, e os estilos comuns |

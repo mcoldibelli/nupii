@@ -12,10 +12,6 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
 )
 
-// errNoIdentity means that an operation ran without the identity check. It
-// is a wiring error, so the client gets the internal error.
-var errNoIdentity = errors.New("pets: the request has no identity in the context")
-
 // Handlers implements the operations of the contract for the pets.
 type Handlers struct {
 	service *Service
@@ -30,10 +26,10 @@ func NewHandlers(service *Service) *Handlers {
 type failure int
 
 const (
-	failureInternal failure = iota + 1
-	failureInvalid
-	failureOwnerNotFound
-	failurePetNotFound
+	_failureInternal failure = iota + 1
+	_failureInvalid
+	_failureOwnerNotFound
+	_failurePetNotFound
 )
 
 // classify returns the kind of the error and the body of the response for
@@ -42,19 +38,22 @@ func classify(err error) (failure, api.Error) {
 	var validation *ValidationError
 	switch {
 	case errors.As(err, &validation):
-		return failureInvalid, api.Error{Error: api.ErrorCodeInvalidRequest, Message: validation.Message}
+		return _failureInvalid, api.Error{
+			Error:   api.ErrorCodeInvalidRequest,
+			Message: validation.Message,
+		}
 	case errors.Is(err, identity.ErrOwnerNotFound):
-		return failureOwnerNotFound, api.Error{
+		return _failureOwnerNotFound, api.Error{
 			Error:   api.ErrorCodeOwnerNotFound,
 			Message: "the account has no owner yet",
 		}
 	case errors.Is(err, ErrPetNotFound):
-		return failurePetNotFound, api.Error{
+		return _failurePetNotFound, api.Error{
 			Error:   api.ErrorCodePetNotFound,
 			Message: "the pet does not exist for this owner",
 		}
 	default:
-		return failureInternal, api.Error{}
+		return _failureInternal, api.Error{}
 	}
 }
 
@@ -63,14 +62,12 @@ func (h *Handlers) ListPets(
 	ctx context.Context,
 	_ api.ListPetsRequestObject,
 ) (api.ListPetsResponseObject, error) {
-	who, ok := identity.FromContext(ctx)
-	if !ok {
-		return nil, errNoIdentity
-	}
-	pets, err := h.service.List(ctx, who)
+	pets, err := h.service.List(ctx)
 	if err != nil {
-		if kind, body := classify(err); kind == failureOwnerNotFound {
-			return api.ListPets404JSONResponse{OwnerNotFoundJSONResponse: api.OwnerNotFoundJSONResponse(body)}, nil
+		if kind, body := classify(err); kind == _failureOwnerNotFound {
+			return api.ListPets404JSONResponse{
+				OwnerNotFoundJSONResponse: api.OwnerNotFoundJSONResponse(body),
+			}, nil
 		}
 		return nil, fmt.Errorf("list pets: %w", err)
 	}
@@ -90,17 +87,17 @@ func (h *Handlers) CreatePet(
 	ctx context.Context,
 	request api.CreatePetRequestObject,
 ) (api.CreatePetResponseObject, error) {
-	who, ok := identity.FromContext(ctx)
-	if !ok {
-		return nil, errNoIdentity
-	}
-	pet, err := h.service.Create(ctx, who, inputFromAPI(*request.Body))
+	pet, err := h.service.Create(ctx, inputFromAPI(*request.Body))
 	if err != nil {
 		switch kind, body := classify(err); kind {
-		case failureInvalid:
-			return api.CreatePet400JSONResponse{InvalidRequestJSONResponse: api.InvalidRequestJSONResponse(body)}, nil
-		case failureOwnerNotFound:
-			return api.CreatePet404JSONResponse{OwnerNotFoundJSONResponse: api.OwnerNotFoundJSONResponse(body)}, nil
+		case _failureInvalid:
+			return api.CreatePet400JSONResponse{
+				InvalidRequestJSONResponse: api.InvalidRequestJSONResponse(body),
+			}, nil
+		case _failureOwnerNotFound:
+			return api.CreatePet404JSONResponse{
+				OwnerNotFoundJSONResponse: api.OwnerNotFoundJSONResponse(body),
+			}, nil
 		default:
 			return nil, fmt.Errorf("create pet: %w", err)
 		}
@@ -117,15 +114,13 @@ func (h *Handlers) GetPet(
 	ctx context.Context,
 	request api.GetPetRequestObject,
 ) (api.GetPetResponseObject, error) {
-	who, ok := identity.FromContext(ctx)
-	if !ok {
-		return nil, errNoIdentity
-	}
-	pet, err := h.service.Get(ctx, who, request.PetId.String())
+	pet, err := h.service.Get(ctx, request.PetId.String())
 	if err != nil {
 		switch kind, body := classify(err); kind {
-		case failureOwnerNotFound, failurePetNotFound:
-			return api.GetPet404JSONResponse{PetNotFoundJSONResponse: api.PetNotFoundJSONResponse(body)}, nil
+		case _failureOwnerNotFound, _failurePetNotFound:
+			return api.GetPet404JSONResponse{
+				PetNotFoundJSONResponse: api.PetNotFoundJSONResponse(body),
+			}, nil
 		default:
 			return nil, fmt.Errorf("get pet: %w", err)
 		}
@@ -142,17 +137,17 @@ func (h *Handlers) UpdatePet(
 	ctx context.Context,
 	request api.UpdatePetRequestObject,
 ) (api.UpdatePetResponseObject, error) {
-	who, ok := identity.FromContext(ctx)
-	if !ok {
-		return nil, errNoIdentity
-	}
-	pet, err := h.service.Update(ctx, who, request.PetId.String(), inputFromAPI(*request.Body))
+	pet, err := h.service.Update(ctx, request.PetId.String(), inputFromAPI(*request.Body))
 	if err != nil {
 		switch kind, body := classify(err); kind {
-		case failureInvalid:
-			return api.UpdatePet400JSONResponse{InvalidRequestJSONResponse: api.InvalidRequestJSONResponse(body)}, nil
-		case failureOwnerNotFound, failurePetNotFound:
-			return api.UpdatePet404JSONResponse{PetNotFoundJSONResponse: api.PetNotFoundJSONResponse(body)}, nil
+		case _failureInvalid:
+			return api.UpdatePet400JSONResponse{
+				InvalidRequestJSONResponse: api.InvalidRequestJSONResponse(body),
+			}, nil
+		case _failureOwnerNotFound, _failurePetNotFound:
+			return api.UpdatePet404JSONResponse{
+				PetNotFoundJSONResponse: api.PetNotFoundJSONResponse(body),
+			}, nil
 		default:
 			return nil, fmt.Errorf("update pet: %w", err)
 		}
@@ -169,14 +164,12 @@ func (h *Handlers) DeletePet(
 	ctx context.Context,
 	request api.DeletePetRequestObject,
 ) (api.DeletePetResponseObject, error) {
-	who, ok := identity.FromContext(ctx)
-	if !ok {
-		return nil, errNoIdentity
-	}
-	if err := h.service.Delete(ctx, who, request.PetId.String()); err != nil {
+	if err := h.service.Delete(ctx, request.PetId.String()); err != nil {
 		switch kind, body := classify(err); kind {
-		case failureOwnerNotFound, failurePetNotFound:
-			return api.DeletePet404JSONResponse{PetNotFoundJSONResponse: api.PetNotFoundJSONResponse(body)}, nil
+		case _failureOwnerNotFound, _failurePetNotFound:
+			return api.DeletePet404JSONResponse{
+				PetNotFoundJSONResponse: api.PetNotFoundJSONResponse(body),
+			}, nil
 		default:
 			return nil, fmt.Errorf("delete pet: %w", err)
 		}
@@ -190,15 +183,13 @@ func (h *Handlers) SetPetPhoto(
 	ctx context.Context,
 	request api.SetPetPhotoRequestObject,
 ) (api.SetPetPhotoResponseObject, error) {
-	who, ok := identity.FromContext(ctx)
-	if !ok {
-		return nil, errNoIdentity
-	}
 	invalid := func(message string) api.SetPetPhotoResponseObject {
-		return api.SetPetPhoto400JSONResponse{InvalidRequestJSONResponse: api.InvalidRequestJSONResponse{
-			Error:   api.ErrorCodeInvalidRequest,
-			Message: message,
-		}}
+		return api.SetPetPhoto400JSONResponse{
+			InvalidRequestJSONResponse: api.InvalidRequestJSONResponse{
+				Error:   api.ErrorCodeInvalidRequest,
+				Message: message,
+			},
+		}
 	}
 	for {
 		part, err := request.Body.NextPart()
@@ -211,13 +202,15 @@ func (h *Handlers) SetPetPhoto(
 		if part.FormName() != "file" {
 			continue
 		}
-		pet, err := h.service.SetPhoto(ctx, who, request.PetId.String(), part)
+		pet, err := h.service.SetPhoto(ctx, request.PetId.String(), part)
 		if err != nil {
 			switch kind, body := classify(err); kind {
-			case failureInvalid:
+			case _failureInvalid:
 				return invalid(body.Message), nil
-			case failureOwnerNotFound, failurePetNotFound:
-				return api.SetPetPhoto404JSONResponse{PetNotFoundJSONResponse: api.PetNotFoundJSONResponse(body)}, nil
+			case _failureOwnerNotFound, _failurePetNotFound:
+				return api.SetPetPhoto404JSONResponse{
+					PetNotFoundJSONResponse: api.PetNotFoundJSONResponse(body),
+				}, nil
 			default:
 				return nil, fmt.Errorf("set the photo of the pet: %w", err)
 			}

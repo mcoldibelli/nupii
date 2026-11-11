@@ -21,7 +21,9 @@ func Config(t testing.TB) storage.Config {
 		AccessKeyID:     os.Getenv("S3_ACCESS_KEY_ID"),
 		SecretAccessKey: os.Getenv("S3_SECRET_ACCESS_KEY"),
 	}
-	if cfg.Endpoint == "" || cfg.Bucket == "" || cfg.AccessKeyID == "" || cfg.SecretAccessKey == "" {
+	missing := cfg.Endpoint == "" || cfg.Bucket == "" ||
+		cfg.AccessKeyID == "" || cfg.SecretAccessKey == ""
+	if missing {
 		t.Fatal("S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID or S3_SECRET_ACCESS_KEY is not set: " +
 			"start the compose and set the variables (see backend/README.md)")
 	}
