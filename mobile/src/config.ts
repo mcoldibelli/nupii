@@ -4,6 +4,9 @@
 /** Address of the API. */
 export const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? "";
 
+/** Address of the public web, for the link of the health card (ADR 0027). */
+export const webUrl = process.env.EXPO_PUBLIC_WEB_URL ?? "";
+
 /** Configuration of the Firebase project of the app. */
 export const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY ?? "",
@@ -17,6 +20,7 @@ export const authEmulatorUrl = process.env.EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_UR
 export function missingConfig(): string[] {
   const required: Record<string, string> = {
     EXPO_PUBLIC_API_URL: apiUrl,
+    EXPO_PUBLIC_WEB_URL: webUrl,
     EXPO_PUBLIC_FIREBASE_API_KEY: firebaseConfig.apiKey,
     EXPO_PUBLIC_FIREBASE_PROJECT_ID: firebaseConfig.projectId,
   };

@@ -45,6 +45,14 @@ export default function HealthEvents() {
   return (
     <View style={local.screen}>
       <Text style={local.heading}>Saúde de {petName}</Text>
+      <Pressable
+        testID="open-share"
+        accessibilityRole="button"
+        style={[local.type, local.share]}
+        onPress={() => router.push({ pathname: "/share/[petId]", params: { petId, petName } })}
+      >
+        <Text style={local.typeText}>Compartilhar carteirinha</Text>
+      </Pressable>
       <View style={local.types}>
         {(Object.keys(typeLabels) as HealthEventType[]).map((type) => (
           <Pressable key={type} testID={`new-${type}`} accessibilityRole="button" style={local.type} onPress={() => open(type)}>
@@ -81,6 +89,7 @@ export default function HealthEvents() {
 const local = StyleSheet.create({
   screen: { backgroundColor: "#fff", flex: 1, padding: 16 },
   heading: { fontSize: 20, fontWeight: "600", marginBottom: 12 },
+  share: { alignSelf: "flex-start", marginBottom: 12 },
   types: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
   type: { borderColor: "#1f5fbf", borderRadius: 16, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },
   typeText: { color: "#1f5fbf", fontSize: 14 },

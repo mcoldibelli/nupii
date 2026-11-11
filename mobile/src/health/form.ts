@@ -231,7 +231,7 @@ export function attachmentFailure(result: { ok: false; code: string }): string {
   return failureMessage(result);
 }
 
-function dateText(iso: string | undefined): string {
+export function dateText(iso: string | undefined): string {
   if (iso === undefined) {
     return "";
   }
