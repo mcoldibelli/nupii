@@ -1,0 +1,53 @@
+openapi: 3.1.0
+info:
+  title: Nupii API
+  version: 0.1.0
+  description: |
+    Contrato da API do Nupii. Este arquivo é a fonte do contrato.
+    Os tipos do servidor e dos clientes são gerados dele.
+tags:
+  - name: service
+    description: Estado do serviço.
+paths:
+  /v1/health:
+    get:
+      operationId: getHealth
+      tags: [service]
+      summary: Informa se o serviço está em execução.
+      responses:
+        "200":
+          description: O serviço está em execução.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+        default:
+          $ref: "#/components/responses/Error"
+components:
+  schemas:
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+    Error:
+      type: object
+      description: Formato único de erro. Todo erro da API usa este formato.
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Código estável do erro. O cliente escolhe o texto da tela por este código.
+          examples: [internal_error]
+        message:
+          type: string
+          description: Texto para diagnóstico. O cliente não mostra este texto ao usuário.
+  responses:
+    Error:
+      description: Erro no formato único.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

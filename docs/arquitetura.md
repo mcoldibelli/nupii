@@ -42,6 +42,7 @@ backend/
     reports/            perdido, achado, avistamento, mural
     alerts/             localização, dispositivos, notificações, push
     health/             eventos de saúde, anexos, carteirinha compartilhada
+    api/                código gerado do contrato (tipos e interface do servidor), não editado à mão
     platform/           postgres, storage, jobs, httpx (middleware), config, firebase, inference
   db/migrations/        SQL das migrations
   db/queries/           SQL das consultas (entrada do sqlc)
@@ -122,6 +123,10 @@ Concorrência, declarada por regra:
 ## API
 
 - `api/openapi.yaml` é a fonte do contrato. Os tipos do Go e do TypeScript são gerados dele ([ADR 0005](adr/0005-contrato-openapi.md)).
+- O contrato usa a OpenAPI 3.1.
+- O código Go é gerado em `backend/internal/api/` pelo `oapi-codegen`, no modo `strict-server`: cada handler recebe um tipo de requisição e devolve um dos tipos de resposta que o contrato declara. O comando é `go generate ./...`, no diretório `backend`.
+- O código gerado é versionado. O CI falha se ele estiver diferente do contrato.
+- O teste `TestContractIsValid` confere que o contrato é um documento OpenAPI válido.
 - Erros em um formato único: `{"error": "<código>", "message": "<texto>"}`. O código é estável e o app decide a mensagem pela tabela de códigos.
 - Rotas em inglês, com versão no caminho: `/v1/...`.
 - Endpoints públicos têm limite de tentativas por IP (RN-43).
