@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for ErrorCode.
@@ -22,6 +23,7 @@ const (
 	ErrorCodeInvalidRequest  ErrorCode = "invalid_request"
 	ErrorCodeNotFound        ErrorCode = "not_found"
 	ErrorCodeOwnerNotFound   ErrorCode = "owner_not_found"
+	ErrorCodePetNotFound     ErrorCode = "pet_not_found"
 	ErrorCodeUnauthenticated ErrorCode = "unauthenticated"
 	ErrorCodeUnavailable     ErrorCode = "unavailable"
 )
@@ -36,6 +38,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeNotFound:
 		return true
 	case ErrorCodeOwnerNotFound:
+		return true
+	case ErrorCodePetNotFound:
 		return true
 	case ErrorCodeUnauthenticated:
 		return true
@@ -55,6 +59,69 @@ const (
 func (e HealthStatus) Valid() bool {
 	switch e {
 	case HealthStatusOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Sex.
+const (
+	SexFemale  Sex = "female"
+	SexMale    Sex = "male"
+	SexUnknown Sex = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the Sex enum.
+func (e Sex) Valid() bool {
+	switch e {
+	case SexFemale:
+		return true
+	case SexMale:
+		return true
+	case SexUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Size.
+const (
+	SizeLarge  Size = "large"
+	SizeMedium Size = "medium"
+	SizeSmall  Size = "small"
+)
+
+// Valid indicates whether the value is a known member of the Size enum.
+func (e Size) Valid() bool {
+	switch e {
+	case SizeLarge:
+		return true
+	case SizeMedium:
+		return true
+	case SizeSmall:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Species.
+const (
+	SpeciesCat   Species = "cat"
+	SpeciesDog   Species = "dog"
+	SpeciesOther Species = "other"
+)
+
+// Valid indicates whether the value is a known member of the Species enum.
+func (e Species) Valid() bool {
+	switch e {
+	case SpeciesCat:
+		return true
+	case SpeciesDog:
+		return true
+	case SpeciesOther:
 		return true
 	default:
 		return false
@@ -111,6 +178,85 @@ type Owner struct {
 	TermsVersion string `json:"termsVersion"`
 }
 
+// Pet Um pet do tutor.
+type Pet struct {
+	// BirthDate Data de nascimento. Não pode ser uma data futura.
+	BirthDate *openapi_types.Date `json:"birthDate,omitempty"`
+
+	// Breed Raça, em texto livre.
+	Breed     *string            `json:"breed,omitempty"`
+	CreatedAt time.Time          `json:"createdAt"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Name Nome do pet. Não pode ser vazio.
+	Name string `json:"name"`
+
+	// Neutered Informa se o pet é castrado.
+	Neutered *bool `json:"neutered,omitempty"`
+
+	// Sex Sexo do pet.
+	Sex *Sex `json:"sex,omitempty"`
+
+	// Size Porte do pet.
+	Size *Size `json:"size,omitempty"`
+
+	// Species Espécie do pet.
+	Species Species `json:"species"`
+
+	// VetClinic Clínica do veterinário.
+	VetClinic *string `json:"vetClinic,omitempty"`
+
+	// VetName Nome do veterinário.
+	VetName *string `json:"vetName,omitempty"`
+
+	// VetPhone Telefone do veterinário.
+	VetPhone *string `json:"vetPhone,omitempty"`
+
+	// WeightKg Peso em quilos, com no máximo 2 casas decimais.
+	WeightKg *float64 `json:"weightKg,omitempty"`
+}
+
+// PetInput Dados de um pet que o tutor informa.
+type PetInput struct {
+	// BirthDate Data de nascimento. Não pode ser uma data futura.
+	BirthDate *openapi_types.Date `json:"birthDate,omitempty"`
+
+	// Breed Raça, em texto livre.
+	Breed *string `json:"breed,omitempty"`
+
+	// Name Nome do pet. Não pode ser vazio.
+	Name string `json:"name"`
+
+	// Neutered Informa se o pet é castrado.
+	Neutered *bool `json:"neutered,omitempty"`
+
+	// Sex Sexo do pet.
+	Sex *Sex `json:"sex,omitempty"`
+
+	// Size Porte do pet.
+	Size *Size `json:"size,omitempty"`
+
+	// Species Espécie do pet.
+	Species Species `json:"species"`
+
+	// VetClinic Clínica do veterinário.
+	VetClinic *string `json:"vetClinic,omitempty"`
+
+	// VetName Nome do veterinário.
+	VetName *string `json:"vetName,omitempty"`
+
+	// VetPhone Telefone do veterinário.
+	VetPhone *string `json:"vetPhone,omitempty"`
+
+	// WeightKg Peso em quilos, com no máximo 2 casas decimais.
+	WeightKg *float64 `json:"weightKg,omitempty"`
+}
+
+// PetList defines model for PetList.
+type PetList struct {
+	Pets []Pet `json:"pets"`
+}
+
 // RegisterOwnerRequest defines model for RegisterOwnerRequest.
 type RegisterOwnerRequest struct {
 	// AcceptedTermsVersion Versão dos termos de uso. A lista tem só a versão vigente.
@@ -121,15 +267,42 @@ type RegisterOwnerRequest struct {
 	Name string `json:"name"`
 }
 
+// Sex Sexo do pet.
+type Sex string
+
+// Size Porte do pet.
+type Size string
+
+// Species Espécie do pet.
+type Species string
+
 // TermsVersion Versão dos termos de uso. A lista tem só a versão vigente.
 // Uma versão nova dos termos troca o valor desta lista.
 type TermsVersion string
+
+// PetId defines model for PetId.
+type PetId = openapi_types.UUID
+
+// InvalidRequest Formato único de erro. Todo erro da API usa este formato.
+type InvalidRequest = Error
+
+// OwnerNotFound Formato único de erro. Todo erro da API usa este formato.
+type OwnerNotFound = Error
+
+// PetNotFound Formato único de erro. Todo erro da API usa este formato.
+type PetNotFound = Error
 
 // Unauthenticated Formato único de erro. Todo erro da API usa este formato.
 type Unauthenticated = Error
 
 // RegisterMeJSONRequestBody defines body for RegisterMe for application/json ContentType.
 type RegisterMeJSONRequestBody = RegisterOwnerRequest
+
+// CreatePetJSONRequestBody defines body for CreatePet for application/json ContentType.
+type CreatePetJSONRequestBody = PetInput
+
+// UpdatePetJSONRequestBody defines body for UpdatePet for application/json ContentType.
+type UpdatePetJSONRequestBody = PetInput
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -142,6 +315,21 @@ type ServerInterface interface {
 	// RegisterMe Registra o tutor da conta, com o aceite dos termos de uso.
 	// (POST /v1/me)
 	RegisterMe(w http.ResponseWriter, r *http.Request)
+	// ListPets Lista os pets do tutor, em ordem de nome.
+	// (GET /v1/pets)
+	ListPets(w http.ResponseWriter, r *http.Request)
+	// CreatePet Cria um pet do tutor.
+	// (POST /v1/pets)
+	CreatePet(w http.ResponseWriter, r *http.Request)
+	// DeletePet Exclui um pet do tutor.
+	// (DELETE /v1/pets/{petId})
+	DeletePet(w http.ResponseWriter, r *http.Request, petId PetId)
+	// GetPet Devolve um pet do tutor.
+	// (GET /v1/pets/{petId})
+	GetPet(w http.ResponseWriter, r *http.Request, petId PetId)
+	// UpdatePet Troca todos os dados de um pet do tutor.
+	// (PUT /v1/pets/{petId})
+	UpdatePet(w http.ResponseWriter, r *http.Request, petId PetId)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -186,6 +374,112 @@ func (siw *ServerInterfaceWrapper) RegisterMe(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RegisterMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListPets operation middleware
+func (siw *ServerInterfaceWrapper) ListPets(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListPets(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreatePet operation middleware
+func (siw *ServerInterfaceWrapper) CreatePet(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePet(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeletePet operation middleware
+func (siw *ServerInterfaceWrapper) DeletePet(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeletePet(w, r, petId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPet operation middleware
+func (siw *ServerInterfaceWrapper) GetPet(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPet(w, r, petId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdatePet operation middleware
+func (siw *ServerInterfaceWrapper) UpdatePet(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdatePet(w, r, petId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -318,11 +612,22 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/health", wrapper.GetHealth)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me", wrapper.GetMe)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/me", wrapper.RegisterMe)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/pets", wrapper.ListPets)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/pets", wrapper.CreatePet)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/v1/pets/{petId}", wrapper.DeletePet)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/pets/{petId}", wrapper.GetPet)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/pets/{petId}", wrapper.UpdatePet)
 
 	return m
 }
 
 type ErrorJSONResponse Error
+
+type InvalidRequestJSONResponse Error
+
+type OwnerNotFoundJSONResponse Error
+
+type PetNotFoundJSONResponse Error
 
 type UnauthenticatedJSONResponse Error
 
@@ -525,6 +830,391 @@ func (response RegisterMedefaultJSONResponse) VisitRegisterMeResponse(w http.Res
 	return err
 }
 
+type ListPetsRequestObject struct {
+}
+
+type ListPetsResponseObject interface {
+	VisitListPetsResponse(w http.ResponseWriter) error
+}
+
+type ListPets200JSONResponse PetList
+
+func (response ListPets200JSONResponse) VisitListPetsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPets401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ListPets401JSONResponse) VisitListPetsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPets404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response ListPets404JSONResponse) VisitListPetsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPetsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListPetsdefaultJSONResponse) VisitListPetsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePetRequestObject struct {
+	Body *CreatePetJSONRequestBody
+}
+
+type CreatePetResponseObject interface {
+	VisitCreatePetResponse(w http.ResponseWriter) error
+}
+
+type CreatePet201JSONResponse Pet
+
+func (response CreatePet201JSONResponse) VisitCreatePetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePet400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response CreatePet400JSONResponse) VisitCreatePetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePet401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response CreatePet401JSONResponse) VisitCreatePetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePet404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response CreatePet404JSONResponse) VisitCreatePetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePetdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response CreatePetdefaultJSONResponse) VisitCreatePetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePetRequestObject struct {
+	PetId PetId `json:"petId"`
+}
+
+type DeletePetResponseObject interface {
+	VisitDeletePetResponse(w http.ResponseWriter) error
+}
+
+type DeletePet204Response struct {
+}
+
+func (response DeletePet204Response) VisitDeletePetResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeletePet400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response DeletePet400JSONResponse) VisitDeletePetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePet401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response DeletePet401JSONResponse) VisitDeletePetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePet404JSONResponse struct{ PetNotFoundJSONResponse }
+
+func (response DeletePet404JSONResponse) VisitDeletePetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePetdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response DeletePetdefaultJSONResponse) VisitDeletePetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPetRequestObject struct {
+	PetId PetId `json:"petId"`
+}
+
+type GetPetResponseObject interface {
+	VisitGetPetResponse(w http.ResponseWriter) error
+}
+
+type GetPet200JSONResponse Pet
+
+func (response GetPet200JSONResponse) VisitGetPetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPet400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response GetPet400JSONResponse) VisitGetPetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPet401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response GetPet401JSONResponse) VisitGetPetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPet404JSONResponse struct{ PetNotFoundJSONResponse }
+
+func (response GetPet404JSONResponse) VisitGetPetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPetdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetPetdefaultJSONResponse) VisitGetPetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePetRequestObject struct {
+	PetId PetId `json:"petId"`
+	Body  *UpdatePetJSONRequestBody
+}
+
+type UpdatePetResponseObject interface {
+	VisitUpdatePetResponse(w http.ResponseWriter) error
+}
+
+type UpdatePet200JSONResponse Pet
+
+func (response UpdatePet200JSONResponse) VisitUpdatePetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePet400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response UpdatePet400JSONResponse) VisitUpdatePetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePet401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response UpdatePet401JSONResponse) VisitUpdatePetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePet404JSONResponse struct{ PetNotFoundJSONResponse }
+
+func (response UpdatePet404JSONResponse) VisitUpdatePetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePetdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response UpdatePetdefaultJSONResponse) VisitUpdatePetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// GetHealth Informa se o serviço está pronto para atender requisições.
@@ -536,6 +1226,21 @@ type StrictServerInterface interface {
 	// RegisterMe Registra o tutor da conta, com o aceite dos termos de uso.
 	// (POST /v1/me)
 	RegisterMe(ctx context.Context, request RegisterMeRequestObject) (RegisterMeResponseObject, error)
+	// ListPets Lista os pets do tutor, em ordem de nome.
+	// (GET /v1/pets)
+	ListPets(ctx context.Context, request ListPetsRequestObject) (ListPetsResponseObject, error)
+	// CreatePet Cria um pet do tutor.
+	// (POST /v1/pets)
+	CreatePet(ctx context.Context, request CreatePetRequestObject) (CreatePetResponseObject, error)
+	// DeletePet Exclui um pet do tutor.
+	// (DELETE /v1/pets/{petId})
+	DeletePet(ctx context.Context, request DeletePetRequestObject) (DeletePetResponseObject, error)
+	// GetPet Devolve um pet do tutor.
+	// (GET /v1/pets/{petId})
+	GetPet(ctx context.Context, request GetPetRequestObject) (GetPetResponseObject, error)
+	// UpdatePet Troca todos os dados de um pet do tutor.
+	// (PUT /v1/pets/{petId})
+	UpdatePet(ctx context.Context, request UpdatePetRequestObject) (UpdatePetResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -649,6 +1354,146 @@ func (sh *strictHandler) RegisterMe(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RegisterMeResponseObject); ok {
 		if err := validResponse.VisitRegisterMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListPets operation middleware
+func (sh *strictHandler) ListPets(w http.ResponseWriter, r *http.Request) {
+	var request ListPetsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPets(ctx, request.(ListPetsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPets")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListPetsResponseObject); ok {
+		if err := validResponse.VisitListPetsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreatePet operation middleware
+func (sh *strictHandler) CreatePet(w http.ResponseWriter, r *http.Request) {
+	var request CreatePetRequestObject
+
+	var body CreatePetJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePet(ctx, request.(CreatePetRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePet")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreatePetResponseObject); ok {
+		if err := validResponse.VisitCreatePetResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeletePet operation middleware
+func (sh *strictHandler) DeletePet(w http.ResponseWriter, r *http.Request, petId PetId) {
+	var request DeletePetRequestObject
+
+	request.PetId = petId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeletePet(ctx, request.(DeletePetRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeletePet")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeletePetResponseObject); ok {
+		if err := validResponse.VisitDeletePetResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPet operation middleware
+func (sh *strictHandler) GetPet(w http.ResponseWriter, r *http.Request, petId PetId) {
+	var request GetPetRequestObject
+
+	request.PetId = petId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPet(ctx, request.(GetPetRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPet")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPetResponseObject); ok {
+		if err := validResponse.VisitGetPetResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdatePet operation middleware
+func (sh *strictHandler) UpdatePet(w http.ResponseWriter, r *http.Request, petId PetId) {
+	var request UpdatePetRequestObject
+
+	request.PetId = petId
+
+	var body UpdatePetJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdatePet(ctx, request.(UpdatePetRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdatePet")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdatePetResponseObject); ok {
+		if err := validResponse.VisitUpdatePetResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

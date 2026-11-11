@@ -10,6 +10,8 @@ tags:
     description: Estado do serviço.
   - name: identity
     description: Conta do tutor.
+  - name: pets
+    description: Pets do tutor.
 paths:
   /v1/health:
     get:
@@ -92,6 +94,122 @@ paths:
           $ref: "#/components/responses/Unauthenticated"
         default:
           $ref: "#/components/responses/Error"
+  /v1/pets:
+    get:
+      operationId: listPets
+      tags: [pets]
+      summary: Lista os pets do tutor, em ordem de nome.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Os pets do tutor que não foram excluídos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PetList"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/OwnerNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createPet
+      tags: [pets]
+      summary: Cria um pet do tutor.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PetInput"
+      responses:
+        "201":
+          description: O pet foi criado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/OwnerNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/pets/{petId}:
+    parameters:
+      - $ref: "#/components/parameters/PetId"
+    get:
+      operationId: getPet
+      tags: [pets]
+      summary: Devolve um pet do tutor.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: O pet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/PetNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updatePet
+      tags: [pets]
+      summary: Troca todos os dados de um pet do tutor.
+      description: Um dado opcional que não vem no corpo fica vazio no pet.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PetInput"
+      responses:
+        "200":
+          description: O pet com os dados novos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/PetNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deletePet
+      tags: [pets]
+      summary: Exclui um pet do tutor.
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: O pet foi excluído.
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/PetNotFound"
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     bearerAuth:
@@ -99,7 +217,93 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: ID token do Firebase Authentication, no cabeçalho `Authorization`.
+  parameters:
+    PetId:
+      name: petId
+      in: path
+      required: true
+      description: Identificador do pet.
+      schema:
+        type: string
+        format: uuid
   schemas:
+    PetInput:
+      type: object
+      description: Dados de um pet que o tutor informa.
+      required: [name, species]
+      properties:
+        name:
+          type: string
+          description: Nome do pet. Não pode ser vazio.
+          maxLength: 100
+        species:
+          $ref: "#/components/schemas/Species"
+        breed:
+          type: string
+          description: Raça, em texto livre.
+          maxLength: 100
+        sex:
+          $ref: "#/components/schemas/Sex"
+        size:
+          $ref: "#/components/schemas/Size"
+        birthDate:
+          type: string
+          format: date
+          description: Data de nascimento. Não pode ser uma data futura.
+        weightKg:
+          type: number
+          format: double
+          description: Peso em quilos, com no máximo 2 casas decimais.
+          minimum: 0.01
+          maximum: 999.99
+        neutered:
+          type: boolean
+          description: Informa se o pet é castrado.
+        vetName:
+          type: string
+          description: Nome do veterinário.
+          maxLength: 120
+        vetClinic:
+          type: string
+          description: Clínica do veterinário.
+          maxLength: 120
+        vetPhone:
+          type: string
+          description: Telefone do veterinário.
+          maxLength: 30
+    Pet:
+      description: Um pet do tutor.
+      allOf:
+        - $ref: "#/components/schemas/PetInput"
+        - type: object
+          required: [id, createdAt]
+          properties:
+            id:
+              type: string
+              format: uuid
+            createdAt:
+              type: string
+              format: date-time
+    PetList:
+      type: object
+      required: [pets]
+      properties:
+        pets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Pet"
+    Species:
+      type: string
+      description: Espécie do pet.
+      enum: [dog, cat, other]
+    Sex:
+      type: string
+      description: Sexo do pet.
+      enum: [male, female, unknown]
+    Size:
+      type: string
+      description: Porte do pet.
+      enum: [small, medium, large]
     Owner:
       type: object
       description: O tutor. Pessoa com conta, responsável por pets.
@@ -164,7 +368,28 @@ components:
         - unauthenticated
         - invalid_request
         - owner_not_found
+        - pet_not_found
   responses:
+    InvalidRequest:
+      description: O corpo ou um parâmetro é inválido. O código do erro é `invalid_request`.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    OwnerNotFound:
+      description: A conta ainda não registrou o tutor. O código do erro é `owner_not_found`.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    PetNotFound:
+      description: |
+        O pet não existe para este tutor, com o código `pet_not_found`.
+        Ou a conta ainda não registrou o tutor, com o código `owner_not_found`.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     Unauthenticated:
       description: A chamada não tem token, ou o token é inválido ou está vencido. O código do erro é `unauthenticated`.
       content:

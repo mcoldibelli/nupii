@@ -158,6 +158,7 @@ A primeira execução baixa o `oapi-codegen` na versão fixada em `internal/api/
 | `db/queries/` | Arquivos SQL das consultas, a entrada do `sqlc` |
 | `sqlc.yaml` | Configuração do `sqlc`: qual arquivo de consultas gera qual pacote |
 | `internal/identity/` | Módulo do tutor: validação do token das requisições, regras do registro, handlers de `/v1/me`. `identitydb/` é o código gerado das consultas |
+| `internal/pets/` | Módulo de pets: regras dos dados (RN-48 a RN-56), operações de `/v1/pets`. `petsdb/` é o código gerado das consultas |
 | `internal/platform/firebase/` | Validação do ID token com o Firebase Admin SDK |
 | `internal/platform/postgres/postgrestest/` | Banco para os testes de integração |
 | `Dockerfile` | Imagem da API: compila um binário estático e copia para uma imagem vazia, com usuário sem privilégio |
