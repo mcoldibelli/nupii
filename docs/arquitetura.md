@@ -143,6 +143,7 @@ Concorrência, declarada por regra:
 ### Código
 
 - Go: Effective Go, Go Code Review Comments e o guia de estilo da Uber. `gofmt` e `go vet` em toda mudança.
+- Lint: um comando por projeto, usado no ambiente local e no CI. No backend é `./lint.sh` (`gofmt` e `go vet`). No app é `npm run lint` (conferência de tipos do TypeScript).
 - Erros em Go: sempre com contexto e `%w`. Nenhum erro descartado.
 - Log: `log/slog` com saída JSON e um identificador por requisição.
 - Configuração: variáveis de ambiente, lidas uma vez em `main` e validadas na subida. O processo não sobe com configuração inválida.

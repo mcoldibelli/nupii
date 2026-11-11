@@ -58,6 +58,14 @@ go test -race -tags=integration ./...
 
 Sem o `DATABASE_URL`, um teste de integração falha. Ele não é pulado.
 
+## Lint
+
+Formatação com `gofmt` e conferência com `go vet`. O comando termina com erro no primeiro problema:
+
+```bash
+./lint.sh
+```
+
 ## Variáveis de ambiente
 
 O processo não sobe com um valor inválido. Ele escreve o erro na saída de erro e termina com o código 1.
