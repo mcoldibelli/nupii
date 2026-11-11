@@ -100,6 +100,9 @@ func deleteOwners(t *testing.T, pool *pgxpool.Pool, uids []string) {
 	if _, err := pool.Exec(ctx, "DELETE FROM health_attachments WHERE event_id IN ("+ownedEvents+")", uids); err != nil {
 		t.Errorf("delete the health attachments of the test: %v", err)
 	}
+	if _, err := pool.Exec(ctx, "DELETE FROM share_links WHERE pet_id IN ("+ownedPets+")", uids); err != nil {
+		t.Errorf("delete the share links of the test: %v", err)
+	}
 	if _, err := pool.Exec(ctx, "DELETE FROM health_events WHERE pet_id IN ("+ownedPets+")", uids); err != nil {
 		t.Errorf("delete the health events of the test: %v", err)
 	}

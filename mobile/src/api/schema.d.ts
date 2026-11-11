@@ -589,6 +589,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/pets/{petId}/share-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Os links ativos da carteirinha de um pet, com as aberturas.
+         * @description Um link revogado ou vencido não vem na lista (RN-40).
+         */
+        get: operations["listShareLinks"];
+        put?: never;
+        /**
+         * Cria um link da carteirinha do pet, válido por 30 dias (RN-40).
+         * @description O token só vem nesta resposta. O banco guarda só o SHA-256 dele (RN-39).
+         */
+        post: operations["createShareLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets/{petId}/share-links/{shareLinkId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do link da carteirinha. */
+                shareLinkId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoga um link da carteirinha. O link para de abrir na hora (RN-41).
+         * @description Revogar um link já revogado ou vencido recebe a mesma resposta.
+         */
+        delete: operations["revokeShareLink"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/share-links/opening": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Abre a carteirinha pelo token do link e conta a abertura.
+         * @description Operação pública (RF-31). O token vai no corpo, e não no caminho, para não entrar no log
+         *     das requisições. Um token desconhecido, revogado, vencido ou de um pet excluído recebe
+         *     a mesma resposta 404 (RN-41).
+         */
+        post: operations["openShareLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1054,6 +1128,76 @@ export interface components {
             /** @enum {string} */
             status: "ok";
         };
+        /** @description Um link da carteirinha, sem o token. */
+        ShareLink: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description Quantas vezes a carteirinha foi aberta pelo link. */
+            opens: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description O link criado, com o token. O app monta o endereço `<web>/card#token=<token>`. */
+        CreatedShareLink: components["schemas"]["ShareLink"] & {
+            /** @description 32 bytes aleatórios em base64url, sem preenchimento (RN-39). */
+            token: string;
+        };
+        ShareLinkList: {
+            links: components["schemas"]["ShareLink"][];
+        };
+        /** @description A carteirinha do pet (RN-83). Sem dados do tutor, sem IDs internos e sem anexos. */
+        HealthCard: {
+            pet: components["schemas"]["HealthCardPet"];
+            /** @description Da mais nova para a mais antiga. */
+            vaccines: components["schemas"]["HealthCardVaccine"][];
+            /** @description As medicações antipulgas e vermífugo, da mais nova para a mais antiga. */
+            parasiteControl: components["schemas"]["HealthCardMedication"][];
+            /**
+             * Format: date-time
+             * @description Quando o link vence.
+             */
+            expiresAt: string;
+        };
+        HealthCardPet: {
+            name: string;
+            species: components["schemas"]["Species"];
+            breed?: string;
+            sex?: components["schemas"]["Sex"];
+            /** Format: date */
+            birthDate?: string;
+            /** Format: double */
+            weightKg?: number;
+            neutered?: boolean;
+            /**
+             * Format: uri
+             * @description URL temporária da foto de perfil, válida por 15 minutos.
+             */
+            photoUrl?: string;
+            vetName?: string;
+            vetClinic?: string;
+            vetPhone?: string;
+        };
+        HealthCardVaccine: {
+            name: string;
+            /** Format: date */
+            date: string;
+            /** Format: date */
+            nextDoseDate?: string;
+            manufacturer?: string;
+            batch?: string;
+            dose?: string;
+            vet?: string;
+        };
+        HealthCardMedication: {
+            name: string;
+            /** @enum {string} */
+            category: "flea" | "deworm";
+            /** Format: date */
+            date: string;
+            intervalDays?: number;
+        };
         /** @description Formato único de erro. Todo erro da API usa este formato. */
         Error: {
             error: components["schemas"]["ErrorCode"];
@@ -1065,7 +1209,7 @@ export interface components {
          *     Um código novo entra nesta lista antes de entrar no código do servidor.
          * @enum {string}
          */
-        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found" | "pet_not_found" | "noseprint_not_found" | "identification_not_found" | "report_not_found" | "lost_report_open" | "report_not_open" | "notification_not_found" | "health_event_not_found" | "attachment_limit" | "rate_limited" | "species_not_supported" | "image_low_quality" | "image_framing";
+        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found" | "pet_not_found" | "noseprint_not_found" | "identification_not_found" | "report_not_found" | "lost_report_open" | "report_not_open" | "notification_not_found" | "health_event_not_found" | "attachment_limit" | "share_link_not_found" | "rate_limited" | "species_not_supported" | "image_low_quality" | "image_framing";
     };
     responses: {
         /** @description O corpo ou um parâmetro é inválido. O código do erro é `invalid_request`. */
@@ -1126,6 +1270,18 @@ export interface components {
          *     Ou o pet não existe para este tutor, com o código `pet_not_found`.
          */
         HealthEventNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /**
+         * @description O link da carteirinha não existe, com o código `share_link_not_found`.
+         *     Ou o pet não existe para este tutor, com o código `pet_not_found`.
+         */
+        ShareLinkNotFound: {
             headers: {
                 [name: string]: unknown;
             };
@@ -2288,6 +2444,117 @@ export interface operations {
             };
             401: components["responses"]["Unauthenticated"];
             404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listShareLinks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os links ativos, do mais novo para o mais antigo. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareLinkList"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["ShareLinkNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    createShareLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O link criado, com o token. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedShareLink"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["ShareLinkNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    revokeShareLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do link da carteirinha. */
+                shareLinkId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O link está revogado. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["ShareLinkNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    openShareLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                };
+            };
+        };
+        responses: {
+            /** @description A carteirinha. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthCard"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            404: components["responses"]["ShareLinkNotFound"];
+            429: components["responses"]["RateLimited"];
             default: components["responses"]["Error"];
         };
     };

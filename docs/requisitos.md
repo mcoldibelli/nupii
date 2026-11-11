@@ -218,7 +218,7 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 | RN-39 | O link usa um token de 256 bits. Só o SHA-256 do token vai para o banco. O token aparece só na resposta da criação. | RF-30 | estável |
 | RN-40 | O link vale 30 dias. O tutor revoga o link a qualquer hora. O link conta as aberturas, e o tutor vê os links ativos com as aberturas. | RF-30 | estável |
 | RN-41 | Um link desconhecido, revogado, vencido ou de um pet excluído devolve 404. | RF-31 | estável |
-| RN-83 | A carteirinha mostra o pet (nome, espécie, raça, sexo, data de nascimento, peso, castração e foto), o veterinário do pet (nome, clínica e telefone), as vacinas (nome, data, próxima dose, fabricante, lote, dose e veterinário) e as medicações antipulgas e vermífugo (nome, categoria, data e intervalo), da mais nova para a mais antiga. Ela não mostra dados do tutor, IDs internos nem anexos. | RF-31 | estável |
+| RN-83 | A carteirinha mostra o pet (nome, espécie, raça, sexo, data de nascimento, peso, castração e foto), o veterinário do pet (nome, clínica e telefone), as vacinas (nome, data, próxima dose, fabricante, lote, dose e veterinário) e as medicações antipulgas e vermífugo (nome, categoria, data e intervalo), da mais nova para a mais antiga. Ela não mostra dados do tutor, IDs internos nem anexos. A URL temporária da foto tem a chave do arquivo no armazenamento. | RF-31 | estável |
 
 ### Privacidade e endpoints públicos
 

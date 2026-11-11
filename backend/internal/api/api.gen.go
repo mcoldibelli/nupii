@@ -58,6 +58,7 @@ const (
 	ErrorCodeRateLimited            ErrorCode = "rate_limited"
 	ErrorCodeReportNotFound         ErrorCode = "report_not_found"
 	ErrorCodeReportNotOpen          ErrorCode = "report_not_open"
+	ErrorCodeShareLinkNotFound      ErrorCode = "share_link_not_found"
 	ErrorCodeSpeciesNotSupported    ErrorCode = "species_not_supported"
 	ErrorCodeUnauthenticated        ErrorCode = "unauthenticated"
 	ErrorCodeUnavailable            ErrorCode = "unavailable"
@@ -97,6 +98,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeReportNotFound:
 		return true
 	case ErrorCodeReportNotOpen:
+		return true
+	case ErrorCodeShareLinkNotFound:
 		return true
 	case ErrorCodeSpeciesNotSupported:
 		return true
@@ -142,6 +145,24 @@ func (e HealthAttachmentContentType) Valid() bool {
 	case HealthAttachmentContentTypeImagepng:
 		return true
 	case HealthAttachmentContentTypeImagewebp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HealthCardMedicationCategory.
+const (
+	HealthCardMedicationCategoryDeworm HealthCardMedicationCategory = "deworm"
+	HealthCardMedicationCategoryFlea   HealthCardMedicationCategory = "flea"
+)
+
+// Valid indicates whether the value is a known member of the HealthCardMedicationCategory enum.
+func (e HealthCardMedicationCategory) Valid() bool {
+	switch e {
+	case HealthCardMedicationCategoryDeworm:
+		return true
+	case HealthCardMedicationCategoryFlea:
 		return true
 	default:
 		return false
@@ -361,6 +382,19 @@ func (e TermsVersion) Valid() bool {
 	}
 }
 
+// CreatedShareLink O link criado, com o token. O app monta o endereço `<web>/card#token=<token>`.
+type CreatedShareLink struct {
+	CreatedAt time.Time          `json:"createdAt"`
+	ExpiresAt time.Time          `json:"expiresAt"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Opens Quantas vezes a carteirinha foi aberta pelo link.
+	Opens int `json:"opens"`
+
+	// Token 32 bytes aleatórios em base64url, sem preenchimento (RN-39).
+	Token string `json:"token"`
+}
+
 // Device defines model for Device.
 type Device struct {
 	Platform DevicePlatform `json:"platform"`
@@ -441,6 +475,62 @@ type HealthAttachmentContentType string
 // HealthAttachmentList defines model for HealthAttachmentList.
 type HealthAttachmentList struct {
 	Attachments []HealthAttachment `json:"attachments"`
+}
+
+// HealthCard A carteirinha do pet (RN-83). Sem dados do tutor, sem IDs internos e sem anexos.
+type HealthCard struct {
+	// ExpiresAt Quando o link vence.
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	// ParasiteControl As medicações antipulgas e vermífugo, da mais nova para a mais antiga.
+	ParasiteControl []HealthCardMedication `json:"parasiteControl"`
+	Pet             HealthCardPet          `json:"pet"`
+
+	// Vaccines Da mais nova para a mais antiga.
+	Vaccines []HealthCardVaccine `json:"vaccines"`
+}
+
+// HealthCardMedication defines model for HealthCardMedication.
+type HealthCardMedication struct {
+	Category     HealthCardMedicationCategory `json:"category"`
+	Date         openapi_types.Date           `json:"date"`
+	IntervalDays *int                         `json:"intervalDays,omitempty"`
+	Name         string                       `json:"name"`
+}
+
+// HealthCardMedicationCategory defines model for HealthCardMedication.Category.
+type HealthCardMedicationCategory string
+
+// HealthCardPet defines model for HealthCardPet.
+type HealthCardPet struct {
+	BirthDate *openapi_types.Date `json:"birthDate,omitempty"`
+	Breed     *string             `json:"breed,omitempty"`
+	Name      string              `json:"name"`
+	Neutered  *bool               `json:"neutered,omitempty"`
+
+	// PhotoUrl URL temporária da foto de perfil, válida por 15 minutos.
+	PhotoUrl *string `json:"photoUrl,omitempty"`
+
+	// Sex Sexo do pet.
+	Sex *Sex `json:"sex,omitempty"`
+
+	// Species Espécie do pet.
+	Species   Species  `json:"species"`
+	VetClinic *string  `json:"vetClinic,omitempty"`
+	VetName   *string  `json:"vetName,omitempty"`
+	VetPhone  *string  `json:"vetPhone,omitempty"`
+	WeightKg  *float64 `json:"weightKg,omitempty"`
+}
+
+// HealthCardVaccine defines model for HealthCardVaccine.
+type HealthCardVaccine struct {
+	Batch        *string             `json:"batch,omitempty"`
+	Date         openapi_types.Date  `json:"date"`
+	Dose         *string             `json:"dose,omitempty"`
+	Manufacturer *string             `json:"manufacturer,omitempty"`
+	Name         string              `json:"name"`
+	NextDoseDate *openapi_types.Date `json:"nextDoseDate,omitempty"`
+	Vet          *string             `json:"vet,omitempty"`
 }
 
 // HealthEvent defines model for HealthEvent.
@@ -862,6 +952,21 @@ type ReportType string
 // Sex Sexo do pet.
 type Sex string
 
+// ShareLink Um link da carteirinha, sem o token.
+type ShareLink struct {
+	CreatedAt time.Time          `json:"createdAt"`
+	ExpiresAt time.Time          `json:"expiresAt"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Opens Quantas vezes a carteirinha foi aberta pelo link.
+	Opens int `json:"opens"`
+}
+
+// ShareLinkList defines model for ShareLinkList.
+type ShareLinkList struct {
+	Links []ShareLink `json:"links"`
+}
+
 // Sighting Um avistamento. Não tem dado de quem avistou.
 type Sighting struct {
 	CreatedAt   time.Time          `json:"createdAt"`
@@ -933,6 +1038,9 @@ type RateLimited = Error
 
 // ReportNotFound Formato único de erro. Todo erro da API usa este formato.
 type ReportNotFound = Error
+
+// ShareLinkNotFound Formato único de erro. Todo erro da API usa este formato.
+type ShareLinkNotFound = Error
 
 // Unauthenticated Formato único de erro. Todo erro da API usa este formato.
 type Unauthenticated = Error
@@ -1021,6 +1129,11 @@ type ResolveFoundReportJSONBody struct {
 	Code string `json:"code"`
 }
 
+// OpenShareLinkJSONBody defines parameters for OpenShareLink.
+type OpenShareLinkJSONBody struct {
+	Token string `json:"token"`
+}
+
 // IdentifyNoseMultipartRequestBody defines body for IdentifyNose for multipart/form-data ContentType.
 type IdentifyNoseMultipartRequestBody IdentifyNoseMultipartBody
 
@@ -1071,6 +1184,9 @@ type ResolveFoundReportJSONRequestBody ResolveFoundReportJSONBody
 
 // ReportSightingJSONRequestBody defines body for ReportSighting for application/json ContentType.
 type ReportSightingJSONRequestBody = SightingInput
+
+// OpenShareLinkJSONRequestBody defines body for OpenShareLink for application/json ContentType.
+type OpenShareLinkJSONRequestBody OpenShareLinkJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -1155,6 +1271,15 @@ type ServerInterface interface {
 	// SetPetPhoto Envia a foto de perfil de um pet do tutor.
 	// (PUT /v1/pets/{petId}/photo)
 	SetPetPhoto(w http.ResponseWriter, r *http.Request, petId PetId)
+	// ListShareLinks Os links ativos da carteirinha de um pet, com as aberturas.
+	// (GET /v1/pets/{petId}/share-links)
+	ListShareLinks(w http.ResponseWriter, r *http.Request, petId PetId)
+	// CreateShareLink Cria um link da carteirinha do pet, válido por 30 dias (RN-40).
+	// (POST /v1/pets/{petId}/share-links)
+	CreateShareLink(w http.ResponseWriter, r *http.Request, petId PetId)
+	// RevokeShareLink Revoga um link da carteirinha. O link para de abrir na hora (RN-41).
+	// (DELETE /v1/pets/{petId}/share-links/{shareLinkId})
+	RevokeShareLink(w http.ResponseWriter, r *http.Request, petId PetId, shareLinkId openapi_types.UUID)
 	// ListReports O mural, as ocorrências abertas dos tipos perdido e achado.
 	// (GET /v1/reports)
 	ListReports(w http.ResponseWriter, r *http.Request, params ListReportsParams)
@@ -1176,6 +1301,9 @@ type ServerInterface interface {
 	// ReportSighting Registra um avistamento em um desaparecimento aberto.
 	// (POST /v1/reports/{reportId}/sightings)
 	ReportSighting(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID)
+	// OpenShareLink Abre a carteirinha pelo token do link e conta a abertura.
+	// (POST /v1/share-links/opening)
+	OpenShareLink(w http.ResponseWriter, r *http.Request)
 	// ListUpcomingCare Os próximos cuidados de vacina e de medicação dos pets do tutor.
 	// (GET /v1/upcoming-care)
 	ListUpcomingCare(w http.ResponseWriter, r *http.Request)
@@ -1802,6 +1930,93 @@ func (siw *ServerInterfaceWrapper) SetPetPhoto(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// ListShareLinks operation middleware
+func (siw *ServerInterfaceWrapper) ListShareLinks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListShareLinks(w, r, petId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateShareLink operation middleware
+func (siw *ServerInterfaceWrapper) CreateShareLink(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateShareLink(w, r, petId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeShareLink operation middleware
+func (siw *ServerInterfaceWrapper) RevokeShareLink(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "shareLinkId" -------------
+	var shareLinkId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "shareLinkId", r.PathValue("shareLinkId"), &shareLinkId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "shareLinkId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeShareLink(w, r, petId, shareLinkId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListReports operation middleware
 func (siw *ServerInterfaceWrapper) ListReports(w http.ResponseWriter, r *http.Request) {
 
@@ -1958,6 +2173,20 @@ func (siw *ServerInterfaceWrapper) ReportSighting(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ReportSighting(w, r, reportId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// OpenShareLink operation middleware
+func (siw *ServerInterfaceWrapper) OpenShareLink(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.OpenShareLink(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2136,6 +2365,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/pets/{petId}/health-events/{eventId}/attachments", wrapper.CreateHealthAttachment)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/v1/pets/{petId}/health-events/{eventId}/attachments/{attachmentId}", wrapper.DeleteHealthAttachment)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/upcoming-care", wrapper.ListUpcomingCare)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/pets/{petId}/share-links", wrapper.ListShareLinks)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/pets/{petId}/share-links", wrapper.CreateShareLink)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/v1/pets/{petId}/share-links/{shareLinkId}", wrapper.RevokeShareLink)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/share-links/opening", wrapper.OpenShareLink)
 
 	return m
 }
@@ -2155,6 +2388,8 @@ type PetNotFoundJSONResponse Error
 type RateLimitedJSONResponse Error
 
 type ReportNotFoundJSONResponse Error
+
+type ShareLinkNotFoundJSONResponse Error
 
 type UnauthenticatedJSONResponse Error
 
@@ -4246,6 +4481,244 @@ func (response SetPetPhotodefaultJSONResponse) VisitSetPetPhotoResponse(w http.R
 	return err
 }
 
+type ListShareLinksRequestObject struct {
+	PetId PetId `json:"petId"`
+}
+
+type ListShareLinksResponseObject interface {
+	VisitListShareLinksResponse(w http.ResponseWriter) error
+}
+
+type ListShareLinks200JSONResponse ShareLinkList
+
+func (response ListShareLinks200JSONResponse) VisitListShareLinksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListShareLinks400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ListShareLinks400JSONResponse) VisitListShareLinksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListShareLinks401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ListShareLinks401JSONResponse) VisitListShareLinksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListShareLinks404JSONResponse struct{ ShareLinkNotFoundJSONResponse }
+
+func (response ListShareLinks404JSONResponse) VisitListShareLinksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListShareLinksdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListShareLinksdefaultJSONResponse) VisitListShareLinksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateShareLinkRequestObject struct {
+	PetId PetId `json:"petId"`
+}
+
+type CreateShareLinkResponseObject interface {
+	VisitCreateShareLinkResponse(w http.ResponseWriter) error
+}
+
+type CreateShareLink201JSONResponse CreatedShareLink
+
+func (response CreateShareLink201JSONResponse) VisitCreateShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateShareLink400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response CreateShareLink400JSONResponse) VisitCreateShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateShareLink401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response CreateShareLink401JSONResponse) VisitCreateShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateShareLink404JSONResponse struct{ ShareLinkNotFoundJSONResponse }
+
+func (response CreateShareLink404JSONResponse) VisitCreateShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateShareLinkdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response CreateShareLinkdefaultJSONResponse) VisitCreateShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeShareLinkRequestObject struct {
+	PetId       PetId              `json:"petId"`
+	ShareLinkId openapi_types.UUID `json:"shareLinkId"`
+}
+
+type RevokeShareLinkResponseObject interface {
+	VisitRevokeShareLinkResponse(w http.ResponseWriter) error
+}
+
+type RevokeShareLink204Response struct {
+}
+
+func (response RevokeShareLink204Response) VisitRevokeShareLinkResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RevokeShareLink400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response RevokeShareLink400JSONResponse) VisitRevokeShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeShareLink401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response RevokeShareLink401JSONResponse) VisitRevokeShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeShareLink404JSONResponse struct{ ShareLinkNotFoundJSONResponse }
+
+func (response RevokeShareLink404JSONResponse) VisitRevokeShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeShareLinkdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response RevokeShareLinkdefaultJSONResponse) VisitRevokeShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListReportsRequestObject struct {
 	Params ListReportsParams
 }
@@ -4787,6 +5260,87 @@ func (response ReportSightingdefaultJSONResponse) VisitReportSightingResponse(w 
 	return err
 }
 
+type OpenShareLinkRequestObject struct {
+	Body *OpenShareLinkJSONRequestBody
+}
+
+type OpenShareLinkResponseObject interface {
+	VisitOpenShareLinkResponse(w http.ResponseWriter) error
+}
+
+type OpenShareLink200JSONResponse HealthCard
+
+func (response OpenShareLink200JSONResponse) VisitOpenShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type OpenShareLink400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response OpenShareLink400JSONResponse) VisitOpenShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type OpenShareLink404JSONResponse struct{ ShareLinkNotFoundJSONResponse }
+
+func (response OpenShareLink404JSONResponse) VisitOpenShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type OpenShareLink429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response OpenShareLink429JSONResponse) VisitOpenShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type OpenShareLinkdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response OpenShareLinkdefaultJSONResponse) VisitOpenShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListUpcomingCareRequestObject struct {
 }
 
@@ -4936,6 +5490,15 @@ type StrictServerInterface interface {
 	// SetPetPhoto Envia a foto de perfil de um pet do tutor.
 	// (PUT /v1/pets/{petId}/photo)
 	SetPetPhoto(ctx context.Context, request SetPetPhotoRequestObject) (SetPetPhotoResponseObject, error)
+	// ListShareLinks Os links ativos da carteirinha de um pet, com as aberturas.
+	// (GET /v1/pets/{petId}/share-links)
+	ListShareLinks(ctx context.Context, request ListShareLinksRequestObject) (ListShareLinksResponseObject, error)
+	// CreateShareLink Cria um link da carteirinha do pet, válido por 30 dias (RN-40).
+	// (POST /v1/pets/{petId}/share-links)
+	CreateShareLink(ctx context.Context, request CreateShareLinkRequestObject) (CreateShareLinkResponseObject, error)
+	// RevokeShareLink Revoga um link da carteirinha. O link para de abrir na hora (RN-41).
+	// (DELETE /v1/pets/{petId}/share-links/{shareLinkId})
+	RevokeShareLink(ctx context.Context, request RevokeShareLinkRequestObject) (RevokeShareLinkResponseObject, error)
 	// ListReports O mural, as ocorrências abertas dos tipos perdido e achado.
 	// (GET /v1/reports)
 	ListReports(ctx context.Context, request ListReportsRequestObject) (ListReportsResponseObject, error)
@@ -4957,6 +5520,9 @@ type StrictServerInterface interface {
 	// ReportSighting Registra um avistamento em um desaparecimento aberto.
 	// (POST /v1/reports/{reportId}/sightings)
 	ReportSighting(ctx context.Context, request ReportSightingRequestObject) (ReportSightingResponseObject, error)
+	// OpenShareLink Abre a carteirinha pelo token do link e conta a abertura.
+	// (POST /v1/share-links/opening)
+	OpenShareLink(ctx context.Context, request OpenShareLinkRequestObject) (OpenShareLinkResponseObject, error)
 	// ListUpcomingCare Os próximos cuidados de vacina e de medicação dos pets do tutor.
 	// (GET /v1/upcoming-care)
 	ListUpcomingCare(ctx context.Context, request ListUpcomingCareRequestObject) (ListUpcomingCareResponseObject, error)
@@ -5776,6 +6342,85 @@ func (sh *strictHandler) SetPetPhoto(w http.ResponseWriter, r *http.Request, pet
 	}
 }
 
+// ListShareLinks operation middleware
+func (sh *strictHandler) ListShareLinks(w http.ResponseWriter, r *http.Request, petId PetId) {
+	var request ListShareLinksRequestObject
+
+	request.PetId = petId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListShareLinks(ctx, request.(ListShareLinksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListShareLinks")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListShareLinksResponseObject); ok {
+		if err := validResponse.VisitListShareLinksResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateShareLink operation middleware
+func (sh *strictHandler) CreateShareLink(w http.ResponseWriter, r *http.Request, petId PetId) {
+	var request CreateShareLinkRequestObject
+
+	request.PetId = petId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateShareLink(ctx, request.(CreateShareLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateShareLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateShareLinkResponseObject); ok {
+		if err := validResponse.VisitCreateShareLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RevokeShareLink operation middleware
+func (sh *strictHandler) RevokeShareLink(w http.ResponseWriter, r *http.Request, petId PetId, shareLinkId openapi_types.UUID) {
+	var request RevokeShareLinkRequestObject
+
+	request.PetId = petId
+	request.ShareLinkId = shareLinkId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevokeShareLink(ctx, request.(RevokeShareLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevokeShareLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RevokeShareLinkResponseObject); ok {
+		if err := validResponse.VisitRevokeShareLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListReports operation middleware
 func (sh *strictHandler) ListReports(w http.ResponseWriter, r *http.Request, params ListReportsParams) {
 	var request ListReportsRequestObject
@@ -5975,6 +6620,37 @@ func (sh *strictHandler) ReportSighting(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ReportSightingResponseObject); ok {
 		if err := validResponse.VisitReportSightingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// OpenShareLink operation middleware
+func (sh *strictHandler) OpenShareLink(w http.ResponseWriter, r *http.Request) {
+	var request OpenShareLinkRequestObject
+
+	var body OpenShareLinkJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.OpenShareLink(ctx, request.(OpenShareLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "OpenShareLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(OpenShareLinkResponseObject); ok {
+		if err := validResponse.VisitOpenShareLinkResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

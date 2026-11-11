@@ -1065,6 +1065,115 @@ paths:
           $ref: "#/components/responses/OwnerNotFound"
         default:
           $ref: "#/components/responses/Error"
+  /v1/pets/{petId}/share-links:
+    parameters:
+      - $ref: "#/components/parameters/PetId"
+    get:
+      operationId: listShareLinks
+      tags: [health]
+      summary: Os links ativos da carteirinha de um pet, com as aberturas.
+      description: Um link revogado ou vencido não vem na lista (RN-40).
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Os links ativos, do mais novo para o mais antigo.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShareLinkList"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/ShareLinkNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createShareLink
+      tags: [health]
+      summary: Cria um link da carteirinha do pet, válido por 30 dias (RN-40).
+      description: O token só vem nesta resposta. O banco guarda só o SHA-256 dele (RN-39).
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: O link criado, com o token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatedShareLink"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/ShareLinkNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/pets/{petId}/share-links/{shareLinkId}:
+    parameters:
+      - $ref: "#/components/parameters/PetId"
+      - name: shareLinkId
+        in: path
+        required: true
+        description: Identificador do link da carteirinha.
+        schema:
+          type: string
+          format: uuid
+    delete:
+      operationId: revokeShareLink
+      tags: [health]
+      summary: Revoga um link da carteirinha. O link para de abrir na hora (RN-41).
+      description: Revogar um link já revogado ou vencido recebe a mesma resposta.
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: O link está revogado.
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/ShareLinkNotFound"
+        default:
+          $ref: "#/components/responses/Error"
+  /v1/share-links/opening:
+    post:
+      operationId: openShareLink
+      tags: [health]
+      summary: Abre a carteirinha pelo token do link e conta a abertura.
+      description: |
+        Operação pública (RF-31). O token vai no corpo, e não no caminho, para não entrar no log
+        das requisições. Um token desconhecido, revogado, vencido ou de um pet excluído recebe
+        a mesma resposta 404 (RN-41).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+      responses:
+        "200":
+          description: A carteirinha.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthCard"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "404":
+          $ref: "#/components/responses/ShareLinkNotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     bearerAuth:
@@ -1770,6 +1879,126 @@ components:
         status:
           type: string
           enum: [ok]
+    ShareLink:
+      type: object
+      description: Um link da carteirinha, sem o token.
+      required: [id, expiresAt, opens, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        expiresAt:
+          type: string
+          format: date-time
+        opens:
+          type: integer
+          description: Quantas vezes a carteirinha foi aberta pelo link.
+        createdAt:
+          type: string
+          format: date-time
+    CreatedShareLink:
+      description: O link criado, com o token. O app monta o endereço `<web>/card#token=<token>`.
+      allOf:
+        - $ref: "#/components/schemas/ShareLink"
+        - type: object
+          required: [token]
+          properties:
+            token:
+              type: string
+              description: 32 bytes aleatórios em base64url, sem preenchimento (RN-39).
+    ShareLinkList:
+      type: object
+      required: [links]
+      properties:
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/ShareLink"
+    HealthCard:
+      type: object
+      description: A carteirinha do pet (RN-83). Sem dados do tutor, sem IDs internos e sem anexos.
+      required: [pet, vaccines, parasiteControl, expiresAt]
+      properties:
+        pet:
+          $ref: "#/components/schemas/HealthCardPet"
+        vaccines:
+          type: array
+          description: Da mais nova para a mais antiga.
+          items:
+            $ref: "#/components/schemas/HealthCardVaccine"
+        parasiteControl:
+          type: array
+          description: As medicações antipulgas e vermífugo, da mais nova para a mais antiga.
+          items:
+            $ref: "#/components/schemas/HealthCardMedication"
+        expiresAt:
+          type: string
+          format: date-time
+          description: Quando o link vence.
+    HealthCardPet:
+      type: object
+      required: [name, species]
+      properties:
+        name:
+          type: string
+        species:
+          $ref: "#/components/schemas/Species"
+        breed:
+          type: string
+        sex:
+          $ref: "#/components/schemas/Sex"
+        birthDate:
+          type: string
+          format: date
+        weightKg:
+          type: number
+          format: double
+        neutered:
+          type: boolean
+        photoUrl:
+          type: string
+          format: uri
+          description: URL temporária da foto de perfil, válida por 15 minutos.
+        vetName:
+          type: string
+        vetClinic:
+          type: string
+        vetPhone:
+          type: string
+    HealthCardVaccine:
+      type: object
+      required: [name, date]
+      properties:
+        name:
+          type: string
+        date:
+          type: string
+          format: date
+        nextDoseDate:
+          type: string
+          format: date
+        manufacturer:
+          type: string
+        batch:
+          type: string
+        dose:
+          type: string
+        vet:
+          type: string
+    HealthCardMedication:
+      type: object
+      required: [name, category, date]
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+          enum: [flea, deworm]
+        date:
+          type: string
+          format: date
+        intervalDays:
+          type: integer
     Error:
       type: object
       description: Formato único de erro. Todo erro da API usa este formato.
@@ -1801,6 +2030,7 @@ components:
         - notification_not_found
         - health_event_not_found
         - attachment_limit
+        - share_link_not_found
         - rate_limited
         - species_not_supported
         - image_low_quality
@@ -1845,6 +2075,14 @@ components:
     HealthEventNotFound:
       description: |
         O evento ou o anexo não existe para este pet, com o código `health_event_not_found`.
+        Ou o pet não existe para este tutor, com o código `pet_not_found`.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ShareLinkNotFound:
+      description: |
+        O link da carteirinha não existe, com o código `share_link_not_found`.
         Ou o pet não existe para este tutor, com o código `pet_not_found`.
       content:
         application/json:
