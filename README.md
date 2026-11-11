@@ -4,11 +4,11 @@ Plataforma para tutores de pets, com três partes: saúde do pet, mural de perdi
 
 ## Estado
 
-As fatias 0, 1 e 2 do [roteiro](docs/roteiro.md) estão prontas. O ambiente local sobe com um comando e o CI confere a API, o app, a integração e o serviço de inferência. O tutor cria a conta e entra pelo app, e cadastra os pets dele com foto de perfil. A fatia 3 está em andamento: o serviço de inferência transforma a foto de um focinho em um vetor. O andamento de cada fatia está nos milestones do GitHub.
+As fatias 0, 1, 2 e 3 do [roteiro](docs/roteiro.md) estão prontas. O ambiente local sobe com um comando e o CI confere a API, o app, a integração e o serviço de inferência. O tutor cria a conta e entra pelo app, e cadastra os pets dele com foto de perfil. O serviço de inferência transforma a foto de um focinho em um vetor. A API ainda não chama esse serviço: isso entra na fatia 4. O andamento de cada fatia está nos milestones do GitHub.
 
 ## Como executar
 
-Requisitos: Docker com o Compose. Para desenvolver a API: Go 1.26 ou mais novo.
+Requisitos: Docker com o Compose, e o GitHub CLI (`gh`) com acesso ao repositório. Para desenvolver a API: Go 1.26 ou mais novo.
 
 1. Crie o arquivo de configuração do ambiente local:
 
@@ -18,13 +18,19 @@ Requisitos: Docker com o Compose. Para desenvolver a API: Go 1.26 ou mais novo.
 
    Abra o `deploy/.env` e preencha os dois valores vazios: `POSTGRES_PASSWORD` e `S3_SECRET_ACCESS_KEY`. Para gerar um valor: `openssl rand -hex 24`. O arquivo `deploy/.env` não entra no git.
 
-2. Suba o ambiente local: a API, o banco, o servidor S3 e o emulador do Firebase Authentication. O comando constrói as imagens e espera os serviços ficarem prontos:
+2. Baixe os arquivos de pesos do serviço de inferência. O script baixa os arquivos de uma release do repositório para `inference/models` e confere o SHA-256. Os arquivos não entram no git:
+
+   ```bash
+   ./inference/download_weights.sh
+   ```
+
+3. Suba o ambiente local: a API, o banco, o servidor S3, o emulador do Firebase Authentication e o serviço de inferência. O comando constrói as imagens e espera os serviços ficarem prontos:
 
    ```bash
    docker compose -f deploy/compose.yaml up -d --wait
    ```
 
-3. Chame a API:
+4. Chame a API:
 
    ```bash
    curl -i http://localhost:8080/v1/health
@@ -50,6 +56,7 @@ Se a sua instalação tem só o binário `docker-compose`, use esse nome no luga
 | PostgreSQL 18 com PostGIS e pgvector | `localhost:5432` | `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD` |
 | SeaweedFS (protocolo S3) | `http://localhost:8333` | `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` |
 | Emulador do Firebase Authentication | `http://localhost:9099` | |
+| Serviço de inferência | `http://localhost:8000` | |
 
 As contas criadas no emulador ficam na memória e somem quando o container reinicia. Os tutores continuam no banco. Use `down -v` para apagar os dois juntos.
 

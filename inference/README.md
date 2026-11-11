@@ -36,6 +36,8 @@ Requisitos: Python 3.14 e o GitHub CLI (`gh`) com acesso ao repositório.
 
 O serviço não sobe sem os arquivos de pesos ou com um arquivo que tem outro SHA-256.
 
+O ambiente local da raiz do repositório também sobe este serviço, em um container, na porta 8000 (ver o [README da raiz](../README.md)). A imagem não tem os arquivos de pesos: o compose monta o diretório `models`.
+
 ## Como testar
 
 ```bash
@@ -79,6 +81,7 @@ O lint é o `ruff`: conferências estáticas e formato. Para corrigir o formato:
 | `app/nose.py` | Da foto ao vetor: abertura da imagem, nitidez (RN-20), detector (RN-21) e vetor (RN-18, RN-19) |
 | `app/weights.py` | Nomes, versão e SHA-256 dos arquivos de pesos (RN-22) |
 | `download_weights.sh` | Baixa os arquivos de pesos e confere o SHA-256 |
+| `Dockerfile` | A imagem do serviço, sem os arquivos de pesos |
 | `tests/data/` | Imagens geradas e valores de referência do teste de igualdade |
 
 Uma versão nova do modelo muda `app/weights.py`, a tag da release em `download_weights.sh` e os dois arquivos de valores de referência.

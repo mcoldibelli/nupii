@@ -1,4 +1,4 @@
-# Local environment and CI: the API and the state that it needs.
+# Local environment and CI: the API, the state that it needs and the inference service.
 # The values come from deploy/.env (not versioned). See deploy/.env.example.
 name: nupii-local
 
@@ -42,6 +42,21 @@ services:
       - "127.0.0.1:9099:9099"
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:9099').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 2s
+      timeout: 4s
+      retries: 30
+
+  inference:
+    build: ../inference
+    volumes:
+      # The weight files are not in the image. The script
+      # inference/download_weights.sh puts them in this directory.
+      - ../inference/models:/app/models:ro
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      # The service answers only after it loads the weight files.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
       interval: 2s
       timeout: 4s
       retries: 30
