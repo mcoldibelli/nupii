@@ -30,7 +30,7 @@ Com `FIREBASE_AUTH_EMULATOR_HOST`, a API aceita os tokens do emulador e não con
 
 Na subida, a API espera o banco responder e aplica as migrations que faltam. Se o banco não responde em 30 segundos, o processo termina com erro.
 
-Depois de subir, a API calcula de novo os vetores dos focinhos gravados com outra versão do modelo (RF-15). Ela atende requisições durante esse trabalho, e o resultado aparece em uma linha do log: `recompute of the noseprint vectors ended` ou `stopped`.
+Depois de subir, a API executa as tarefas da fila que esperam no banco, também as gravadas com a API parada (RNF-01). Ela também calcula de novo os vetores dos focinhos gravados com outra versão do modelo (RF-15). Ela atende requisições durante esse trabalho, e o resultado aparece em uma linha do log: `recompute of the noseprint vectors ended` ou `stopped`.
 
 Em outro terminal:
 
@@ -172,6 +172,7 @@ A primeira execução baixa o `oapi-codegen` na versão fixada em `internal/api/
 | `sqlc.yaml` | Configuração do `sqlc`: qual arquivo de consultas gera qual pacote |
 | `internal/identity/` | Módulo do tutor: validação do token das requisições, regras do registro, handlers de `/v1/me`. `identitydb/` é o código gerado das consultas |
 | `internal/biometrics/` | Módulo de biometria: cadastro do focinho (RN-07 a RN-09, RN-59, RN-60), identificação (RN-10 a RN-15, RN-61, RN-62), confirmação (RN-16, RN-63 a RN-65), avisos de encontro (RN-66) e recálculo dos vetores (RN-67). `biometricsdb/` é o código gerado das consultas |
+| `internal/alerts/` | Módulo de alertas: última localização (RN-30), notificações (RN-35, RN-74) e as tarefas que criam as notificações (RN-32 a RN-34, RN-73). `alertsdb/` é o código gerado das consultas |
 | `internal/reports/` | Módulo de ocorrências: perdido, achado, avistamento, resolver, mural e ficha (RN-24 a RN-29, RN-68 a RN-72). `reportsdb/` é o código gerado das consultas |
 | `internal/platform/inference/` | Cliente do serviço de inferência |
 | `internal/platform/jobs/` | Fila de tarefas no banco (ADR 0003, RNF-01, RNF-02) |

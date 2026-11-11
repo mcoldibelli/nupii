@@ -46,7 +46,7 @@ ORDER BY created_at, id;
 -- name: LockOpenLostReport :one
 -- RN-28: um avistamento só entra em um desaparecimento aberto. The lock puts
 -- the sighting and the resolution of the report in sequence.
-SELECT r.type, r.status, r.latitude, r.longitude
+SELECT r.type, r.status, r.latitude, r.longitude, r.owner_id, v.pet_name
 FROM reports AS r
 JOIN report_views AS v ON v.id = r.id
 WHERE r.id = sqlc.arg(id)

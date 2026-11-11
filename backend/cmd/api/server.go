@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/mcoldibelli/nupii/backend/internal/alerts"
 	"github.com/mcoldibelli/nupii/backend/internal/api"
 	"github.com/mcoldibelli/nupii/backend/internal/biometrics"
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
@@ -66,6 +67,7 @@ type (
 	petsHandlers       = pets.Handlers
 	biometricsHandlers = biometrics.Handlers
 	reportsHandlers    = reports.Handlers
+	alertsHandlers     = alerts.Handlers
 )
 
 // server implements the operations of the contract. The operations of each
@@ -75,6 +77,7 @@ type server struct {
 	*petsHandlers
 	*biometricsHandlers
 	*reportsHandlers
+	*alertsHandlers
 
 	// noseprints runs the recompute of the vectors when the API starts.
 	noseprints *biometrics.Service
@@ -102,9 +105,10 @@ func newServer(
 		biometricsHandlers: biometrics.NewHandlers(noseprints, logger),
 		reportsHandlers: reports.NewHandlers(
 			reports.NewService(pool, owners, petService, photos, logger)),
-		noseprints: noseprints,
-		logger:     logger,
-		database:   pool,
+		alertsHandlers: alerts.NewHandlers(alerts.NewService(pool, owners)),
+		noseprints:     noseprints,
+		logger:         logger,
+		database:       pool,
 	}
 }
 

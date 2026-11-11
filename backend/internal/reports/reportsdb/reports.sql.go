@@ -308,7 +308,7 @@ func (q *Queries) ListSightings(ctx context.Context, reportID string) ([]ListSig
 }
 
 const lockOpenLostReport = `-- name: LockOpenLostReport :one
-SELECT r.type, r.status, r.latitude, r.longitude
+SELECT r.type, r.status, r.latitude, r.longitude, r.owner_id, v.pet_name
 FROM reports AS r
 JOIN report_views AS v ON v.id = r.id
 WHERE r.id = $1
@@ -320,6 +320,8 @@ type LockOpenLostReportRow struct {
 	Status    string
 	Latitude  float64
 	Longitude float64
+	OwnerID   *string
+	PetName   *string
 }
 
 // RN-28: um avistamento só entra em um desaparecimento aberto. The lock puts
@@ -332,6 +334,8 @@ func (q *Queries) LockOpenLostReport(ctx context.Context, id string) (LockOpenLo
 		&i.Status,
 		&i.Latitude,
 		&i.Longitude,
+		&i.OwnerID,
+		&i.PetName,
 	)
 	return i, err
 }

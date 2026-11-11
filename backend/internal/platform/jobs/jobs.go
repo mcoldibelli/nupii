@@ -41,7 +41,8 @@ func Enqueue(ctx context.Context, tx pgx.Tx, kind string, payload any) error {
 	if err != nil {
 		return fmt.Errorf("encode the payload of the %s job: %w", kind, err)
 	}
-	if _, err := tx.Exec(ctx, "INSERT INTO jobs (kind, payload) VALUES ($1, $2)", kind, data); err != nil {
+	const insert = "INSERT INTO jobs (kind, payload) VALUES ($1, $2)"
+	if _, err := tx.Exec(ctx, insert, kind, data); err != nil {
 		return fmt.Errorf("enqueue the %s job: %w", kind, err)
 	}
 	return nil
@@ -147,7 +148,8 @@ func (r *Runner) Work(ctx context.Context) (worked bool, err error) {
 		delay := _firstRetryDelay << (attempts - 1)
 		const retry = `UPDATE jobs SET status = $2, attempts = $3, last_error = $4,
 			run_at = now() + $5::interval, updated_at = now() WHERE id = $1`
-		if _, err := tx.Exec(ctx, retry, id, state, attempts, jobErr.Error(), delay.String()); err != nil {
+		_, err := tx.Exec(ctx, retry, id, state, attempts, jobErr.Error(), delay.String())
+		if err != nil {
 			return true, fmt.Errorf("retry the %s job %s: %w", kind, id, err)
 		}
 	}
@@ -157,7 +159,12 @@ func (r *Runner) Work(ctx context.Context) (worked bool, err error) {
 	return true, nil
 }
 
-func (r *Runner) runHandler(ctx context.Context, tx pgx.Tx, kind string, payload json.RawMessage) error {
+func (r *Runner) runHandler(
+	ctx context.Context,
+	tx pgx.Tx,
+	kind string,
+	payload json.RawMessage,
+) error {
 	savepoint, err := tx.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin the savepoint of the job: %w", err)

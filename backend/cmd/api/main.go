@@ -16,11 +16,13 @@ import (
 	"time"
 
 	"github.com/mcoldibelli/nupii/backend/db/migrations"
+	"github.com/mcoldibelli/nupii/backend/internal/alerts"
 	"github.com/mcoldibelli/nupii/backend/internal/biometrics"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/config"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/inference"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/jobs"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/storage"
 )
@@ -138,6 +140,10 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	backgroundCtx, cancelBackground := context.WithCancel(ctx)
 	var background sync.WaitGroup
 	background.Go(func() { reembedNoseprints(backgroundCtx, logger, operations.noseprints) })
+	// RNF-01: the jobs that wait in the database run from the start of the
+	// API. Run ends the job in progress and returns when the context ends.
+	runner := jobs.NewRunner(pool, logger, alerts.JobHandlers())
+	background.Go(func() { runner.Run(backgroundCtx) })
 	defer func() {
 		cancelBackground()
 		background.Wait()

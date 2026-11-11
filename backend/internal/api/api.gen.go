@@ -29,6 +29,7 @@ const (
 	ErrorCodeLostReportOpen         ErrorCode = "lost_report_open"
 	ErrorCodeNoseprintNotFound      ErrorCode = "noseprint_not_found"
 	ErrorCodeNotFound               ErrorCode = "not_found"
+	ErrorCodeNotificationNotFound   ErrorCode = "notification_not_found"
 	ErrorCodeOwnerNotFound          ErrorCode = "owner_not_found"
 	ErrorCodePetNotFound            ErrorCode = "pet_not_found"
 	ErrorCodeRateLimited            ErrorCode = "rate_limited"
@@ -57,6 +58,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeNoseprintNotFound:
 		return true
 	case ErrorCodeNotFound:
+		return true
+	case ErrorCodeNotificationNotFound:
 		return true
 	case ErrorCodeOwnerNotFound:
 		return true
@@ -88,6 +91,27 @@ const (
 func (e HealthStatus) Valid() bool {
 	switch e {
 	case HealthStatusOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationKind.
+const (
+	NotificationKindFound      NotificationKind = "found"
+	NotificationKindLostNearby NotificationKind = "lost_nearby"
+	NotificationKindSighting   NotificationKind = "sighting"
+)
+
+// Valid indicates whether the value is a known member of the NotificationKind enum.
+func (e NotificationKind) Valid() bool {
+	switch e {
+	case NotificationKindFound:
+		return true
+	case NotificationKindLostNearby:
+		return true
+	case NotificationKindSighting:
 		return true
 	default:
 		return false
@@ -278,6 +302,12 @@ type IdentificationCandidate struct {
 	Strong bool `json:"strong"`
 }
 
+// Location defines model for Location.
+type Location struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
 // LostReportInput A latitude e a longitude são obrigatórias. Sem uma delas, a resposta é 400 `invalid_request`.
 // O esquema não as marca como obrigatórias para o servidor saber quando uma delas falta.
 type LostReportInput struct {
@@ -307,6 +337,34 @@ type Noseprint struct {
 
 	// Quality Nitidez da foto, de 0 a 1.
 	Quality float64 `json:"quality"`
+}
+
+// Notification defines model for Notification.
+type Notification struct {
+	Body      string    `json:"body"`
+	CreatedAt time.Time `json:"createdAt"`
+
+	// DistanceMeters Distância até o ponto do desaparecimento, no alerta de proximidade.
+	DistanceMeters *int               `json:"distanceMeters,omitempty"`
+	Id             openapi_types.UUID `json:"id"`
+
+	// Kind `lost_nearby`: um pet desapareceu perto do tutor. `sighting`: alguém viu o pet do tutor.
+	// `found`: alguém encontrou o pet do tutor pela foto do focinho.
+	Kind NotificationKind `json:"kind"`
+	Read bool             `json:"read"`
+
+	// ReportId A ocorrência da notificação, quando existe.
+	ReportId *openapi_types.UUID `json:"reportId,omitempty"`
+	Title    string              `json:"title"`
+}
+
+// NotificationKind `lost_nearby`: um pet desapareceu perto do tutor. `sighting`: alguém viu o pet do tutor.
+// `found`: alguém encontrou o pet do tutor pela foto do focinho.
+type NotificationKind string
+
+// NotificationList defines model for NotificationList.
+type NotificationList struct {
+	Notifications []Notification `json:"notifications"`
 }
 
 // Owner O tutor. Pessoa com conta, responsável por pets.
@@ -605,6 +663,9 @@ type ConfirmIdentificationMultipartRequestBody ConfirmIdentificationMultipartBod
 // RegisterMeJSONRequestBody defines body for RegisterMe for application/json ContentType.
 type RegisterMeJSONRequestBody = RegisterOwnerRequest
 
+// SetMyLocationJSONRequestBody defines body for SetMyLocation for application/json ContentType.
+type SetMyLocationJSONRequestBody = Location
+
 // CreatePetJSONRequestBody defines body for CreatePet for application/json ContentType.
 type CreatePetJSONRequestBody = PetInput
 
@@ -649,9 +710,18 @@ type ServerInterface interface {
 	// RegisterMe Registra o tutor da conta, com o aceite dos termos de uso.
 	// (POST /v1/me)
 	RegisterMe(w http.ResponseWriter, r *http.Request)
+	// SetMyLocation Guarda a última localização do tutor.
+	// (PUT /v1/me/location)
+	SetMyLocation(w http.ResponseWriter, r *http.Request)
 	// ListMyReports Os desaparecimentos registrados pelo tutor, abertos e resolvidos.
 	// (GET /v1/me/reports)
 	ListMyReports(w http.ResponseWriter, r *http.Request)
+	// ListNotifications As 50 notificações mais recentes do tutor.
+	// (GET /v1/notifications)
+	ListNotifications(w http.ResponseWriter, r *http.Request)
+	// MarkNotificationRead Marca uma notificação do tutor como lida.
+	// (POST /v1/notifications/{notificationId}/read)
+	MarkNotificationRead(w http.ResponseWriter, r *http.Request, notificationId openapi_types.UUID)
 	// ListPets Lista os pets do tutor, em ordem de nome.
 	// (GET /v1/pets)
 	ListPets(w http.ResponseWriter, r *http.Request)
@@ -804,11 +874,65 @@ func (siw *ServerInterfaceWrapper) RegisterMe(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// SetMyLocation operation middleware
+func (siw *ServerInterfaceWrapper) SetMyLocation(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetMyLocation(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListMyReports operation middleware
 func (siw *ServerInterfaceWrapper) ListMyReports(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListMyReports(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListNotifications operation middleware
+func (siw *ServerInterfaceWrapper) ListNotifications(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListNotifications(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MarkNotificationRead operation middleware
+func (siw *ServerInterfaceWrapper) MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "notificationId" -------------
+	var notificationId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "notificationId", r.PathValue("notificationId"), &notificationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "notificationId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkNotificationRead(w, r, notificationId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1309,6 +1433,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reports/{reportId}/resolution", wrapper.ResolveReport)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reports/{reportId}/code-resolution", wrapper.ResolveFoundReport)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me/reports", wrapper.ListMyReports)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/me/location", wrapper.SetMyLocation)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/notifications", wrapper.ListNotifications)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/notifications/{notificationId}/read", wrapper.MarkNotificationRead)
 
 	return m
 }
@@ -1767,6 +1894,81 @@ func (response RegisterMedefaultJSONResponse) VisitRegisterMeResponse(w http.Res
 	return err
 }
 
+type SetMyLocationRequestObject struct {
+	Body *SetMyLocationJSONRequestBody
+}
+
+type SetMyLocationResponseObject interface {
+	VisitSetMyLocationResponse(w http.ResponseWriter) error
+}
+
+type SetMyLocation204Response struct {
+}
+
+func (response SetMyLocation204Response) VisitSetMyLocationResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type SetMyLocation400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response SetMyLocation400JSONResponse) VisitSetMyLocationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetMyLocation401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response SetMyLocation401JSONResponse) VisitSetMyLocationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetMyLocation404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response SetMyLocation404JSONResponse) VisitSetMyLocationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetMyLocationdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response SetMyLocationdefaultJSONResponse) VisitSetMyLocationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListMyReportsRequestObject struct {
 }
 
@@ -1822,6 +2024,147 @@ type ListMyReportsdefaultJSONResponse struct {
 }
 
 func (response ListMyReportsdefaultJSONResponse) VisitListMyReportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotificationsRequestObject struct {
+}
+
+type ListNotificationsResponseObject interface {
+	VisitListNotificationsResponse(w http.ResponseWriter) error
+}
+
+type ListNotifications200JSONResponse NotificationList
+
+func (response ListNotifications200JSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotifications401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ListNotifications401JSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotifications404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response ListNotifications404JSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotificationsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListNotificationsdefaultJSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkNotificationReadRequestObject struct {
+	NotificationId openapi_types.UUID `json:"notificationId"`
+}
+
+type MarkNotificationReadResponseObject interface {
+	VisitMarkNotificationReadResponse(w http.ResponseWriter) error
+}
+
+type MarkNotificationRead204Response struct {
+}
+
+func (response MarkNotificationRead204Response) VisitMarkNotificationReadResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type MarkNotificationRead400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response MarkNotificationRead400JSONResponse) VisitMarkNotificationReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkNotificationRead401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response MarkNotificationRead401JSONResponse) VisitMarkNotificationReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkNotificationRead404JSONResponse Error
+
+func (response MarkNotificationRead404JSONResponse) VisitMarkNotificationReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkNotificationReaddefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response MarkNotificationReaddefaultJSONResponse) VisitMarkNotificationReadResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -3038,9 +3381,18 @@ type StrictServerInterface interface {
 	// RegisterMe Registra o tutor da conta, com o aceite dos termos de uso.
 	// (POST /v1/me)
 	RegisterMe(ctx context.Context, request RegisterMeRequestObject) (RegisterMeResponseObject, error)
+	// SetMyLocation Guarda a última localização do tutor.
+	// (PUT /v1/me/location)
+	SetMyLocation(ctx context.Context, request SetMyLocationRequestObject) (SetMyLocationResponseObject, error)
 	// ListMyReports Os desaparecimentos registrados pelo tutor, abertos e resolvidos.
 	// (GET /v1/me/reports)
 	ListMyReports(ctx context.Context, request ListMyReportsRequestObject) (ListMyReportsResponseObject, error)
+	// ListNotifications As 50 notificações mais recentes do tutor.
+	// (GET /v1/notifications)
+	ListNotifications(ctx context.Context, request ListNotificationsRequestObject) (ListNotificationsResponseObject, error)
+	// MarkNotificationRead Marca uma notificação do tutor como lida.
+	// (POST /v1/notifications/{notificationId}/read)
+	MarkNotificationRead(ctx context.Context, request MarkNotificationReadRequestObject) (MarkNotificationReadResponseObject, error)
 	// ListPets Lista os pets do tutor, em ordem de nome.
 	// (GET /v1/pets)
 	ListPets(ctx context.Context, request ListPetsRequestObject) (ListPetsResponseObject, error)
@@ -3294,6 +3646,37 @@ func (sh *strictHandler) RegisterMe(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// SetMyLocation operation middleware
+func (sh *strictHandler) SetMyLocation(w http.ResponseWriter, r *http.Request) {
+	var request SetMyLocationRequestObject
+
+	var body SetMyLocationJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetMyLocation(ctx, request.(SetMyLocationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetMyLocation")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetMyLocationResponseObject); ok {
+		if err := validResponse.VisitSetMyLocationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListMyReports operation middleware
 func (sh *strictHandler) ListMyReports(w http.ResponseWriter, r *http.Request) {
 	var request ListMyReportsRequestObject
@@ -3311,6 +3694,56 @@ func (sh *strictHandler) ListMyReports(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListMyReportsResponseObject); ok {
 		if err := validResponse.VisitListMyReportsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListNotifications operation middleware
+func (sh *strictHandler) ListNotifications(w http.ResponseWriter, r *http.Request) {
+	var request ListNotificationsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListNotifications(ctx, request.(ListNotificationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListNotifications")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListNotificationsResponseObject); ok {
+		if err := validResponse.VisitListNotificationsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// MarkNotificationRead operation middleware
+func (sh *strictHandler) MarkNotificationRead(w http.ResponseWriter, r *http.Request, notificationId openapi_types.UUID) {
+	var request MarkNotificationReadRequestObject
+
+	request.NotificationId = notificationId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.MarkNotificationRead(ctx, request.(MarkNotificationReadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MarkNotificationRead")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(MarkNotificationReadResponseObject); ok {
+		if err := validResponse.VisitMarkNotificationReadResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

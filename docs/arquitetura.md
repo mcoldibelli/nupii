@@ -88,7 +88,7 @@ flowchart TD
     health --> platform
 ```
 
-A dependência de `biometrics` para `alerts` é a notificação de RN-16. Ela passa a existir na fatia 6, com o módulo `alerts`.
+As dependências de `biometrics` e de `reports` para `alerts` são as tarefas de notificação. O módulo que cria a tarefa usa uma função de `alerts` (`EnqueueLostReport`, `EnqueueSighting`, `EnqueueFound`), na própria transação. A tarefa leva os dados da notificação, e `alerts` não lê as tabelas dos outros módulos.
 
 Leituras com `JOIN` entre módulos, conhecidas pelos requisitos:
 
@@ -99,7 +99,7 @@ Leituras com `JOIN` entre módulos, conhecidas pelos requisitos:
 | Nome e foto de perfil dos candidatos | `biometrics` | `pets` | RN-62 |
 | Mural e ficha (visão `report_views`) | `reports` | `pets` (nome, espécie, foto, pet não excluído), `biometrics` (o pet tem cadastro) | RN-24, RN-72 |
 | Avisos de encontro do tutor | `biometrics` | `pets` (pets do tutor, não excluídos) | RN-66 |
-| Tutores perto de um ponto | `alerts` | `identity` (conta ativa) | RN-32, RN-33 |
+| Tutores perto de um ponto | `alerts` | `identity` (conta ativa). A leitura entra na fatia 9, com os estados da conta. Hoje a consulta lê só `owner_locations` | RN-32, RN-33 |
 
 ## Tarefas em segundo plano
 

@@ -129,7 +129,7 @@
 | RN-13 | Uma similaridade abaixo de 0,351 não vira candidato. | RF-12 | estável |
 | RN-14 | A identificação devolve no máximo 3 candidatos. | RF-12 | estável |
 | RN-15 | Um candidato é "correspondência forte" quando a similaridade chega ao limiar do tamanho do acervo. Tabela abaixo. O tamanho do acervo é o número de pets que entram na busca (RN-10, RN-11). Vale a menor linha da tabela que não é menor que o acervo. Acima de 300, vale a linha de 300. | RF-12 | estável |
-| RN-16 | A foto da consulta só é gravada quando há confirmação. O tutor do pet confirmado recebe uma notificação. A notificação entra na fatia 6. Até lá, o tutor vê o aviso de encontro na lista (RF-14). | RF-13 | estável |
+| RN-16 | A foto da consulta só é gravada quando há confirmação. O tutor do pet confirmado recebe uma notificação. A notificação vem da tarefa `notify_found` (RN-73). | RF-13 | estável |
 | RN-59 | A foto do focinho, no cadastro e na identificação, é uma imagem JPEG, PNG ou WebP de até 8 MB (RN-17). | RF-11, RF-12 | estável |
 | RN-60 | O cadastro que a API devolve para um pet é o principal (RN-09). | RF-11 | estável |
 | RN-61 | A identificação aceita a latitude e a longitude de quem encontrou. As duas são opcionais e vêm juntas. A latitude vai de -90 a 90 e a longitude vai de -180 a 180. Um valor que não é um número é recusado. | RF-12 | estável |

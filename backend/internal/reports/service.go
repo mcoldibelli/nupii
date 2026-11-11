@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/mcoldibelli/nupii/backend/internal/alerts"
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/pets"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/imagefile"
@@ -243,24 +244,40 @@ func (s *Service) ReportLost(ctx context.Context, input LostInput) (Report, erro
 		return Report{}, fmt.Errorf("find the owner of the request: %w", err)
 	}
 	// RN-26: só o tutor do pet registra o desaparecimento dele.
-	if _, err := s.pets.Get(ctx, input.PetID); err != nil {
+	pet, err := s.pets.Get(ctx, input.PetID)
+	if err != nil {
 		return Report{}, fmt.Errorf("get the pet of the report: %w", err)
 	}
-	id, err := s.queries.CreateLostReport(ctx, reportsdb.CreateLostReportParams{
-		OwnerID:     &owner.ID,
-		PetID:       &input.PetID,
-		Latitude:    input.Point.Latitude,
-		Longitude:   input.Point.Longitude,
-		Place:       details.Place,
-		Description: details.Description,
-		OccurredAt:  occurred,
+	var id string
+	err = s.inTx(ctx, func(tx pgx.Tx) error {
+		id, err = s.queries.WithTx(tx).CreateLostReport(ctx, reportsdb.CreateLostReportParams{
+			OwnerID:     &owner.ID,
+			PetID:       &input.PetID,
+			Latitude:    input.Point.Latitude,
+			Longitude:   input.Point.Longitude,
+			Place:       details.Place,
+			Description: details.Description,
+			OccurredAt:  occurred,
+		})
+		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
+			pgErr.Code == _uniqueViolation && pgErr.ConstraintName == _openLostConstraint {
+			return ErrLostReportOpen
+		}
+		if err != nil {
+			return fmt.Errorf("create lost report: %w", err)
+		}
+		// RNF-01: a tarefa do alerta é gravada na mesma transação da ocorrência.
+		return alerts.EnqueueLostReport(ctx, tx, alerts.LostReport{
+			ReportID:  id,
+			AuthorID:  owner.ID,
+			PetName:   pet.Name,
+			Place:     details.Place,
+			Latitude:  input.Point.Latitude,
+			Longitude: input.Point.Longitude,
+		})
 	})
-	if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
-		pgErr.Code == _uniqueViolation && pgErr.ConstraintName == _openLostConstraint {
-		return Report{}, ErrLostReportOpen
-	}
 	if err != nil {
-		return Report{}, fmt.Errorf("create lost report: %w", err)
+		return Report{}, err
 	}
 	report, err := s.Get(ctx, id)
 	if err != nil {
@@ -394,7 +411,18 @@ func (s *Service) AddSighting(
 			Details:   Details{Place: row.Place, Description: row.Description},
 			CreatedAt: row.CreatedAt,
 		}
-		return nil
+		// RN-73: um avistamento cria uma notificação para o tutor do pet.
+		// An open lost report always has an owner and a pet.
+		if report.OwnerID == nil || report.PetName == nil {
+			return fmt.Errorf("lost report %s has no owner or no pet", reportID)
+		}
+		return alerts.EnqueueSighting(ctx, tx, alerts.Sighting{
+			SightingID: row.ID,
+			ReportID:   reportID,
+			OwnerID:    *report.OwnerID,
+			PetName:    *report.PetName,
+			Place:      details.Place,
+		})
 	})
 	return sighting, err
 }
