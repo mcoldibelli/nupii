@@ -86,6 +86,8 @@ flowchart TD
     health --> platform
 ```
 
+A dependência de `biometrics` para `alerts` é a notificação de RN-16. Ela passa a existir na fatia 6, com o módulo `alerts`.
+
 Leituras com `JOIN` entre módulos, conhecidas pelos requisitos:
 
 | Consulta | Módulo dono | Lê também | Requisito |
@@ -102,7 +104,7 @@ Uma tabela `jobs` no Postgres. Workers no mesmo binário leem com `SELECT ... FO
 |---|---|---|
 | `notify_lost_report` | `reports`, na mesma transação da ocorrência | RF-24, RNF-01 |
 | `send_push` | `alerts` | RF-26 |
-| `reembed_noseprint` | `biometrics`, quando a versão do modelo muda | RF-15 |
+| `reembed_noseprint` | `biometrics`, quando a versão do modelo muda. Até a fila de tarefas existir (fatia 6), o recálculo é executado na subida da API, em uma goroutine (RN-67) | RF-15 |
 | `purge_expired_data` | agenda diária | RF-32, RN-42 |
 | `delete_identity_user` | `identity`, na mesma transação da anonimização | RF-08, RN-03 |
 
@@ -265,6 +267,10 @@ O código usa o termo em inglês. A documentação e as telas usam o termo em po
 | cadastro biométrico | noseprint | Foto do focinho com o vetor |
 | identificação | identification | Busca de um focinho no acervo |
 | candidato | candidate | Pet devolvido por uma identificação |
+| correspondência forte | strong match | Candidato com similaridade no limiar do tamanho do acervo, ou acima dele |
+| confirmação | confirmation | Quem encontrou o cão escolhe um candidato e deixa o contato |
+| aviso de encontro | found notice | O que o tutor vê de uma confirmação: o pet e o contato de quem encontrou |
+| cadastro principal | primary noseprint | O cadastro biométrico mais novo do pet |
 | acervo | gallery | Conjunto de noseprints ativos de uma versão do modelo |
 | ocorrência | report | Registro de perdido, achado ou avistado |
 | perdido, achado, avistado | lost, found, sighting | Tipos de ocorrência |

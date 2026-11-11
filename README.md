@@ -103,6 +103,7 @@ O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app n
 | [0017](docs/adr/0017-arquivo-do-aparelho-no-app.md) | Expo File System para enviar um arquivo do aparelho | aceito |
 | [0018](docs/adr/0018-python-e-dependencias-da-inferencia.md) | Python, dependências e ferramentas do serviço de inferência | aceito |
 | [0019](docs/adr/0019-dados-do-teste-de-igualdade.md) | Dados do teste de igualdade da inferência | aceito |
+| [0020](docs/adr/0020-leitura-de-objeto-pelo-backend.md) | Leitura de um objeto do armazenamento pelo backend | aceito |
 
 ## Regras do projeto
 
