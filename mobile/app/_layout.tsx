@@ -22,6 +22,7 @@ function Screens() {
         <Stack.Screen name="found" options={{ title: "Nupii" }} />
         <Stack.Screen name="reports/index" options={{ title: "Mural de perdidos e achados" }} />
         <Stack.Screen name="reports/[id]" options={{ title: "Ocorrência" }} />
+        <Stack.Screen name="card" options={{ title: "Carteirinha" }} />
       </Stack>
     );
   }
@@ -67,6 +68,7 @@ function Screens() {
         <Stack.Screen name="pets/[id]" options={{ title: "Editar pet" }} />
         <Stack.Screen name="noseprint/[petId]" options={{ title: "Focinho" }} />
         <Stack.Screen name="found-notices" options={{ title: "Avisos de encontro" }} />
+        <Stack.Screen name="share/[petId]" options={{ title: "Carteirinha" }} />
         <Stack.Screen name="notifications" options={{ title: "Notificações" }} />
         <Stack.Screen name="health/[petId]" options={{ title: "Saúde" }} />
         <Stack.Screen name="health/event" options={{ title: "Evento de saúde" }} />
@@ -84,6 +86,7 @@ function Screens() {
           guard would be the screen that the app shows after the sign-out. */}
       <Stack.Protected guard={Platform.OS === "web"}>
         <Stack.Screen name="found" options={{ title: "Nupii" }} />
+        <Stack.Screen name="card" options={{ title: "Carteirinha" }} />
       </Stack.Protected>
     </Stack>
   );
