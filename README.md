@@ -8,7 +8,7 @@ Fase de plano. As decisões de arquitetura estão aceitas. Ainda não existe có
 
 ## Como executar
 
-Requisitos: Docker com o Compose, e Go 1.26 ou mais novo.
+Requisitos: Docker com o Compose. Para desenvolver a API: Go 1.26 ou mais novo.
 
 1. Crie o arquivo de configuração do ambiente local:
 
@@ -18,22 +18,13 @@ Requisitos: Docker com o Compose, e Go 1.26 ou mais novo.
 
    Abra o `deploy/.env` e preencha os dois valores vazios: `POSTGRES_PASSWORD` e `S3_SECRET_ACCESS_KEY`. Para gerar um valor: `openssl rand -hex 24`. O arquivo `deploy/.env` não entra no git.
 
-2. Suba o banco e o servidor S3 do ambiente local. O comando espera os dois ficarem prontos:
+2. Suba o ambiente local: a API, o banco e o servidor S3. O comando constrói as imagens e espera os serviços ficarem prontos:
 
    ```bash
    docker compose -f deploy/compose.yaml up -d --wait
    ```
 
-3. Suba a API. Ela lê o endereço do banco da variável `DATABASE_URL`:
-
-   ```bash
-   cd backend
-   set -a; . ../deploy/.env; set +a
-   export DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432/$POSTGRES_DB?sslmode=disable"
-   go run ./cmd/api
-   ```
-
-4. Em outro terminal, chame a API:
+3. Chame a API:
 
    ```bash
    curl -i http://localhost:8080/v1/health
@@ -45,12 +36,13 @@ Se a sua instalação tem só o binário `docker-compose`, use esse nome no luga
 
 | Serviço | Endereço | Variáveis no `deploy/.env` |
 |---|---|---|
+| API | `http://localhost:8080` | |
 | PostgreSQL 18 com PostGIS e pgvector | `localhost:5432` | `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD` |
 | SeaweedFS (protocolo S3) | `http://localhost:8333` | `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` |
 
 Se você mudar a senha do banco depois da primeira subida, apague os dados com `down -v`: o Postgres só grava a senha quando cria o banco.
 
-Cada projeto tem um README com os próprios comandos: [backend](backend/README.md).
+Para desenvolver a API, suba só o banco e o servidor S3 e execute a API com `go run`. Os comandos estão no README do [backend](backend/README.md).
 
 ## Documentos
 
