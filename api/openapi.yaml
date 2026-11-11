@@ -210,6 +210,43 @@ paths:
           $ref: "#/components/responses/PetNotFound"
         default:
           $ref: "#/components/responses/Error"
+  /v1/pets/{petId}/photo:
+    parameters:
+      - $ref: "#/components/parameters/PetId"
+    put:
+      operationId: setPetPhoto
+      tags: [pets]
+      summary: Envia a foto de perfil de um pet do tutor.
+      description: A foto nova substitui a anterior.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Imagem JPEG, PNG ou WebP, com no máximo 5 MB.
+      responses:
+        "200":
+          description: O pet, com a URL temporária da foto nova.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/PetNotFound"
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     bearerAuth:
@@ -284,6 +321,12 @@ components:
             createdAt:
               type: string
               format: date-time
+            photoUrl:
+              type: string
+              format: uri
+              description: |
+                URL temporária da foto de perfil, válida por 15 minutos.
+                O campo não vem quando o pet não tem foto.
     PetList:
       type: object
       required: [pets]

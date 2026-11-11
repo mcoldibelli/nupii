@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
@@ -183,6 +184,52 @@ func (h *Handlers) DeletePet(
 	return api.DeletePet204Response{}, nil
 }
 
+// SetPetPhoto stores the profile photo of a pet of the owner that made the
+// request. The photo is the part "file" of the multipart body.
+func (h *Handlers) SetPetPhoto(
+	ctx context.Context,
+	request api.SetPetPhotoRequestObject,
+) (api.SetPetPhotoResponseObject, error) {
+	who, ok := identity.FromContext(ctx)
+	if !ok {
+		return nil, errNoIdentity
+	}
+	invalid := func(message string) api.SetPetPhotoResponseObject {
+		return api.SetPetPhoto400JSONResponse{InvalidRequestJSONResponse: api.InvalidRequestJSONResponse{
+			Error:   api.ErrorCodeInvalidRequest,
+			Message: message,
+		}}
+	}
+	for {
+		part, err := request.Body.NextPart()
+		if errors.Is(err, io.EOF) {
+			return invalid(`the body has no part "file"`), nil
+		}
+		if err != nil {
+			return invalid("the multipart body could not be read"), nil
+		}
+		if part.FormName() != "file" {
+			continue
+		}
+		pet, err := h.service.SetPhoto(ctx, who, request.PetId.String(), part)
+		if err != nil {
+			switch kind, body := classify(err); kind {
+			case failureInvalid:
+				return invalid(body.Message), nil
+			case failureOwnerNotFound, failurePetNotFound:
+				return api.SetPetPhoto404JSONResponse{PetNotFoundJSONResponse: api.PetNotFoundJSONResponse(body)}, nil
+			default:
+				return nil, fmt.Errorf("set the photo of the pet: %w", err)
+			}
+		}
+		converted, err := petToAPI(pet)
+		if err != nil {
+			return nil, err
+		}
+		return api.SetPetPhoto200JSONResponse(converted), nil
+	}
+}
+
 func inputFromAPI(body api.PetInput) Input {
 	input := Input{
 		Name:      body.Name,
@@ -224,6 +271,7 @@ func petToAPI(pet Pet) (api.Pet, error) {
 		VetName:   pet.VetName,
 		VetClinic: pet.VetClinic,
 		VetPhone:  pet.VetPhone,
+		PhotoUrl:  pet.PhotoURL,
 	}
 	if pet.Sex != nil {
 		sex := api.Sex(*pet.Sex)

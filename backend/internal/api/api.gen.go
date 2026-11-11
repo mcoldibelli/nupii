@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 	"time"
 
@@ -194,6 +195,10 @@ type Pet struct {
 	// Neutered Informa se o pet é castrado.
 	Neutered *bool `json:"neutered,omitempty"`
 
+	// PhotoUrl URL temporária da foto de perfil, válida por 15 minutos.
+	// O campo não vem quando o pet não tem foto.
+	PhotoUrl *string `json:"photoUrl,omitempty"`
+
 	// Sex Sexo do pet.
 	Sex *Sex `json:"sex,omitempty"`
 
@@ -295,6 +300,12 @@ type PetNotFound = Error
 // Unauthenticated Formato único de erro. Todo erro da API usa este formato.
 type Unauthenticated = Error
 
+// SetPetPhotoMultipartBody defines parameters for SetPetPhoto.
+type SetPetPhotoMultipartBody struct {
+	// File Imagem JPEG, PNG ou WebP, com no máximo 5 MB.
+	File openapi_types.File `json:"file"`
+}
+
 // RegisterMeJSONRequestBody defines body for RegisterMe for application/json ContentType.
 type RegisterMeJSONRequestBody = RegisterOwnerRequest
 
@@ -303,6 +314,9 @@ type CreatePetJSONRequestBody = PetInput
 
 // UpdatePetJSONRequestBody defines body for UpdatePet for application/json ContentType.
 type UpdatePetJSONRequestBody = PetInput
+
+// SetPetPhotoMultipartRequestBody defines body for SetPetPhoto for multipart/form-data ContentType.
+type SetPetPhotoMultipartRequestBody SetPetPhotoMultipartBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -330,6 +344,9 @@ type ServerInterface interface {
 	// UpdatePet Troca todos os dados de um pet do tutor.
 	// (PUT /v1/pets/{petId})
 	UpdatePet(w http.ResponseWriter, r *http.Request, petId PetId)
+	// SetPetPhoto Envia a foto de perfil de um pet do tutor.
+	// (PUT /v1/pets/{petId}/photo)
+	SetPetPhoto(w http.ResponseWriter, r *http.Request, petId PetId)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -489,6 +506,32 @@ func (siw *ServerInterfaceWrapper) UpdatePet(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// SetPetPhoto operation middleware
+func (siw *ServerInterfaceWrapper) SetPetPhoto(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetPetPhoto(w, r, petId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -617,6 +660,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/v1/pets/{petId}", wrapper.DeletePet)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/pets/{petId}", wrapper.GetPet)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/pets/{petId}", wrapper.UpdatePet)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/pets/{petId}/photo", wrapper.SetPetPhoto)
 
 	return m
 }
@@ -1215,6 +1259,88 @@ func (response UpdatePetdefaultJSONResponse) VisitUpdatePetResponse(w http.Respo
 	return err
 }
 
+type SetPetPhotoRequestObject struct {
+	PetId PetId `json:"petId"`
+	Body  *multipart.Reader
+}
+
+type SetPetPhotoResponseObject interface {
+	VisitSetPetPhotoResponse(w http.ResponseWriter) error
+}
+
+type SetPetPhoto200JSONResponse Pet
+
+func (response SetPetPhoto200JSONResponse) VisitSetPetPhotoResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPetPhoto400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response SetPetPhoto400JSONResponse) VisitSetPetPhotoResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPetPhoto401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response SetPetPhoto401JSONResponse) VisitSetPetPhotoResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPetPhoto404JSONResponse struct{ PetNotFoundJSONResponse }
+
+func (response SetPetPhoto404JSONResponse) VisitSetPetPhotoResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPetPhotodefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response SetPetPhotodefaultJSONResponse) VisitSetPetPhotoResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// GetHealth Informa se o serviço está pronto para atender requisições.
@@ -1241,6 +1367,9 @@ type StrictServerInterface interface {
 	// UpdatePet Troca todos os dados de um pet do tutor.
 	// (PUT /v1/pets/{petId})
 	UpdatePet(ctx context.Context, request UpdatePetRequestObject) (UpdatePetResponseObject, error)
+	// SetPetPhoto Envia a foto de perfil de um pet do tutor.
+	// (PUT /v1/pets/{petId}/photo)
+	SetPetPhoto(ctx context.Context, request SetPetPhotoRequestObject) (SetPetPhotoResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -1494,6 +1623,39 @@ func (sh *strictHandler) UpdatePet(w http.ResponseWriter, r *http.Request, petId
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdatePetResponseObject); ok {
 		if err := validResponse.VisitUpdatePetResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetPetPhoto operation middleware
+func (sh *strictHandler) SetPetPhoto(w http.ResponseWriter, r *http.Request, petId PetId) {
+	var request SetPetPhotoRequestObject
+
+	request.PetId = petId
+
+	if reader, err := r.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetPetPhoto(ctx, request.(SetPetPhotoRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetPetPhoto")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetPetPhotoResponseObject); ok {
+		if err := validResponse.VisitSetPetPhotoResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

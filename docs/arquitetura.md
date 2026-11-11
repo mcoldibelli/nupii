@@ -142,7 +142,9 @@ Concorrência, declarada por regra:
 - Um corpo ou um parâmetro que não pode ser lido recebe 400 com o código `invalid_request`. Um dado que quebra uma regra de negócio recebe a mesma resposta, com a regra na mensagem.
 - Um recurso de outro tutor não existe para quem chama: a resposta é 404, igual à de um recurso que nunca existiu (RN-52).
 - Uma conta sem tutor registrado recebe 404 com o código `owner_not_found` nas operações que precisam do tutor.
-- O corpo de uma requisição tem no máximo 1 MiB. Um corpo maior recebe a mesma resposta 400.
+- O corpo de uma requisição JSON tem no máximo 1 MiB, e o de um envio de foto tem no máximo 6 MiB. Um corpo maior recebe a mesma resposta 400.
+- Um arquivo enviado tem o tipo conferido pelos bytes do arquivo, não pelo que o cliente declara (RN-54).
+- A URL temporária de uma foto é assinada com o endereço público do armazenamento (`S3_PUBLIC_ENDPOINT`).
 - O emulador do Authentication só é aceito com um projeto de demonstração (`FIREBASE_PROJECT_ID` com o prefixo `demo-`). Com outro projeto, a API não sobe.
 - Toda resposta tem o cabeçalho `X-Request-Id`, com o identificador que aparece nas linhas de log da requisição (RNF-07).
 

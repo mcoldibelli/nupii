@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres/postgrestest"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/storage/storagetest"
 )
 
 // _emulatorProjectID is the project of the Authentication emulator of the
@@ -49,6 +50,7 @@ func freeAddr(t *testing.T) string {
 func TestRunMigratesServesAndStops(t *testing.T) {
 	url := postgrestest.URL(t)
 	emulator := emulatorHost(t)
+	store := storagetest.Config(t)
 	addr := freeAddr(t)
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -62,6 +64,14 @@ func TestRunMigratesServesAndStops(t *testing.T) {
 			return _emulatorProjectID
 		case "FIREBASE_AUTH_EMULATOR_HOST":
 			return emulator
+		case "S3_ENDPOINT":
+			return store.Endpoint
+		case "S3_BUCKET":
+			return store.Bucket
+		case "S3_ACCESS_KEY_ID":
+			return store.AccessKeyID
+		case "S3_SECRET_ACCESS_KEY":
+			return store.SecretAccessKey
 		default:
 			return ""
 		}
@@ -142,6 +152,10 @@ func TestRunFailsWhenTheDatabaseDoesNotRespond(t *testing.T) {
 			return "postgres://user:password@127.0.0.1:1/database?sslmode=disable"
 		case "FIREBASE_PROJECT_ID":
 			return _emulatorProjectID
+		case "S3_ENDPOINT":
+			return "http://127.0.0.1:1"
+		case "S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY":
+			return "value-for-the-test"
 		default:
 			return ""
 		}

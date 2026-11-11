@@ -85,6 +85,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/pets/{petId}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Envia a foto de perfil de um pet do tutor.
+         * @description A foto nova substitui a anterior.
+         */
+        put: operations["setPetPhoto"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -123,6 +146,12 @@ export interface components {
             id: string;
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: uri
+             * @description URL temporária da foto de perfil, válida por 15 minutos.
+             *     O campo não vem quando o pet não tem foto.
+             */
+            photoUrl?: string;
         };
         PetList: {
             pets: components["schemas"]["Pet"][];
@@ -473,6 +502,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["PetNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    setPetPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description Imagem JPEG, PNG ou WebP, com no máximo 5 MB.
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description O pet, com a URL temporária da foto nova. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pet"];
+                };
             };
             400: components["responses"]["InvalidRequest"];
             401: components["responses"]["Unauthenticated"];
