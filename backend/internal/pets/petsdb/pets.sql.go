@@ -21,7 +21,7 @@ VALUES (
     $10, $11, $12
 )
 RETURNING id, owner_id, name, species, breed, sex, size, birth_date, weight_kg, neutered,
-    vet_name, vet_clinic, vet_phone, created_at, updated_at, deleted_at
+    vet_name, vet_clinic, vet_phone, created_at, updated_at, deleted_at, photo_key
 `
 
 type CreatePetParams struct {
@@ -72,13 +72,14 @@ func (q *Queries) CreatePet(ctx context.Context, arg CreatePetParams) (Pet, erro
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.PhotoKey,
 	)
 	return i, err
 }
 
 const deletePet = `-- name: DeletePet :execrows
 UPDATE pets
-SET deleted_at = now(), updated_at = now()
+SET deleted_at = now(), updated_at = now(), photo_key = NULL
 WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL
 `
 
@@ -87,7 +88,8 @@ type DeletePetParams struct {
 	OwnerID string
 }
 
-// Logical delete: the row stays, with the date of the delete.
+// Logical delete: the row stays, with the date of the delete and without
+// the key of the photo.
 func (q *Queries) DeletePet(ctx context.Context, arg DeletePetParams) (int64, error) {
 	result, err := q.db.Exec(ctx, deletePet, arg.ID, arg.OwnerID)
 	if err != nil {
@@ -98,7 +100,7 @@ func (q *Queries) DeletePet(ctx context.Context, arg DeletePetParams) (int64, er
 
 const getPet = `-- name: GetPet :one
 SELECT id, owner_id, name, species, breed, sex, size, birth_date, weight_kg, neutered,
-    vet_name, vet_clinic, vet_phone, created_at, updated_at, deleted_at
+    vet_name, vet_clinic, vet_phone, created_at, updated_at, deleted_at, photo_key
 FROM pets
 WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL
 `
@@ -129,13 +131,14 @@ func (q *Queries) GetPet(ctx context.Context, arg GetPetParams) (Pet, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.PhotoKey,
 	)
 	return i, err
 }
 
 const listPets = `-- name: ListPets :many
 SELECT id, owner_id, name, species, breed, sex, size, birth_date, weight_kg, neutered,
-    vet_name, vet_clinic, vet_phone, created_at, updated_at, deleted_at
+    vet_name, vet_clinic, vet_phone, created_at, updated_at, deleted_at, photo_key
 FROM pets
 WHERE owner_id = $1 AND deleted_at IS NULL
 ORDER BY lower(name), id
@@ -168,6 +171,7 @@ func (q *Queries) ListPets(ctx context.Context, ownerID string) ([]Pet, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.PhotoKey,
 		); err != nil {
 			return nil, err
 		}
@@ -177,6 +181,46 @@ func (q *Queries) ListPets(ctx context.Context, ownerID string) ([]Pet, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const setPetPhoto = `-- name: SetPetPhoto :one
+UPDATE pets
+SET photo_key = $1, updated_at = now()
+WHERE id = $2 AND owner_id = $3 AND deleted_at IS NULL
+RETURNING id, owner_id, name, species, breed, sex, size, birth_date, weight_kg, neutered,
+    vet_name, vet_clinic, vet_phone, created_at, updated_at, deleted_at, photo_key
+`
+
+type SetPetPhotoParams struct {
+	PhotoKey *string
+	ID       string
+	OwnerID  string
+}
+
+// Sets the key of the profile photo of a pet of the owner.
+func (q *Queries) SetPetPhoto(ctx context.Context, arg SetPetPhotoParams) (Pet, error) {
+	row := q.db.QueryRow(ctx, setPetPhoto, arg.PhotoKey, arg.ID, arg.OwnerID)
+	var i Pet
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.Name,
+		&i.Species,
+		&i.Breed,
+		&i.Sex,
+		&i.Size,
+		&i.BirthDate,
+		&i.WeightKg,
+		&i.Neutered,
+		&i.VetName,
+		&i.VetClinic,
+		&i.VetPhone,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.PhotoKey,
+	)
+	return i, err
 }
 
 const updatePet = `-- name: UpdatePet :one
@@ -195,7 +239,7 @@ SET name = $1,
     updated_at = now()
 WHERE id = $12 AND owner_id = $13 AND deleted_at IS NULL
 RETURNING id, owner_id, name, species, breed, sex, size, birth_date, weight_kg, neutered,
-    vet_name, vet_clinic, vet_phone, created_at, updated_at, deleted_at
+    vet_name, vet_clinic, vet_phone, created_at, updated_at, deleted_at, photo_key
 `
 
 type UpdatePetParams struct {
@@ -249,6 +293,7 @@ func (q *Queries) UpdatePet(ctx context.Context, arg UpdatePetParams) (Pet, erro
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.PhotoKey,
 	)
 	return i, err
 }

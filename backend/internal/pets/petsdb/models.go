@@ -25,4 +25,5 @@ type Pet struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt *time.Time
+	PhotoKey  *string
 }

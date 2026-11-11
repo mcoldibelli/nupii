@@ -3,10 +3,15 @@
 package pets
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"io"
+	"log/slog"
 	"math"
+	"net/http"
 	"slices"
 	"strings"
 	"time"
@@ -31,6 +36,13 @@ const (
 const (
 	_minWeightKg = 0.01
 	_maxWeightKg = 999.99
+)
+
+const (
+	// RN-54: a foto de perfil tem no máximo 5 MB.
+	_maxPhotoBytes = 5 << 20
+	// RN-06: a URL temporária da foto é válida por 15 minutos.
+	_photoURLExpiry = 15 * time.Minute
 )
 
 // ErrPetNotFound means that the pet does not exist for the owner: it has
@@ -68,6 +80,9 @@ type Pet struct {
 
 	ID        string
 	CreatedAt time.Time
+	// PhotoURL is a temporary URL of the profile photo, or nil when the
+	// pet has no photo.
+	PhotoURL *string
 }
 
 // OwnerFinder gives the owner of an account. *identity.Service implements it.
@@ -75,16 +90,25 @@ type OwnerFinder interface {
 	Owner(ctx context.Context, who identity.Identity) (identity.Owner, error)
 }
 
+// PhotoStore keeps the profile photos. *storage.Store implements it.
+type PhotoStore interface {
+	Put(ctx context.Context, key, contentType string, body io.Reader, size int64) error
+	Delete(ctx context.Context, key string) error
+	SignedURL(key string, expires time.Duration) (string, error)
+}
+
 // Service has the rules of the pets.
 type Service struct {
 	queries *petsdb.Queries
 	owners  OwnerFinder
+	photos  PhotoStore
+	logger  *slog.Logger
 }
 
-// NewService returns a Service that reads and writes with db and finds the
-// owner of an account with owners.
-func NewService(db petsdb.DBTX, owners OwnerFinder) *Service {
-	return &Service{queries: petsdb.New(db), owners: owners}
+// NewService returns a Service that reads and writes with db, finds the
+// owner of an account with owners and keeps the photos in photos.
+func NewService(db petsdb.DBTX, owners OwnerFinder, photos PhotoStore, logger *slog.Logger) *Service {
+	return &Service{queries: petsdb.New(db), owners: owners, photos: photos, logger: logger}
 }
 
 // Create creates a pet of the owner of the account who.
@@ -114,7 +138,7 @@ func (s *Service) Create(ctx context.Context, who identity.Identity, input Input
 	if err != nil {
 		return Pet{}, fmt.Errorf("create pet: %w", err)
 	}
-	return petFromRow(row), nil
+	return s.pet(row)
 }
 
 // List returns the pets of the owner of the account who that are not
@@ -130,7 +154,11 @@ func (s *Service) List(ctx context.Context, who identity.Identity) ([]Pet, error
 	}
 	pets := make([]Pet, 0, len(rows))
 	for _, row := range rows {
-		pets = append(pets, petFromRow(row))
+		pet, err := s.pet(row)
+		if err != nil {
+			return nil, err
+		}
+		pets = append(pets, pet)
 	}
 	return pets, nil
 }
@@ -149,7 +177,7 @@ func (s *Service) Get(ctx context.Context, who identity.Identity, id string) (Pe
 	if err != nil {
 		return Pet{}, fmt.Errorf("get pet: %w", err)
 	}
-	return petFromRow(row), nil
+	return s.pet(row)
 }
 
 // Update replaces all the data of the pet id of the owner of the account
@@ -189,16 +217,24 @@ func (s *Service) Update(
 	if err != nil {
 		return Pet{}, fmt.Errorf("update pet: %w", err)
 	}
-	return petFromRow(row), nil
+	return s.pet(row)
 }
 
 // Delete deletes the pet id of the owner of the account who. The row stays
-// in the database with the date of the delete (RN-05). It returns
-// ErrPetNotFound when the pet does not exist for that owner.
+// in the database with the date of the delete, and the profile photo is
+// deleted from the store (RN-05). It returns ErrPetNotFound when the pet
+// does not exist for that owner.
 func (s *Service) Delete(ctx context.Context, who identity.Identity, id string) error {
 	owner, err := s.owners.Owner(ctx, who)
 	if err != nil {
 		return fmt.Errorf("find the owner of the account: %w", err)
+	}
+	current, err := s.queries.GetPet(ctx, petsdb.GetPetParams{ID: id, OwnerID: owner.ID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrPetNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("get pet: %w", err)
 	}
 	deleted, err := s.queries.DeletePet(ctx, petsdb.DeletePetParams{ID: id, OwnerID: owner.ID})
 	if err != nil {
@@ -207,7 +243,95 @@ func (s *Service) Delete(ctx context.Context, who identity.Identity, id string) 
 	if deleted == 0 {
 		return ErrPetNotFound
 	}
+	s.deletePhoto(ctx, current.PhotoKey)
 	return nil
+}
+
+// SetPhoto stores photo as the profile photo of the pet id of the owner of
+// the account who, and deletes the photo that the pet had (RN-55). It
+// returns a ValidationError when photo is not an accepted image (RN-54).
+func (s *Service) SetPhoto(
+	ctx context.Context,
+	who identity.Identity,
+	id string,
+	photo io.Reader,
+) (Pet, error) {
+	owner, err := s.owners.Owner(ctx, who)
+	if err != nil {
+		return Pet{}, fmt.Errorf("find the owner of the account: %w", err)
+	}
+	current, err := s.queries.GetPet(ctx, petsdb.GetPetParams{ID: id, OwnerID: owner.ID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Pet{}, ErrPetNotFound
+	}
+	if err != nil {
+		return Pet{}, fmt.Errorf("get pet: %w", err)
+	}
+
+	// One byte over the limit is enough to know that the photo is too big.
+	data, err := io.ReadAll(io.LimitReader(photo, _maxPhotoBytes+1))
+	if err != nil {
+		return Pet{}, &ValidationError{Message: "the photo could not be read"}
+	}
+	contentType, extension, err := checkPhoto(data)
+	if err != nil {
+		return Pet{}, err
+	}
+
+	key := "pets/" + id + "/profile/" + strings.ToLower(rand.Text()) + "." + extension
+	if err := s.photos.Put(ctx, key, contentType, bytes.NewReader(data), int64(len(data))); err != nil {
+		return Pet{}, fmt.Errorf("store photo: %w", err)
+	}
+	row, err := s.queries.SetPetPhoto(ctx, petsdb.SetPetPhotoParams{
+		ID:       id,
+		OwnerID:  owner.ID,
+		PhotoKey: &key,
+	})
+	if err != nil {
+		// The pet does not point to the new object, so it is deleted.
+		s.deletePhoto(ctx, &key)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return Pet{}, ErrPetNotFound
+		}
+		return Pet{}, fmt.Errorf("set the photo of the pet: %w", err)
+	}
+	s.deletePhoto(ctx, current.PhotoKey)
+	return s.pet(row)
+}
+
+// checkPhoto applies RN-54 and returns the content type and the file
+// extension of the photo.
+//
+// RN-54: a foto de perfil é uma imagem JPEG, PNG ou WebP, com no máximo 5 MB.
+func checkPhoto(data []byte) (contentType, extension string, err error) {
+	if len(data) > _maxPhotoBytes {
+		return "", "", &ValidationError{Message: "the photo must have at most 5 MB"}
+	}
+	// The type comes from the bytes of the file, not from what the client says.
+	contentType = http.DetectContentType(data)
+	switch contentType {
+	case "image/jpeg":
+		return contentType, "jpg", nil
+	case "image/png":
+		return contentType, "png", nil
+	case "image/webp":
+		return contentType, "webp", nil
+	default:
+		return "", "", &ValidationError{Message: "the photo must be a JPEG, PNG or WebP image"}
+	}
+}
+
+// deletePhoto deletes the object key from the store, when key is not nil.
+// A failure stays in the log: the object is no longer used by a pet, and
+// the request that made it unused must not fail because of it.
+func (s *Service) deletePhoto(ctx context.Context, key *string) {
+	if key == nil {
+		return
+	}
+	if err := s.photos.Delete(ctx, *key); err != nil {
+		s.logger.ErrorContext(ctx, "delete unused pet photo",
+			slog.String("key", *key), slog.Any("error", err))
+	}
 }
 
 // validate applies the rules of the data of a pet. It returns the input
@@ -292,8 +416,9 @@ func trimOptional(value *string) *string {
 	return &trimmed
 }
 
-func petFromRow(row petsdb.Pet) Pet {
-	return Pet{
+// pet converts a row to a Pet, with the temporary URL of the photo (RN-06).
+func (s *Service) pet(row petsdb.Pet) (Pet, error) {
+	pet := Pet{
 		Input: Input{
 			Name:      row.Name,
 			Species:   row.Species,
@@ -310,4 +435,12 @@ func petFromRow(row petsdb.Pet) Pet {
 		ID:        row.ID,
 		CreatedAt: row.CreatedAt,
 	}
+	if row.PhotoKey != nil {
+		url, err := s.photos.SignedURL(*row.PhotoKey, _photoURLExpiry)
+		if err != nil {
+			return Pet{}, fmt.Errorf("sign the photo URL of the pet %s: %w", row.ID, err)
+		}
+		pet.PhotoURL = &url
+	}
+	return pet, nil
 }

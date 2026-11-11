@@ -18,6 +18,10 @@ func envFor(srv *httptest.Server) func(string) string {
 			return "postgres://user:password@localhost:5432/database"
 		case "FIREBASE_PROJECT_ID":
 			return "demo-test"
+		case "S3_ENDPOINT":
+			return "http://s3.test:8333"
+		case "S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY":
+			return "value-for-the-test"
 		default:
 			return ""
 		}

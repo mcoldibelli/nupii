@@ -88,3 +88,46 @@ func TestValidateNormalizesTheTexts(t *testing.T) {
 		t.Errorf("VetName = %v, want %q", got.VetName, "Dra. Bia")
 	}
 }
+
+// RN-54: a foto de perfil é uma imagem JPEG, PNG ou WebP, com no máximo 5 MB.
+func TestCheckPhoto(t *testing.T) {
+	jpeg := []byte("\xFF\xD8\xFF\xE0the rest of a JPEG file")
+	png := []byte("\x89PNG\x0D\x0A\x1A\x0Athe rest of a PNG file")
+	webp := []byte("RIFF\x00\x00\x00\x00WEBPVP8 the rest of a WebP file")
+	withSize := func(start []byte, size int) []byte {
+		data := make([]byte, size)
+		copy(data, start)
+		return data
+	}
+	tests := []struct {
+		name          string
+		data          []byte
+		wantType      string
+		wantExtension string
+		wantErr       string
+	}{
+		{name: "RN-54 JPEG", data: jpeg, wantType: "image/jpeg", wantExtension: "jpg"},
+		{name: "RN-54 PNG", data: png, wantType: "image/png", wantExtension: "png"},
+		{name: "RN-54 WebP", data: webp, wantType: "image/webp", wantExtension: "webp"},
+		{name: "RN-54 JPEG with 5 MB", data: withSize(jpeg, 5<<20), wantType: "image/jpeg", wantExtension: "jpg"},
+		{name: "RN-54 JPEG with 5 MB and 1 byte", data: withSize(jpeg, 5<<20+1), wantErr: "at most 5 MB"},
+		{name: "RN-54 text file", data: []byte("this is not an image"), wantErr: "JPEG, PNG or WebP"},
+		{name: "RN-54 GIF", data: []byte("GIF89a the rest of a GIF file"), wantErr: "JPEG, PNG or WebP"},
+		{name: "RN-54 empty file", data: nil, wantErr: "JPEG, PNG or WebP"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			contentType, extension, err := checkPhoto(tt.data)
+			if tt.wantErr != "" {
+				var validation *ValidationError
+				if !errors.As(err, &validation) || !strings.Contains(validation.Message, tt.wantErr) {
+					t.Fatalf("checkPhoto error = %v, want a ValidationError with %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil || contentType != tt.wantType || extension != tt.wantExtension {
+				t.Errorf("checkPhoto = %q, %q, %v, want %q, %q, nil", contentType, extension, err, tt.wantType, tt.wantExtension)
+			}
+		})
+	}
+}

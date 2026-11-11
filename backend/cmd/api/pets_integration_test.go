@@ -3,8 +3,13 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
+	"io"
+	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/mcoldibelli/nupii/backend/internal/api"
@@ -185,5 +190,147 @@ func TestPetsNeedARegisteredOwner(t *testing.T) {
 				t.Errorf("status = %d, body %s, want 404 owner_not_found", rec.Code, rec.Body)
 			}
 		})
+	}
+}
+
+// uploadPhoto sends content as the part "file" of a multipart body and
+// validates the response against the contract.
+func (a testAPI) uploadPhoto(token, path string, content []byte) *httptest.ResponseRecorder {
+	a.t.Helper()
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	part, err := writer.CreateFormFile("file", "photo")
+	if err != nil {
+		a.t.Fatalf("create the multipart file: %v", err)
+	}
+	if _, err := part.Write(content); err != nil {
+		a.t.Fatalf("write the multipart file: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		a.t.Fatalf("close the multipart body: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPut, path, &body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	a.handler.ServeHTTP(rec, req)
+	validateResponse(a.t, req, rec.Code, rec.Header(), rec.Body.Bytes())
+	return rec
+}
+
+// readURL reads url with no credential and returns the status and the body.
+func readURL(t *testing.T, url string) (int, []byte) {
+	t.Helper()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, url, nil)
+	if err != nil {
+		t.Fatalf("build request: %v", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("read %s: %v", url, err)
+	}
+	body, rerr := io.ReadAll(resp.Body)
+	if cerr := resp.Body.Close(); cerr != nil {
+		t.Fatalf("close answer: %v", cerr)
+	}
+	if rerr != nil {
+		t.Fatalf("read answer: %v", rerr)
+	}
+	return resp.StatusCode, body
+}
+
+func TestPetPhoto(t *testing.T) {
+	testAPI := petsAPI(t)
+	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
+	if pet.PhotoUrl != nil {
+		t.Errorf("a new pet has photoUrl %q, want no photo", *pet.PhotoUrl)
+	}
+	path := "/v1/pets/" + pet.Id.String()
+	first := []byte("\xFF\xD8\xFF\xE0first photo " + rand.Text())
+	second := []byte("\x89PNG\x0D\x0A\x1A\x0Asecond photo " + rand.Text())
+
+	// RF-10, RN-06: o tutor envia a foto, e a API devolve uma URL temporária.
+	rec := testAPI.uploadPhoto("token-ana", path+"/photo", first)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("PUT %s/photo: status = %d, want 200, body %s", path, rec.Code, rec.Body)
+	}
+	withPhoto := decode[api.Pet](t, rec)
+	if withPhoto.PhotoUrl == nil {
+		t.Fatal("the pet has no photoUrl after the upload")
+	}
+	firstURL := *withPhoto.PhotoUrl
+	if !strings.Contains(firstURL, "X-Amz-Expires=900") {
+		t.Errorf("photoUrl = %q, want a validity of 900 seconds (RN-06)", firstURL)
+	}
+	if status, body := readURL(t, firstURL); status != http.StatusOK || !bytes.Equal(body, first) {
+		t.Errorf("read of photoUrl: status %d and %d bytes, want 200 and the %d bytes sent", status, len(body), len(first))
+	}
+
+	// The pet of the list and of the read has the photo too.
+	listed := decode[api.PetList](t, testAPI.call(http.MethodGet, "/v1/pets", "token-ana", ""))
+	if len(listed.Pets) != 1 || listed.Pets[0].PhotoUrl == nil {
+		t.Errorf("the pet of the list has no photoUrl: %+v", listed.Pets)
+	}
+
+	// RN-55: uma foto nova substitui a anterior, e a anterior é apagada.
+	rec = testAPI.uploadPhoto("token-ana", path+"/photo", second)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("second PUT %s/photo: status = %d, want 200, body %s", path, rec.Code, rec.Body)
+	}
+	secondURL := *decode[api.Pet](t, rec).PhotoUrl
+	if status, body := readURL(t, secondURL); status != http.StatusOK || !bytes.Equal(body, second) {
+		t.Errorf("read of the new photoUrl: status %d and %d bytes, want 200 and the new photo", status, len(body))
+	}
+	if status, _ := readURL(t, firstURL); status != http.StatusNotFound {
+		t.Errorf("read of the photo that was replaced: status %d, want 404", status)
+	}
+
+	// RN-52: outro tutor não envia foto para este pet.
+	if rec := testAPI.uploadPhoto("token-bia", path+"/photo", first); rec.Code != http.StatusNotFound {
+		t.Errorf("upload by another owner: status = %d, want 404", rec.Code)
+	}
+
+	// RN-05: a exclusão do pet apaga a foto de perfil do armazenamento.
+	if rec := testAPI.call(http.MethodDelete, path, "token-ana", ""); rec.Code != http.StatusNoContent {
+		t.Fatalf("DELETE %s: status = %d, want 204", path, rec.Code)
+	}
+	if status, _ := readURL(t, secondURL); status != http.StatusNotFound {
+		t.Errorf("read of the photo of a deleted pet: status %d, want 404", status)
+	}
+}
+
+// RN-54: a foto de perfil é uma imagem JPEG, PNG ou WebP, com no máximo 5 MB.
+func TestPetPhotoThatIsNotValid(t *testing.T) {
+	testAPI := petsAPI(t)
+	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
+	path := "/v1/pets/" + pet.Id.String() + "/photo"
+	tooBig := make([]byte, 5<<20+1)
+	copy(tooBig, "\xFF\xD8\xFF\xE0")
+	tests := []struct {
+		name    string
+		content []byte
+	}{
+		{name: "RN-54 file that is not an image", content: []byte("this is a text file")},
+		{name: "RN-54 image with more than 5 MB", content: tooBig},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := testAPI.uploadPhoto("token-ana", path, tt.content)
+			if rec.Code != http.StatusBadRequest || decode[api.Error](t, rec).Error != api.ErrorCodeInvalidRequest {
+				t.Errorf("status = %d, body %s, want 400 invalid_request", rec.Code, rec.Body)
+			}
+		})
+	}
+
+	t.Run("body without the part file", func(t *testing.T) {
+		rec := testAPI.call(http.MethodPut, path, "token-ana", `{"file": "x"}`)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("status = %d, body %s, want 400", rec.Code, rec.Body)
+		}
+	})
+
+	got := decode[api.Pet](t, testAPI.call(http.MethodGet, "/v1/pets/"+pet.Id.String(), "token-ana", ""))
+	if got.PhotoUrl != nil {
+		t.Errorf("the pet has photoUrl %q after the invalid uploads, want no photo", *got.PhotoUrl)
 	}
 }

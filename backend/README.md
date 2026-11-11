@@ -19,8 +19,11 @@ set -a; . ../deploy/.env; set +a
 export DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432/$POSTGRES_DB?sslmode=disable"
 export FIREBASE_PROJECT_ID=demo-nupii
 export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
+export S3_ENDPOINT=http://127.0.0.1:8333
 go run ./cmd/api
 ```
+
+As variáveis `S3_BUCKET`, `S3_ACCESS_KEY_ID` e `S3_SECRET_ACCESS_KEY` já vêm do `deploy/.env`.
 
 Com `FIREBASE_AUTH_EMULATOR_HOST`, a API aceita os tokens do emulador e não confere a assinatura deles. Ela escreve um aviso no log da subida. Essa variável nunca é definida na produção.
 
@@ -54,7 +57,7 @@ Testes de unidade, sem banco:
 go test -race ./...
 ```
 
-Testes de integração, com o compose em execução e as variáveis `DATABASE_URL` e `FIREBASE_AUTH_EMULATOR_HOST` definidas como na seção anterior:
+Testes de integração, com o compose em execução e as variáveis `DATABASE_URL`, `FIREBASE_AUTH_EMULATOR_HOST` e `S3_ENDPOINT` definidas como na seção anterior:
 
 ```bash
 go test -race -tags=integration ./...
@@ -79,6 +82,12 @@ O processo não sobe com um valor inválido. Ele escreve o erro na saída de err
 | `HTTP_ADDR` | Não | `:8080` | Endereço em que o servidor HTTP escuta, no formato `host:porta` |
 | `DATABASE_URL` | Sim | | URL de conexão do Postgres, com o esquema `postgres` ou `postgresql`. Ela tem a senha: não fica no repositório e não é escrita no log |
 | `FIREBASE_PROJECT_ID` | Sim | | Identificador do projeto do Firebase. A API só aceita ID tokens desse projeto. No ambiente local é `demo-nupii` |
+| `S3_ENDPOINT` | Sim | | Endereço do armazenamento de objetos visto pela API, com `http://` ou `https://` |
+| `S3_PUBLIC_ENDPOINT` | Não | o valor de `S3_ENDPOINT` | Endereço do armazenamento visto pelos clientes da API. Ele vai nas URLs temporárias |
+| `S3_BUCKET` | Sim | | Bucket das fotos e dos anexos |
+| `S3_REGION` | Não | `us-east-1` | Região usada na assinatura das requisições |
+| `S3_ACCESS_KEY_ID` | Sim | | Identificador da chave de acesso |
+| `S3_SECRET_ACCESS_KEY` | Sim | | Segredo da chave de acesso. Não fica no repositório e não é escrito no log |
 | `FIREBASE_AUTH_EMULATOR_HOST` | Não | | Endereço `host:porta` do emulador do Authentication. Só no ambiente local e no CI. A API só aceita essa variável com um `FIREBASE_PROJECT_ID` que começa com `demo-` |
 
 ## Projeto real do Firebase
@@ -160,5 +169,6 @@ A primeira execução baixa o `oapi-codegen` na versão fixada em `internal/api/
 | `internal/identity/` | Módulo do tutor: validação do token das requisições, regras do registro, handlers de `/v1/me`. `identitydb/` é o código gerado das consultas |
 | `internal/pets/` | Módulo de pets: regras dos dados (RN-48 a RN-56), operações de `/v1/pets`. `petsdb/` é o código gerado das consultas |
 | `internal/platform/firebase/` | Validação do ID token com o Firebase Admin SDK |
+| `internal/platform/storage/` | Armazenamento de objetos por URLs pré-assinadas (ADR 0015). `storagetest/` dá a configuração para os testes de integração |
 | `internal/platform/postgres/postgrestest/` | Banco para os testes de integração |
 | `Dockerfile` | Imagem da API: compila um binário estático e copia para uma imagem vazia, com usuário sem privilégio |

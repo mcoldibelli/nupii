@@ -16,16 +16,27 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/pets"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/storage"
 )
 
 const (
 	// _healthPingTimeout is the time the database has to answer the health
 	// check.
 	_healthPingTimeout = 2 * time.Second
-	// _maxBodyBytes is the maximum size of the body of a request. The
-	// operations of today have small JSON bodies.
+	// _maxBodyBytes is the maximum size of a JSON request body.
 	_maxBodyBytes = 1 << 20
+	// _maxPhotoBodyBytes is the maximum size of the body of a photo
+	// upload: the 5 MB of the photo (RN-54) and the multipart envelope.
+	_maxPhotoBodyBytes = 6 << 20
 )
+
+// bodyLimit returns the maximum size of the body of the request.
+func bodyLimit(r *http.Request) int64 {
+	if r.Pattern == "PUT /v1/pets/{petId}/photo" {
+		return _maxPhotoBodyBytes
+	}
+	return _maxBodyBytes
+}
 
 // pinger tells if the database responds. *pgxpool.Pool implements it.
 type pinger interface {
@@ -53,11 +64,11 @@ var _ api.StrictServerInterface = server{}
 
 // newServer connects the modules: each module gets the connection pool and
 // the modules it depends on.
-func newServer(logger *slog.Logger, pool *pgxpool.Pool) server {
+func newServer(logger *slog.Logger, pool *pgxpool.Pool, photos *storage.Store) server {
 	owners := identity.NewService(pool)
 	return server{
 		identityHandlers: identity.NewHandlers(owners),
-		petsHandlers:     pets.NewHandlers(pets.NewService(pool, owners)),
+		petsHandlers:     pets.NewHandlers(pets.NewService(pool, owners, photos, logger)),
 		logger:           logger,
 		database:         pool,
 	}
@@ -144,7 +155,7 @@ func newHandler(
 		// The last middleware of the list runs first: the identity check
 		// runs before the body of the request is read.
 		Middlewares: []api.MiddlewareFunc{
-			httpx.LimitBody(_maxBodyBytes),
+			httpx.LimitBody(bodyLimit),
 			identity.RequireIdentity(logger, verifier, isPublic),
 		},
 		// A parameter of the request could not be read.

@@ -22,6 +22,8 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres/postgrestest"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/storage"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/storage/storagetest"
 )
 
 // testAPI is the handler of the API with the real database, for one test.
@@ -39,7 +41,8 @@ func newTestAPI(t *testing.T, verifier identity.TokenVerifier, uids ...string) t
 	pool := postgrestest.Open(t)
 	t.Cleanup(func() { deleteOwners(t, pool, uids) })
 	logger := slog.New(slog.DiscardHandler)
-	return testAPI{t: t, handler: newHandler(logger, newServer(logger, pool), verifier), pool: pool}
+	photos := storage.New(storagetest.Config(t))
+	return testAPI{t: t, handler: newHandler(logger, newServer(logger, pool, photos), verifier), pool: pool}
 }
 
 func deleteOwners(t *testing.T, pool *pgxpool.Pool, uids []string) {

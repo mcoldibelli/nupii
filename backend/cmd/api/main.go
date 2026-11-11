@@ -18,6 +18,7 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/storage"
 )
 
 const (
@@ -89,7 +90,15 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 			"firebase auth emulator in use: the signature of the ID tokens is not checked",
 			slog.String("host", cfg.FirebaseAuthEmulatorHost))
 	}
-	operations := newServer(logger, pool)
+	photos := storage.New(storage.Config{
+		Endpoint:        cfg.StorageEndpoint,
+		PublicEndpoint:  cfg.StoragePublicEndpoint,
+		Bucket:          cfg.StorageBucket,
+		Region:          cfg.StorageRegion,
+		AccessKeyID:     cfg.StorageAccessKeyID,
+		SecretAccessKey: cfg.StorageSecretAccessKey,
+	})
+	operations := newServer(logger, pool, photos)
 
 	listener, err := net.Listen("tcp", cfg.HTTPAddr)
 	if err != nil {
