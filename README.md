@@ -4,7 +4,7 @@ Plataforma para tutores de pets, com três partes: saúde do pet, mural de perdi
 
 ## Estado
 
-As fatias 0, 1, 2 e 3 do [roteiro](docs/roteiro.md) estão prontas. O ambiente local sobe com um comando e o CI confere a API, o app, a integração e o serviço de inferência. O tutor cria a conta e entra pelo app, e cadastra os pets dele com foto de perfil. O serviço de inferência transforma a foto de um focinho em um vetor. As fatias 4 e 5 estão prontas: o tutor cadastra o focinho de um cachorro pelo app, e quem encontra um cão envia a foto do focinho pela página pública, vê os pets parecidos e deixa o contato para o tutor. O tutor registra o desaparecimento de um pet no mapa, e qualquer pessoa vê o mural, registra um avistamento e publica um achado pela web. O andamento de cada fatia está nos milestones do GitHub.
+As fatias 0, 1, 2 e 3 do [roteiro](docs/roteiro.md) estão prontas. O ambiente local sobe com um comando e o CI confere a API, o app, a integração e o serviço de inferência. O tutor cria a conta e entra pelo app, e cadastra os pets dele com foto de perfil. O serviço de inferência transforma a foto de um focinho em um vetor. As fatias 4 e 5 estão prontas: o tutor cadastra o focinho de um cachorro pelo app, e quem encontra um cão envia a foto do focinho pela página pública, vê os pets parecidos e deixa o contato para o tutor. O tutor registra o desaparecimento de um pet no mapa, e qualquer pessoa vê o mural, registra um avistamento e publica um achado pela web. A fatia 6 também está pronta: o tutor a até 3.000 m de um desaparecimento recebe uma notificação no app, mesmo que a API pare logo depois do registro. O andamento de cada fatia está nos milestones do GitHub.
 
 ## Como executar
 
@@ -108,6 +108,7 @@ O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app n
 | [0022](docs/adr/0022-web-publica-no-alvo-web-do-expo.md) | Web pública no alvo web do mesmo projeto Expo | aceito |
 | [0023](docs/adr/0023-mapa-com-leaflet.md) | Mapa com Leaflet e OpenStreetMap | aceito |
 | [0024](docs/adr/0024-push-no-app.md) | Push no app com um build de desenvolvimento, na fatia 10 | aceito |
+| [0025](docs/adr/0025-localizacao-no-app.md) | Localização do aparelho com Expo Location | aceito |
 
 ## Regras do projeto
 

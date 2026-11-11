@@ -1,9 +1,12 @@
 import { router, Stack, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { failureMessage, SESSION_FAILURE } from "../src/api/http";
+import { setMyLocation } from "../src/api/alerts";
 import { listPets, type Pet } from "../src/api/pets";
+import { devicePosition, locationAllowed } from "../src/alerts/deviceLocation";
+import { sendLocation } from "../src/alerts/location";
 import { apiUrl } from "../src/config";
 import { speciesLabels } from "../src/pets/labels";
 import { styles } from "../src/screens/styles";
@@ -28,6 +31,18 @@ export default function PetList() {
     } else {
       setError(failureMessage(result));
     }
+  }, [idToken]);
+
+  // RF-22: the app sends the position of the device one time when it opens.
+  useEffect(() => {
+    void sendLocation({
+      allowed: locationAllowed,
+      position: devicePosition,
+      send: async (location) => {
+        const token = await idToken();
+        return token === null ? { ok: false, code: "network" } : setMyLocation(apiUrl, token, location);
+      },
+    });
   }, [idToken]);
 
   // The list is read each time the screen gets the focus, also after the
@@ -93,6 +108,9 @@ export default function PetList() {
           </Pressable>
         )}
       />
+      <Pressable testID="notifications-link" accessibilityRole="button" style={styles.link} onPress={() => router.push("/notifications")}>
+        <Text style={styles.linkText}>Notificações</Text>
+      </Pressable>
       <Pressable testID="board-link" accessibilityRole="button" style={styles.link} onPress={() => router.push("/reports")}>
         <Text style={styles.linkText}>Mural de perdidos e achados</Text>
       </Pressable>
