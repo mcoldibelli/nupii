@@ -50,7 +50,7 @@ A versão sem detector no aparelho é o padrão da fatia 4. O detector no aparel
 
 | Decisão | Fatia |
 |---|---|
-| Biblioteca de push no app | 6 |
+| Biblioteca de push no app ([ADR 0024](adr/0024-push-no-app.md)) | 10 |
 | Modelagem dos eventos de saúde: uma tabela por tipo ou uma tabela com tipo e colunas opcionais | 7 |
 | Onde o lembrete de vacina e de medicação é calculado: no app ou em uma tarefa do backend | 7 |
 | Onde a API, a web e a inferência são publicadas | 10 |
