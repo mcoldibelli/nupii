@@ -21,10 +21,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Devolve o tutor da conta que fez a chamada. */
+        get: operations["getMe"];
+        put?: never;
+        /**
+         * Registra o tutor da conta, com o aceite dos termos de uso.
+         * @description O e-mail vem do token. Uma segunda chamada da mesma conta não muda o tutor e devolve 200.
+         */
+        post: operations["registerMe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description O tutor. Pessoa com conta, responsável por pets. */
+        Owner: {
+            /** @description Identificador do tutor, um UUID. */
+            id: string;
+            name: string;
+            email: string;
+            /** @description Versão dos termos de uso que o tutor aceitou. Pode ser uma versão anterior à vigente. */
+            termsVersion: string;
+            /** Format: date-time */
+            termsAcceptedAt: string;
+        };
+        RegisterOwnerRequest: {
+            /** @description Nome do tutor. Não pode ser vazio. Tem no máximo 100 caracteres. */
+            name: string;
+            acceptedTermsVersion: components["schemas"]["TermsVersion"];
+        };
+        /**
+         * @description Versão dos termos de uso. A lista tem só a versão vigente.
+         *     Uma versão nova dos termos troca o valor desta lista.
+         * @enum {string}
+         */
+        TermsVersion: "2026-11-10";
         Health: {
             /** @enum {string} */
             status: "ok";
@@ -40,9 +83,18 @@ export interface components {
          *     Um código novo entra nesta lista antes de entrar no código do servidor.
          * @enum {string}
          */
-        ErrorCode: "not_found" | "internal_error" | "unavailable";
+        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found";
     };
     responses: {
+        /** @description A chamada não tem token, ou o token é inválido ou está vencido. O código do erro é `unauthenticated`. */
+        Unauthenticated: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
         /** @description Erro no formato único. */
         Error: {
             headers: {
@@ -87,6 +139,81 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            default: components["responses"]["Error"];
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O tutor da conta. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Owner"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            /** @description A conta ainda não registrou o tutor. O código do erro é `owner_not_found`. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    registerMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterOwnerRequest"];
+            };
+        };
+        responses: {
+            /** @description A conta já tinha um tutor. A resposta tem esse tutor, sem mudança. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Owner"];
+                };
+            };
+            /** @description O tutor foi registrado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Owner"];
+                };
+            };
+            /** @description O corpo é inválido, o nome está vazio ou a versão dos termos não é a vigente. O código do erro é `invalid_request`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
             default: components["responses"]["Error"];
         };
     };

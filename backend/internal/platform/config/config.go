@@ -8,9 +8,15 @@ import (
 	"net"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
-const _defaultHTTPAddr = ":8080"
+const (
+	_defaultHTTPAddr = ":8080"
+	// _demoProjectPrefix is the prefix of a Firebase project that exists
+	// only in the emulators.
+	_demoProjectPrefix = "demo-"
+)
 
 // Config is the configuration of the API process.
 type Config struct {
@@ -19,6 +25,13 @@ type Config struct {
 	// DatabaseURL is the connection URL of the Postgres database. It has
 	// the password, so it must not be written to the log.
 	DatabaseURL string
+	// FirebaseProjectID is the identifier of the Firebase project whose ID
+	// tokens the API accepts.
+	FirebaseProjectID string
+	// FirebaseAuthEmulatorHost is the host:port of the Authentication
+	// emulator, or empty. The Firebase Admin SDK reads this variable from
+	// the environment by itself. The API reads it only to write a warning.
+	FirebaseAuthEmulatorHost string
 }
 
 // Load reads the configuration with getenv and validates it. The caller
@@ -27,6 +40,9 @@ func Load(getenv func(string) string) (Config, error) {
 	cfg := Config{
 		HTTPAddr:    _defaultHTTPAddr,
 		DatabaseURL: getenv("DATABASE_URL"),
+
+		FirebaseProjectID:        getenv("FIREBASE_PROJECT_ID"),
+		FirebaseAuthEmulatorHost: getenv("FIREBASE_AUTH_EMULATOR_HOST"),
 	}
 	if addr := getenv("HTTP_ADDR"); addr != "" {
 		cfg.HTTPAddr = addr
@@ -37,6 +53,17 @@ func Load(getenv func(string) string) (Config, error) {
 	// The error does not have the value of the variable: it has a password.
 	if err := validateDatabaseURL(cfg.DatabaseURL); err != nil {
 		return Config{}, fmt.Errorf("DATABASE_URL: %w", err)
+	}
+	if cfg.FirebaseProjectID == "" {
+		return Config{}, errors.New("FIREBASE_PROJECT_ID: the variable is not set")
+	}
+	// With the emulator, the ID tokens have no signature. The emulator is
+	// accepted only with a demonstration project, so a real project never
+	// runs with tokens that are not verified.
+	if cfg.FirebaseAuthEmulatorHost != "" && !strings.HasPrefix(cfg.FirebaseProjectID, _demoProjectPrefix) {
+		return Config{}, fmt.Errorf(
+			"FIREBASE_AUTH_EMULATOR_HOST: the emulator needs a FIREBASE_PROJECT_ID that starts with %q",
+			_demoProjectPrefix)
 	}
 	return cfg, nil
 }

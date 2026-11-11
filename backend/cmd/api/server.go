@@ -2,25 +2,38 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/mcoldibelli/nupii/backend/internal/api"
+	"github.com/mcoldibelli/nupii/backend/internal/identity"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 )
 
-// _healthPingTimeout is the time the database has to answer the health check.
-const _healthPingTimeout = 2 * time.Second
+const (
+	// _healthPingTimeout is the time the database has to answer the health
+	// check.
+	_healthPingTimeout = 2 * time.Second
+	// _maxBodyBytes is the maximum size of the body of a request. The
+	// operations of today have small JSON bodies.
+	_maxBodyBytes = 1 << 20
+)
 
 // pinger tells if the database responds. *pgxpool.Pool implements it.
 type pinger interface {
 	Ping(ctx context.Context) error
 }
 
-// server implements the operations of the contract.
+// server implements the operations of the contract. The operations of each
+// module come from the handlers of the module.
 type server struct {
+	*identity.Handlers
+
 	logger   *slog.Logger
 	database pinger
 }
@@ -38,24 +51,61 @@ func (s server) GetHealth(
 	if err := s.database.Ping(pingCtx); err != nil {
 		s.logger.ErrorContext(ctx, "health check: database does not respond", slog.Any("error", err))
 		return api.GetHealth503JSONResponse{
-			Error:   api.Unavailable,
+			Error:   api.ErrorCodeUnavailable,
 			Message: "the database does not respond",
 		}, nil
 	}
-	return api.GetHealth200JSONResponse{Status: api.Ok}, nil
+	return api.GetHealth200JSONResponse{Status: api.HealthStatusOk}, nil
+}
+
+// isPublic tells if the route of the request needs no ID token. The
+// contract has the same information: an operation without "security" is
+// public. A test compares the two.
+func isPublic(r *http.Request) bool {
+	return r.Pattern == "GET /v1/health"
+}
+
+// tokenVerifier adapts the Firebase verifier to the interface of the
+// identity module.
+type tokenVerifier struct {
+	firebase *firebase.Verifier
+}
+
+func (v tokenVerifier) VerifyIDToken(
+	ctx context.Context,
+	rawToken string,
+) (identity.Identity, error) {
+	token, err := v.firebase.VerifyIDToken(ctx, rawToken)
+	if errors.Is(err, firebase.ErrInvalidToken) {
+		return identity.Identity{}, fmt.Errorf("%w: %w", identity.ErrInvalidToken, err)
+	}
+	if err != nil {
+		return identity.Identity{}, fmt.Errorf("verify ID token with firebase: %w", err)
+	}
+	return identity.Identity{UID: token.UID, Email: token.Email}, nil
 }
 
 // newHandler returns the HTTP handler of the API: the routes of the
-// contract for operations, with the request log around them. All the error
+// contract for operations, with the request log around them. A route that
+// is not public needs an ID token that verifier accepts. All the error
 // responses use the Error format of the contract.
-func newHandler(logger *slog.Logger, operations api.StrictServerInterface) http.Handler {
+func newHandler(
+	logger *slog.Logger,
+	operations api.StrictServerInterface,
+	verifier identity.TokenVerifier,
+) http.Handler {
+	invalidRequest := func(w http.ResponseWriter, r *http.Request, err error) {
+		httpx.WriteError(r.Context(), logger, w,
+			http.StatusBadRequest, string(api.ErrorCodeInvalidRequest), err.Error())
+	}
 	strict := api.NewStrictHandlerWithOptions(operations, nil, api.StrictHTTPServerOptions{
+		// The body of the request could not be decoded.
+		RequestErrorHandlerFunc: invalidRequest,
 		// An operation returned an error. The detail goes to the log and
 		// not to the client.
 		ResponseErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			logger.ErrorContext(r.Context(), "operation failed", slog.Any("error", err))
-			writeError(r.Context(), logger, w,
-				http.StatusInternalServerError, api.InternalError, "internal error")
+			httpx.WriteInternalError(r.Context(), logger, w)
 		},
 	})
 
@@ -63,26 +113,44 @@ func newHandler(logger *slog.Logger, operations api.StrictServerInterface) http.
 	// This pattern gets each request that no route of the contract gets,
 	// also a request with a method that the route does not have.
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		writeError(r.Context(), logger, w,
-			http.StatusNotFound, api.NotFound, "no route for "+r.Method+" "+r.URL.Path)
+		httpx.WriteError(r.Context(), logger, w,
+			http.StatusNotFound, string(api.ErrorCodeNotFound), "no route for "+r.Method+" "+r.URL.Path)
 	})
-	routes := api.HandlerFromMux(strict, mux)
+	routes := api.HandlerWithOptions(strict, api.StdHTTPServerOptions{
+		BaseRouter: mux,
+		// The last middleware of the list runs first: the identity check
+		// runs before the body of the request is read.
+		Middlewares: []api.MiddlewareFunc{
+			httpx.LimitBody(_maxBodyBytes),
+			identity.RequireIdentity(logger, verifier, isPublic),
+		},
+		// A parameter of the request could not be read.
+		ErrorHandlerFunc: invalidRequest,
+	})
 
-	return httpx.RequestLog(logger)(routes)
+	return httpx.RequestLog(logger)(recoverPanic(logger, routes))
 }
 
-// writeError writes an error response in the Error format of the contract.
-func writeError(
-	ctx context.Context,
-	logger *slog.Logger,
-	w http.ResponseWriter,
-	status int,
-	code api.ErrorCode,
-	message string,
-) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(api.Error{Error: code, Message: message}); err != nil {
-		logger.ErrorContext(ctx, "write error response", slog.Any("error", err))
-	}
+// recoverPanic answers with the internal error of the contract when next
+// panics, and writes the panic value and the stack to the log. It is inside
+// the request log, so the request still gets its log line.
+func recoverPanic(logger *slog.Logger, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			value := recover()
+			if value == nil {
+				return
+			}
+			// net/http uses this value to abort a response without a log.
+			if value == http.ErrAbortHandler {
+				panic(value)
+			}
+			logger.ErrorContext(r.Context(), "handler panic",
+				slog.Any("panic", value),
+				slog.String("stack", string(debug.Stack())),
+			)
+			httpx.WriteInternalError(r.Context(), logger, w)
+		}()
+		next.ServeHTTP(w, r)
+	})
 }

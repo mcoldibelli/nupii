@@ -1,0 +1,18 @@
+# sqlc configuration. Input: the migrations (schema) and db/queries.
+# Output: one Go package of queries for each module. Run: go generate ./...
+version: "2"
+sql:
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries/identity.sql
+    gen:
+      go:
+        package: identitydb
+        out: internal/identity/identitydb
+        sql_package: pgx/v5
+        initialisms: ["id", "uid"]
+        overrides:
+          - db_type: uuid
+            go_type: string
+          - db_type: timestamptz
+            go_type: time.Time

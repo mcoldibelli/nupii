@@ -8,6 +8,8 @@ info:
 tags:
   - name: service
     description: Estado do serviço.
+  - name: identity
+    description: Conta do tutor.
 paths:
   /v1/health:
     get:
@@ -29,8 +31,110 @@ paths:
                 $ref: "#/components/schemas/Error"
         default:
           $ref: "#/components/responses/Error"
+  /v1/me:
+    get:
+      operationId: getMe
+      tags: [identity]
+      summary: Devolve o tutor da conta que fez a chamada.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: O tutor da conta.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Owner"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          description: A conta ainda não registrou o tutor. O código do erro é `owner_not_found`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: registerMe
+      tags: [identity]
+      summary: Registra o tutor da conta, com o aceite dos termos de uso.
+      description: |
+        O e-mail vem do token. Uma segunda chamada da mesma conta não muda o tutor e devolve 200.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterOwnerRequest"
+      responses:
+        "200":
+          description: A conta já tinha um tutor. A resposta tem esse tutor, sem mudança.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Owner"
+        "201":
+          description: O tutor foi registrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Owner"
+        "400":
+          description: O corpo é inválido, o nome está vazio ou a versão dos termos não é a vigente. O código do erro é `invalid_request`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        default:
+          $ref: "#/components/responses/Error"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: ID token do Firebase Authentication, no cabeçalho `Authorization`.
   schemas:
+    Owner:
+      type: object
+      description: O tutor. Pessoa com conta, responsável por pets.
+      required: [id, name, email, termsVersion, termsAcceptedAt]
+      properties:
+        id:
+          type: string
+          description: Identificador do tutor, um UUID.
+        name:
+          type: string
+        email:
+          type: string
+        termsVersion:
+          type: string
+          description: Versão dos termos de uso que o tutor aceitou. Pode ser uma versão anterior à vigente.
+        termsAcceptedAt:
+          type: string
+          format: date-time
+    RegisterOwnerRequest:
+      type: object
+      required: [name, acceptedTermsVersion]
+      properties:
+        name:
+          type: string
+          description: Nome do tutor. Não pode ser vazio. Tem no máximo 100 caracteres.
+          maxLength: 100
+        acceptedTermsVersion:
+          $ref: "#/components/schemas/TermsVersion"
+    TermsVersion:
+      type: string
+      description: |
+        Versão dos termos de uso. A lista tem só a versão vigente.
+        Uma versão nova dos termos troca o valor desta lista.
+      enum:
+        - "2026-11-10"
     Health:
       type: object
       required: [status]
@@ -57,7 +161,16 @@ components:
         - not_found
         - internal_error
         - unavailable
+        - unauthenticated
+        - invalid_request
+        - owner_not_found
   responses:
+    Unauthenticated:
+      description: A chamada não tem token, ou o token é inválido ou está vencido. O código do erro é `unauthenticated`.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     Error:
       description: Erro no formato único.
       content:

@@ -11,23 +11,35 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
+
+	"github.com/oapi-codegen/runtime"
 )
 
 // Defines values for ErrorCode.
 const (
-	InternalError ErrorCode = "internal_error"
-	NotFound      ErrorCode = "not_found"
-	Unavailable   ErrorCode = "unavailable"
+	ErrorCodeInternalError   ErrorCode = "internal_error"
+	ErrorCodeInvalidRequest  ErrorCode = "invalid_request"
+	ErrorCodeNotFound        ErrorCode = "not_found"
+	ErrorCodeOwnerNotFound   ErrorCode = "owner_not_found"
+	ErrorCodeUnauthenticated ErrorCode = "unauthenticated"
+	ErrorCodeUnavailable     ErrorCode = "unavailable"
 )
 
 // Valid indicates whether the value is a known member of the ErrorCode enum.
 func (e ErrorCode) Valid() bool {
 	switch e {
-	case InternalError:
+	case ErrorCodeInternalError:
 		return true
-	case NotFound:
+	case ErrorCodeInvalidRequest:
 		return true
-	case Unavailable:
+	case ErrorCodeNotFound:
+		return true
+	case ErrorCodeOwnerNotFound:
+		return true
+	case ErrorCodeUnauthenticated:
+		return true
+	case ErrorCodeUnavailable:
 		return true
 	default:
 		return false
@@ -36,13 +48,28 @@ func (e ErrorCode) Valid() bool {
 
 // Defines values for HealthStatus.
 const (
-	Ok HealthStatus = "ok"
+	HealthStatusOk HealthStatus = "ok"
 )
 
 // Valid indicates whether the value is a known member of the HealthStatus enum.
 func (e HealthStatus) Valid() bool {
 	switch e {
-	case Ok:
+	case HealthStatusOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TermsVersion.
+const (
+	TermsVersionN20261110 TermsVersion = "2026-11-10"
+)
+
+// Valid indicates whether the value is a known member of the TermsVersion enum.
+func (e TermsVersion) Valid() bool {
+	switch e {
+	case TermsVersionN20261110:
 		return true
 	default:
 		return false
@@ -71,11 +98,50 @@ type Health struct {
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
 
+// Owner O tutor. Pessoa com conta, responsável por pets.
+type Owner struct {
+	Email string `json:"email"`
+
+	// Id Identificador do tutor, um UUID.
+	Id              string    `json:"id"`
+	Name            string    `json:"name"`
+	TermsAcceptedAt time.Time `json:"termsAcceptedAt"`
+
+	// TermsVersion Versão dos termos de uso que o tutor aceitou. Pode ser uma versão anterior à vigente.
+	TermsVersion string `json:"termsVersion"`
+}
+
+// RegisterOwnerRequest defines model for RegisterOwnerRequest.
+type RegisterOwnerRequest struct {
+	// AcceptedTermsVersion Versão dos termos de uso. A lista tem só a versão vigente.
+	// Uma versão nova dos termos troca o valor desta lista.
+	AcceptedTermsVersion TermsVersion `json:"acceptedTermsVersion"`
+
+	// Name Nome do tutor. Não pode ser vazio. Tem no máximo 100 caracteres.
+	Name string `json:"name"`
+}
+
+// TermsVersion Versão dos termos de uso. A lista tem só a versão vigente.
+// Uma versão nova dos termos troca o valor desta lista.
+type TermsVersion string
+
+// Unauthenticated Formato único de erro. Todo erro da API usa este formato.
+type Unauthenticated = Error
+
+// RegisterMeJSONRequestBody defines body for RegisterMe for application/json ContentType.
+type RegisterMeJSONRequestBody = RegisterOwnerRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// GetHealth Informa se o serviço está pronto para atender requisições.
 	// (GET /v1/health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
+	// GetMe Devolve o tutor da conta que fez a chamada.
+	// (GET /v1/me)
+	GetMe(w http.ResponseWriter, r *http.Request)
+	// RegisterMe Registra o tutor da conta, com o aceite dos termos de uso.
+	// (POST /v1/me)
+	RegisterMe(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -92,6 +158,34 @@ func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMe operation middleware
+func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RegisterMe operation middleware
+func (siw *ServerInterfaceWrapper) RegisterMe(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RegisterMe(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -222,11 +316,15 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/health", wrapper.GetHealth)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me", wrapper.GetMe)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/me", wrapper.RegisterMe)
 
 	return m
 }
 
 type ErrorJSONResponse Error
+
+type UnauthenticatedJSONResponse Error
 
 type GetHealthRequestObject struct {
 }
@@ -280,11 +378,164 @@ func (response GetHealthdefaultJSONResponse) VisitGetHealthResponse(w http.Respo
 	return err
 }
 
+type GetMeRequestObject struct {
+}
+
+type GetMeResponseObject interface {
+	VisitGetMeResponse(w http.ResponseWriter) error
+}
+
+type GetMe200JSONResponse Owner
+
+func (response GetMe200JSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMe401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response GetMe401JSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMe404JSONResponse Error
+
+func (response GetMe404JSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetMedefaultJSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterMeRequestObject struct {
+	Body *RegisterMeJSONRequestBody
+}
+
+type RegisterMeResponseObject interface {
+	VisitRegisterMeResponse(w http.ResponseWriter) error
+}
+
+type RegisterMe200JSONResponse Owner
+
+func (response RegisterMe200JSONResponse) VisitRegisterMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterMe201JSONResponse Owner
+
+func (response RegisterMe201JSONResponse) VisitRegisterMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterMe400JSONResponse Error
+
+func (response RegisterMe400JSONResponse) VisitRegisterMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterMe401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response RegisterMe401JSONResponse) VisitRegisterMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterMedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response RegisterMedefaultJSONResponse) VisitRegisterMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// GetHealth Informa se o serviço está pronto para atender requisições.
 	// (GET /v1/health)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
+	// GetMe Devolve o tutor da conta que fez a chamada.
+	// (GET /v1/me)
+	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
+	// RegisterMe Registra o tutor da conta, com o aceite dos termos de uso.
+	// (POST /v1/me)
+	RegisterMe(ctx context.Context, request RegisterMeRequestObject) (RegisterMeResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -343,6 +594,61 @@ func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetHealthResponseObject); ok {
 		if err := validResponse.VisitGetHealthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetMe operation middleware
+func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	var request GetMeRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMe(ctx, request.(GetMeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMe")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetMeResponseObject); ok {
+		if err := validResponse.VisitGetMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RegisterMe operation middleware
+func (sh *strictHandler) RegisterMe(w http.ResponseWriter, r *http.Request) {
+	var request RegisterMeRequestObject
+
+	var body RegisterMeJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RegisterMe(ctx, request.(RegisterMeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RegisterMe")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RegisterMeResponseObject); ok {
+		if err := validResponse.VisitRegisterMeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -4,7 +4,7 @@ Plataforma para tutores de pets, com três partes: saúde do pet, mural de perdi
 
 ## Estado
 
-A fatia 0 do [roteiro](docs/roteiro.md) está pronta: a API responde `GET /v1/health`, o ambiente local sobe com um comando, o app mostra a resposta da API e o CI confere os três. O andamento de cada fatia está nos milestones do GitHub.
+As fatias 0 e 1 do [roteiro](docs/roteiro.md) estão prontas. O ambiente local sobe com um comando e o CI confere a API, o app e a integração. O tutor cria a conta e entra pelo app, e a API valida o token e registra o tutor com o aceite dos termos. O andamento de cada fatia está nos milestones do GitHub.
 
 ## Como executar
 
@@ -18,7 +18,7 @@ Requisitos: Docker com o Compose. Para desenvolver a API: Go 1.26 ou mais novo.
 
    Abra o `deploy/.env` e preencha os dois valores vazios: `POSTGRES_PASSWORD` e `S3_SECRET_ACCESS_KEY`. Para gerar um valor: `openssl rand -hex 24`. O arquivo `deploy/.env` não entra no git.
 
-2. Suba o ambiente local: a API, o banco e o servidor S3. O comando constrói as imagens e espera os serviços ficarem prontos:
+2. Suba o ambiente local: a API, o banco, o servidor S3 e o emulador do Firebase Authentication. O comando constrói as imagens e espera os serviços ficarem prontos:
 
    ```bash
    docker compose -f deploy/compose.yaml up -d --wait
@@ -49,12 +49,17 @@ Se a sua instalação tem só o binário `docker-compose`, use esse nome no luga
 | API | `http://localhost:8080` | |
 | PostgreSQL 18 com PostGIS e pgvector | `localhost:5432` | `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD` |
 | SeaweedFS (protocolo S3) | `http://localhost:8333` | `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` |
+| Emulador do Firebase Authentication | `http://localhost:9099` | |
+
+As contas criadas no emulador ficam na memória e somem quando o container reinicia. Os tutores continuam no banco. Use `down -v` para apagar os dois juntos.
 
 Se você mudar a senha do banco depois da primeira subida, apague os dados com `down -v`: o Postgres só grava a senha quando cria o banco.
 
 Para desenvolver a API, suba só o banco e o servidor S3 e execute a API com `go run`. Os comandos estão no README do [backend](backend/README.md).
 
 Para executar o app, veja o README do [mobile](mobile/README.md).
+
+O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app no projeto real, execute `./deploy/firebase-setup.sh`: ele guia os passos do console e guarda cada valor fora do git.
 
 ## Documentos
 
@@ -82,6 +87,8 @@ Para executar o app, veja o README do [mobile](mobile/README.md).
 | [0010](docs/adr/0010-ferramentas-de-teste.md) | Ferramentas de teste | aceito |
 | [0011](docs/adr/0011-runtime-do-oapi-codegen.md) | Biblioteca de runtime do código gerado pelo oapi-codegen | aceito |
 | [0012](docs/adr/0012-servidor-s3-local.md) | SeaweedFS como servidor S3 do ambiente local | aceito |
+| [0013](docs/adr/0013-firebase-no-app.md) | SDK JavaScript do Firebase no app | aceito |
+| [0014](docs/adr/0014-emulador-do-firebase-auth.md) | Emulador do Firebase Authentication no ambiente local e no CI | aceito |
 
 ## Regras do projeto
 

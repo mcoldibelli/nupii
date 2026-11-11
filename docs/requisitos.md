@@ -17,10 +17,10 @@
 
 | ID | Requisito | Fatia | Estado |
 |---|---|---|---|
-| RF-01 | O tutor cria uma conta com e-mail e senha e aceita os termos de uso. | 1 | rascunho |
-| RF-02 | O tutor entra com e-mail e senha. A sessão continua depois de fechar o app. | 1 | rascunho |
+| RF-01 | O tutor cria uma conta com e-mail e senha. No primeiro acesso ele informa o nome e aceita os termos de uso. | 1 | estável |
+| RF-02 | O tutor entra com e-mail e senha. A sessão continua depois de fechar o app. | 1 | estável |
 | RF-03 | O tutor entra com a conta Google. | 10 | rascunho |
-| RF-04 | O tutor sai da conta. | 1 | rascunho |
+| RF-04 | O tutor sai da conta. | 1 | estável |
 | RF-05 | O tutor redefine uma senha esquecida por um link que chega por e-mail. | 9 | rascunho |
 | RF-06 | O tutor vê e altera o próprio perfil. | 9 | rascunho |
 | RF-07 | O tutor troca a senha. | 9 | rascunho |
@@ -91,10 +91,14 @@
 
 | ID | Regra | RF | Estado |
 |---|---|---|---|
-| RN-01 | O sistema guarda a data e a versão dos termos de uso que o tutor aceitou. | RF-01 | rascunho |
-| RN-02 | Um e-mail identifica uma conta só. | RF-01, RF-03 | rascunho |
+| RN-01 | O sistema guarda a data e a versão dos termos de uso que o tutor aceitou. O tutor só é registrado com o aceite da versão vigente dos termos. | RF-01 | estável |
+| RN-02 | Um e-mail identifica uma conta só. O provedor de identidade aplica a regra. Para o login com Google, ver a seção "Em aberto". | RF-01, RF-03 | estável |
 | RN-03 | Excluir a conta anonimiza o tutor, zera o vetor de cada cadastro biométrico dele, deixa esses cadastros inválidos e apaga o usuário no provedor de identidade. | RF-08 | rascunho |
 | RN-04 | Uma conta excluída recebe 401, mesmo com um token ainda válido. Os pets dela saem da identificação e do mural. | RF-08 | rascunho |
+| RN-44 | A senha tem no mínimo 8 caracteres. O app confere antes de enviar. | RF-01 | estável |
+| RN-45 | O nome do tutor é obrigatório e tem no máximo 100 caracteres. | RF-01 | estável |
+| RN-46 | Uma chamada sem token, com token inválido ou com token vencido recebe 401. | RF-02 | estável |
+| RN-47 | A conta pode ser usada sem a confirmação do e-mail. | RF-01 | estável |
 
 ### Pets
 
@@ -209,11 +213,13 @@ Cada item é fechado na fatia indicada, antes do código.
 
 | Fatia | Pergunta | Item |
 |---|---|---|
-| 1 | O que acontece quando um login com Google usa o e-mail de uma conta que já tem senha? | RN-02 |
+| 10 | O que acontece quando um login com Google usa o e-mail de uma conta que já tem senha? | RN-02 |
 | 2 | Qual é a lista final dos dados do pet? | RF-09 |
 | 4 | Qual limiar de RN-15 vale para um acervo com tamanho entre duas linhas da tabela, ou acima de 300? | RN-15 |
 | 5 | Quem resolve um achado registrado sem conta? | RN-29 |
 | 7 | Onde o lembrete é calculado: no app ou em uma tarefa do backend? | RF-29 |
 | 8 | Qual é a validade do link da carteirinha? | RN-40 |
 | 9 | Quais são os dados do perfil? | RF-06 |
+| 9 | O que a API faz quando o e-mail da conta muda no provedor de identidade? Hoje ela guarda o e-mail do registro. | RF-06 |
+| 9 | Como o tutor aceita uma versão nova dos termos de uso? Hoje só o registro grava o aceite. | RN-01 |
 | 9 | Em qual fuso horário valem as 3h da limpeza? | RN-42 |

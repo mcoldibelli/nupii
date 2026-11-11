@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -18,6 +19,7 @@ import (
 	"github.com/getkin/kin-openapi/routers/legacy"
 
 	"github.com/mcoldibelli/nupii/backend/internal/api"
+	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 )
 
@@ -63,6 +65,24 @@ type fakeDatabase struct {
 
 func (d fakeDatabase) Ping(context.Context) error { return d.err }
 
+// fakeVerifier is a TokenVerifier for tests. It accepts the tokens that are
+// keys of identities. When err is set, each validation fails with err.
+type fakeVerifier struct {
+	identities map[string]identity.Identity
+	err        error
+}
+
+func (v fakeVerifier) VerifyIDToken(_ context.Context, rawToken string) (identity.Identity, error) {
+	if v.err != nil {
+		return identity.Identity{}, v.err
+	}
+	who, ok := v.identities[rawToken]
+	if !ok {
+		return identity.Identity{}, fmt.Errorf("%w: the test does not know this token", identity.ErrInvalidToken)
+	}
+	return who, nil
+}
+
 // healthyServer returns the operations of the contract with a database
 // that responds.
 func healthyServer() server {
@@ -70,7 +90,7 @@ func healthyServer() server {
 }
 
 func TestGetHealth(t *testing.T) {
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer())
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{})
 	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
 	rec := httptest.NewRecorder()
 
@@ -94,7 +114,7 @@ func TestGetHealthWhenTheDatabaseDoesNotRespond(t *testing.T) {
 	var logs bytes.Buffer
 	logger := slog.New(httpx.NewLogHandler(slog.NewJSONHandler(&logs, nil)))
 	operations := server{logger: logger, database: fakeDatabase{err: errors.New(detail)}}
-	handler := newHandler(logger, operations)
+	handler := newHandler(logger, operations, fakeVerifier{})
 	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
 	rec := httptest.NewRecorder()
 
@@ -107,8 +127,8 @@ func TestGetHealthWhenTheDatabaseDoesNotRespond(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body %q: %v", rec.Body.String(), err)
 	}
-	if body.Error != api.Unavailable {
-		t.Errorf("error code = %q, want %q", body.Error, api.Unavailable)
+	if body.Error != api.ErrorCodeUnavailable {
+		t.Errorf("error code = %q, want %q", body.Error, api.ErrorCodeUnavailable)
 	}
 	if strings.Contains(rec.Body.String(), detail) {
 		t.Errorf("body %q has the internal detail of the error", rec.Body.String())
