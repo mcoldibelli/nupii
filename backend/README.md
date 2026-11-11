@@ -63,8 +63,11 @@ go test -race ./...
 Testes de integração, com o compose em execução e as variáveis `DATABASE_URL`, `FIREBASE_AUTH_EMULATOR_HOST`, `S3_ENDPOINT` e `INFERENCE_URL` definidas como na seção anterior:
 
 ```bash
+docker compose -f ../deploy/compose.yaml stop api
 go test -race -tags=integration ./...
 ```
+
+Pare a API do compose antes: a fila da API pega as tarefas que os testes criam, e um teste que roda a própria fila falha às vezes. O CI faz o mesmo.
 
 Sem essas variáveis, um teste de integração falha. Ele não é pulado.
 

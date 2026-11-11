@@ -209,3 +209,14 @@ func (r *Runner) runHandler(
 	}
 	return nil
 }
+
+// PurgeFinished deletes, in tx, the jobs that ended before before. Their
+// payloads can have personal data (RN-42). It returns how many it deleted.
+func PurgeFinished(ctx context.Context, tx pgx.Tx, before time.Time) (int64, error) {
+	const purge = `DELETE FROM jobs WHERE status <> 'pending' AND updated_at < $1`
+	tag, err := tx.Exec(ctx, purge, before)
+	if err != nil {
+		return 0, fmt.Errorf("purge the finished jobs: %w", err)
+	}
+	return tag.RowsAffected(), nil
+}

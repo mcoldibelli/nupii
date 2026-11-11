@@ -36,6 +36,8 @@ type testAPI struct {
 	pool    *pgxpool.Pool
 	// embedder is in the place of the inference service.
 	embedder *fakeEmbedder
+	// accounts is the delete of accounts of the server (RN-84).
+	accounts *identity.Accounts
 	// purge is the handler of the daily purge job (RN-42).
 	purge jobs.Handler
 	// photos is the object store of the server.
@@ -89,6 +91,7 @@ func newTestAPI(t *testing.T, verifier identity.TokenVerifier, uids ...string) t
 		embedder:   embedder,
 		noseprints: operations.noseprints,
 		purge:      operations.purge,
+		accounts:   operations.accounts,
 		photos:     photos,
 	}
 }

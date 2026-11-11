@@ -20,7 +20,6 @@ import (
 	"github.com/mcoldibelli/nupii/backend/db/migrations"
 	"github.com/mcoldibelli/nupii/backend/internal/alerts"
 	"github.com/mcoldibelli/nupii/backend/internal/biometrics"
-	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/config"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
@@ -139,7 +138,8 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 		return fmt.Errorf("listen on %s: %w", cfg.HTTPAddr, err)
 	}
 	srv := &http.Server{
-		Handler:           newHandler(logger, operations, tokenVerifier{firebase: verifier}, operations.owners),
+		Handler: newHandler(
+			logger, operations, tokenVerifier{firebase: verifier}, operations.owners),
 		ReadHeaderTimeout: _readHeaderTimeout,
 		ReadTimeout:       _readTimeout,
 		WriteTimeout:      _writeTimeout,
@@ -164,7 +164,9 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	// API. Run ends the job in progress and returns when the context ends.
 	handlers := alerts.JobHandlers(pusher)
 	// RN-03: a job deletes the user of a deleted account in Firebase.
-	maps.Copy(handlers, identity.JobHandlers(verifier))
+	maps.Copy(handlers, operations.accounts.JobHandlers(verifier))
+	// The objects that a transaction made unused leave the store after it.
+	maps.Copy(handlers, storage.JobHandlers(photos, logger))
 	// RF-32, RN-42: a limpeza diária. Each purge writes the one after it.
 	handlers[_jobPurge] = operations.purge
 	runner := jobs.NewRunner(pool, logger, handlers)

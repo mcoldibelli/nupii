@@ -33,9 +33,16 @@ export default function Profile() {
       setMessage(null);
       return;
     }
-    await run(() => changePassword(current, next), "Senha trocada.");
-    setCurrent("");
-    setNext("");
+    let changed = false;
+    await run(async () => {
+      const failure = await changePassword(current, next);
+      changed = failure === null;
+      return failure;
+    }, "Senha trocada.");
+    if (changed) {
+      setCurrent("");
+      setNext("");
+    }
   }
 
   function confirmDelete() {

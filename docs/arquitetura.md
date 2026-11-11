@@ -103,6 +103,7 @@ Leituras com `JOIN` entre módulos, conhecidas pelos requisitos:
 | Avisos de encontro do tutor | `biometrics` | `pets` (pets do tutor, não excluídos) | RN-66 |
 | Próximos cuidados | `health` | `pets` (nome, pets do tutor, não excluídos) | RN-81 |
 | Carteirinha aberta pelo link | `health` | `pets` (dados e foto do pet, pet não excluído) | RN-41, RN-83 |
+| Exclusão da conta: os dados dos pets do tutor | `biometrics`, `health` | `pets` (os pets do tutor, por `owner_id`, sem escrita) | RN-84 |
 | Tutores perto de um ponto | `alerts` | Nenhum. A consulta lê só `owner_locations`: a exclusão da conta apaga a localização (RN-84) | RN-32, RN-33 |
 
 ## Tarefas em segundo plano
@@ -117,7 +118,8 @@ Uma tabela `jobs` no Postgres. Workers no mesmo binário leem com `SELECT ... FO
 | `send_push` | `alerts`, na mesma transação da notificação | RF-26 |
 | (recálculo dos vetores) | Não é uma tarefa da fila: o recálculo é executado na subida da API, em uma goroutine (RN-67). Ele refaz tudo o que falta a cada subida, então não precisa de uma tarefa por cadastro | RF-15 |
 | `purge_expired_data` | a própria tarefa, que grava a próxima execução às 3h de `America/Sao_Paulo`; a subida da API grava a primeira | RF-32, RN-42 |
-| `delete_identity_user` | `identity`, na mesma transação da exclusão da conta | RF-08, RN-03 |
+| `delete_identity_user` | `identity`, na mesma transação da exclusão da conta, para 5 minutos depois. A tarefa passa os apagadores de novo e apaga o usuário no Firebase | RF-08, RN-03, RN-84 |
+| `delete_stored_objects` | quem deixa arquivos sem uso dentro de uma transação que trava linhas (a limpeza diária, a segunda passagem da exclusão) | RN-42, RN-84 |
 
 Concorrência, declarada por regra:
 

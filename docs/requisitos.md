@@ -95,7 +95,7 @@
 | RN-02 | Um e-mail identifica uma conta só. O provedor de identidade aplica a regra. Para o login com Google, ver a seção "Em aberto". | RF-01, RF-03 | estável |
 | RN-03 | Excluir a conta anonimiza o tutor (nome "Conta excluída", e-mail sem dono, data da exclusão) e apaga o usuário no provedor de identidade. Um usuário que já não existe no provedor conta como apagado. | RF-08 | estável |
 | RN-04 | Uma conta excluída recebe 401, mesmo com um token ainda válido, também no registro. Os pets dela saem da identificação e do mural. | RF-08 | estável |
-| RN-84 | Excluir a conta exclui os pets (com a foto), apaga os cadastros biométricos (com as fotos) e os candidatos de identificação deles, os eventos de saúde (com os anexos), os links da carteirinha, as notificações, os dispositivos e a última localização. Um desaparecimento aberto do tutor fica resolvido, sem a descrição e sem o lugar. | RF-08 | estável |
+| RN-84 | Excluir a conta exclui os pets (com a foto), apaga os cadastros biométricos (com as fotos) e os candidatos de identificação deles, os eventos de saúde (com os anexos), os links da carteirinha, as notificações, os dispositivos e a última localização. O pet fica com o nome "Pet excluído", sem raça, nascimento, peso e veterinário. Os desaparecimentos do tutor ficam resolvidos, sem a descrição e sem o nome do lugar. O ponto no mapa fica. Uma escrita que estava em andamento durante a exclusão é apagada 5 minutos depois. | RF-08 | estável |
 | RN-44 | A senha tem no mínimo 8 caracteres. O app confere antes de enviar. | RF-01 | estável |
 | RN-45 | O nome do tutor é obrigatório e tem no máximo 100 caracteres. | RF-01 | estável |
 | RN-46 | Uma chamada sem token, com token inválido ou com token vencido recebe 401. | RF-02 | estável |
@@ -225,7 +225,7 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 
 | ID | Regra | RF | Estado |
 |---|---|---|---|
-| RN-42 | Todo dia às 3h, no fuso de Brasília (`America/Sao_Paulo`), o sistema apaga o que tem mais de 30 dias: o contato deixado por visitantes, a foto da consulta e a última localização do tutor. Um aviso de encontro sem o contato sai da lista do tutor. | RF-32 | estável |
+| RN-42 | Todo dia às 3h, no fuso de Brasília (`America/Sao_Paulo`), o sistema apaga o que tem mais de 30 dias: o contato deixado por visitantes (também no texto da notificação de encontro e nas tarefas terminadas), a foto da consulta e a última localização do tutor. Um aviso de encontro sem o contato sai da lista do tutor. | RF-32 | estável |
 | RN-43 | Um endpoint público aceita no máximo 10 `POST` por minuto, por IP e por caminho. | RF-12, RF-13, RF-19, RF-20, RF-31 | estável |
 
 ## Requisitos não funcionais

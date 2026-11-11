@@ -25,7 +25,11 @@ func (s *Service) EraseOwner(ctx context.Context, tx pgx.Tx, ownerID string) ([]
 
 // PurgeExpired erases, in tx, the contact and the photo of the consults
 // created before before (RN-42). It returns the keys of the photos.
-func (s *Service) PurgeExpired(ctx context.Context, tx pgx.Tx, before time.Time) ([]string, error) {
+func (s *Service) PurgeExpired(
+	ctx context.Context,
+	tx pgx.Tx,
+	before time.Time,
+) ([]string, error) {
 	queries := s.queries.WithTx(tx)
 	rows, err := queries.LockExpiredIdentifications(ctx, before)
 	if err != nil {

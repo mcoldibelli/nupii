@@ -85,6 +85,9 @@ RETURNING previous.photo_key AS previous_photo_key;
 SELECT id, photo_key FROM pets WHERE owner_id = sqlc.arg(owner_id) FOR UPDATE;
 
 -- name: EraseOwnerPets :exec
+-- RN-84: o pet fica excluído, sem a foto e sem os dados dele.
 UPDATE pets
-SET deleted_at = COALESCE(deleted_at, now()), photo_key = NULL, updated_at = now()
+SET deleted_at = COALESCE(deleted_at, now()), photo_key = NULL, updated_at = now(),
+    name = 'Pet excluído', breed = NULL, birth_date = NULL, weight_kg = NULL,
+    vet_name = NULL, vet_clinic = NULL, vet_phone = NULL
 WHERE owner_id = sqlc.arg(owner_id);

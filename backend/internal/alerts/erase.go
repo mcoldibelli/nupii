@@ -25,10 +25,15 @@ func (s *Service) EraseOwner(ctx context.Context, tx pgx.Tx, ownerID string) ([]
 	return nil, nil
 }
 
-// PurgeExpired deletes, in tx, the locations updated before before (RN-42).
+// PurgeExpired deletes, in tx, the locations updated before before and the
+// found notifications created before before (RN-42).
 func (s *Service) PurgeExpired(ctx context.Context, tx pgx.Tx, before time.Time) error {
-	if err := s.queries.WithTx(tx).PurgeOwnerLocations(ctx, before); err != nil {
+	queries := s.queries.WithTx(tx)
+	if err := queries.PurgeOwnerLocations(ctx, before); err != nil {
 		return fmt.Errorf("purge the owner locations: %w", err)
+	}
+	if err := queries.PurgeFoundNotifications(ctx, before); err != nil {
+		return fmt.Errorf("purge the found notifications: %w", err)
 	}
 	return nil
 }

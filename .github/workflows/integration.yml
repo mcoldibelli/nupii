@@ -51,6 +51,9 @@ jobs:
       - name: Integration tests
         working-directory: backend
         run: |
+          # The job runner of the API container takes the jobs that the
+          # tests create. The tests run their own runner.
+          docker compose -f ../deploy/compose.yaml stop api
           set -a; . ../deploy/.env; set +a
           export DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432/$POSTGRES_DB?sslmode=disable"
           export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099

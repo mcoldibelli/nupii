@@ -84,3 +84,7 @@ DELETE FROM devices WHERE owner_id = sqlc.arg(owner_id);
 -- name: PurgeOwnerLocations :exec
 -- RN-42: a última localização com mais de 30 dias.
 DELETE FROM owner_locations WHERE updated_at < sqlc.arg(before);
+
+-- name: PurgeFoundNotifications :exec
+-- RN-42: o texto de um aviso de encontro tem o contato do visitante.
+DELETE FROM notifications WHERE kind = 'found' AND created_at < sqlc.arg(before);

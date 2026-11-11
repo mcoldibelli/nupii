@@ -9,9 +9,11 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mcoldibelli/nupii/backend/internal/api"
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/inference"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/jobs"
 )
 
@@ -26,7 +28,7 @@ func (u *fakeUsers) DeleteUser(_ context.Context, uid string) error {
 // runIdentityJobs runs the due jobs of identity with users as the provider.
 func (a testAPI) runIdentityJobs(users identity.UserDeleter) {
 	a.t.Helper()
-	runner := jobs.NewRunner(a.pool, slog.New(slog.DiscardHandler), identity.JobHandlers(users))
+	runner := jobs.NewRunner(a.pool, slog.New(slog.DiscardHandler), a.accounts.JobHandlers(users))
 	for {
 		worked, err := runner.Work(a.t.Context())
 		if err != nil {
@@ -50,6 +52,10 @@ func (a testAPI) count(query string, args ...any) int {
 // RF-08: o tutor exclui a própria conta.
 func TestAccountDeletion(t *testing.T) {
 	testAPI := petsAPI(t)
+	// A vector that only this test uses, so the identification finds Rex.
+	testAPI.embedder.embed = func([]byte) (inference.Embedding, error) {
+		return inference.Embedding{Vector: unitVector(511), ModelVersion: "test-model", Quality: 0.9}, nil
+	}
 	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog", "vetName": "Dra. Lia"}`)
 	petPath := "/v1/pets/" + pet.Id.String()
 	withPhoto := decode[api.Pet](t, testAPI.uploadPhoto("token-ana", petPath+"/photo", []byte("\x89PNG\x0D\x0A\x1A\x0Arex")))
@@ -64,6 +70,25 @@ func TestAccountDeletion(t *testing.T) {
 	testAPI.call(http.MethodPut, "/v1/me/devices", "token-ana", `{"token": "device-of-ana", "platform": "android"}`)
 	report := testAPI.reportLost("token-ana", pet, `"latitude": -23.5505, "longitude": -46.6333, "place": "Praça da Sé", "description": "Coleira azul"`)
 	owner := decode[api.Owner](t, testAPI.call(http.MethodGet, "/v1/me", "token-ana", ""))
+	var noseKey string
+	if err := testAPI.pool.QueryRow(t.Context(), `SELECT image_key FROM noseprints WHERE pet_id = $1`, pet.Id).Scan(&noseKey); err != nil {
+		t.Fatalf("read the noseprint: %v", err)
+	}
+	// A visitor found Rex: a confirmed candidate and the notification of Ana.
+	identified := decode[api.Identification](t, testAPI.public("/v1/identifications", nil, nosePhoto()))
+	if len(identified.Candidates) == 0 || identified.Candidates[0].PetName != "Rex" {
+		t.Fatalf("candidates before the delete = %+v, want Rex first", identified.Candidates)
+	}
+	confirm := testAPI.public("/v1/identifications/"+identified.Id.String()+"/confirmation",
+		map[string]string{"candidateId": identified.Candidates[0].Id.String(), "name": "Visitante", "phone": "11 99999-0000"},
+		nosePhoto())
+	if confirm.Code != http.StatusNoContent {
+		t.Fatalf("confirm the candidate: status = %d, body %s", confirm.Code, confirm.Body)
+	}
+	testAPI.runJobs()
+	if got := testAPI.count(`SELECT count(*) FROM notifications WHERE owner_id = $1`, owner.Id); got == 0 {
+		t.Fatal("Ana has no notification before the delete")
+	}
 	bobPet := testAPI.createPet("token-bia", `{"name": "Bob", "species": "dog"}`)
 
 	if rec := testAPI.call(http.MethodDelete, "/v1/me", "token-ana", ""); rec.Code != http.StatusNoContent {
@@ -101,11 +126,12 @@ func TestAccountDeletion(t *testing.T) {
 	// RN-84: o que a exclusão apaga.
 	petID := pet.Id.String()
 	for query, want := range map[string]int{
-		`SELECT count(*) FROM pets WHERE id = $1 AND deleted_at IS NOT NULL AND photo_key IS NULL`: 1,
-		`SELECT count(*) FROM noseprints WHERE pet_id = $1`:                                        0,
-		`SELECT count(*) FROM identification_candidates WHERE pet_id = $1`:                         0,
-		`SELECT count(*) FROM health_events WHERE pet_id = $1`:                                     0,
-		`SELECT count(*) FROM share_links WHERE pet_id = $1`:                                       0,
+		`SELECT count(*) FROM pets WHERE id = $1 AND deleted_at IS NOT NULL AND photo_key IS NULL
+			AND name = 'Pet excluído' AND vet_name IS NULL`: 1,
+		`SELECT count(*) FROM noseprints WHERE pet_id = $1`:                0,
+		`SELECT count(*) FROM identification_candidates WHERE pet_id = $1`: 0,
+		`SELECT count(*) FROM health_events WHERE pet_id = $1`:             0,
+		`SELECT count(*) FROM share_links WHERE pet_id = $1`:               0,
 	} {
 		if got := testAPI.count(query, petID); got != want {
 			t.Errorf("%s: %d, want %d", query, got, want)
@@ -126,7 +152,11 @@ func TestAccountDeletion(t *testing.T) {
 		t.Errorf("lost report = %s %v %v, want resolved with no description and no place", status, description, place)
 	}
 	// The objects leave the storage.
-	for name, url := range map[string]string{"photo": *withPhoto.PhotoUrl, "attachment": attachment.Url} {
+	noseURL, err := testAPI.photos.SignedURL(noseKey, time.Minute)
+	if err != nil {
+		t.Fatalf("sign the URL of the nose photo: %v", err)
+	}
+	for name, url := range map[string]string{"photo": *withPhoto.PhotoUrl, "attachment": attachment.Url, "nose photo": noseURL} {
 		if status, _ := readURL(t, url); status != http.StatusNotFound {
 			t.Errorf("read the %s after the delete: status %d, want 404", name, status)
 		}
@@ -141,6 +171,23 @@ func TestAccountDeletion(t *testing.T) {
 	if status, _ := testAPI.openCard(link.Token); status != http.StatusNotFound {
 		t.Errorf("open the card of the deleted account: status = %d, want 404", status)
 	}
+	after := decode[api.Identification](t, testAPI.public("/v1/identifications", nil, nosePhoto()))
+	for _, candidate := range after.Candidates {
+		if candidate.PetName == "Rex" {
+			t.Errorf("the identification after the delete has Rex: %+v", candidate)
+		}
+	}
+
+	// A write that was in progress during the delete ends after the commit.
+	// The job passes the erasers again (RN-84).
+	const late = `INSERT INTO owner_locations (owner_id, location) VALUES ($1, 'POINT(-46.63 -23.55)')`
+	if _, err := testAPI.pool.Exec(t.Context(), late, owner.Id); err != nil {
+		t.Fatalf("insert the late location: %v", err)
+	}
+	const due = `UPDATE jobs SET run_at = now() WHERE kind = 'delete_identity_user' AND status = 'pending'`
+	if _, err := testAPI.pool.Exec(t.Context(), due); err != nil {
+		t.Fatalf("make the job due: %v", err)
+	}
 
 	// RN-03: a tarefa apaga o usuário no provedor de identidade.
 	users := &fakeUsers{}
@@ -151,6 +198,9 @@ func TestAccountDeletion(t *testing.T) {
 	}
 	if !slices.Contains(users.deleted, uid) {
 		t.Errorf("deleted users = %v, want %s", users.deleted, uid)
+	}
+	if got := testAPI.count(`SELECT count(*) FROM owner_locations WHERE owner_id = $1`, owner.Id); got != 0 {
+		t.Errorf("late location after the job: %d, want 0", got)
 	}
 }
 

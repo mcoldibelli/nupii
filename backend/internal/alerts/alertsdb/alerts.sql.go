@@ -259,6 +259,16 @@ func (q *Queries) MarkNotificationRead(ctx context.Context, arg MarkNotification
 	return result.RowsAffected(), nil
 }
 
+const purgeFoundNotifications = `-- name: PurgeFoundNotifications :exec
+DELETE FROM notifications WHERE kind = 'found' AND created_at < $1
+`
+
+// RN-42: o texto de um aviso de encontro tem o contato do visitante.
+func (q *Queries) PurgeFoundNotifications(ctx context.Context, before time.Time) error {
+	_, err := q.db.Exec(ctx, purgeFoundNotifications, before)
+	return err
+}
+
 const purgeOwnerLocations = `-- name: PurgeOwnerLocations :exec
 DELETE FROM owner_locations WHERE updated_at < $1
 `
