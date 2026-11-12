@@ -106,7 +106,9 @@ func TestPurgeExpiredData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("begin: %v", err)
 	}
-	if err := jobs.EnqueueAt(ctx, tx, _jobPurge, struct{}{}, time.Now()); err != nil {
+	// The clock of the database can be behind the clock of the test, and the
+	// runner takes only the jobs with run_at before the clock of the database.
+	if err := jobs.EnqueueAt(ctx, tx, _jobPurge, struct{}{}, time.Now().Add(-time.Second)); err != nil {
 		t.Fatalf("enqueue the purge: %v", err)
 	}
 	if err := tx.Commit(ctx); err != nil {
