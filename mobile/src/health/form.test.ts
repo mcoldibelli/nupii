@@ -1,4 +1,4 @@
-import { attachmentFailure, emptyValues, fieldsOf, toEventInput, valuesFromEvent } from "./form";
+import { attachmentFailure, emptyValues, fieldsOf, toEventInput, presetValues, valuesFromEvent } from "./form";
 
 const now = new Date(Date.UTC(2026, 10, 11, 12));
 
@@ -123,5 +123,23 @@ describe("attachmentFailure", () => {
       "O anexo precisa ser uma imagem JPEG, PNG ou WebP, ou um PDF, de até 10 MB.",
     );
     expect(attachmentFailure({ ok: false, code: "network" })).toBe("Sem conexão com o servidor. Confira a internet e tente de novo.");
+  });
+});
+
+describe("presetValues", () => {
+  const today = new Date("2026-11-08T12:00:00Z");
+
+  test("an option of the Anotar sheet fills the category (Saude-Mobile-Registrar)", () => {
+    const flea = presetValues("flea", undefined, today);
+    expect(flea.medicationCategory).toBe("flea");
+    expect(flea.remind).toBe(true);
+    expect(flea.date).toBe("08/11/2026");
+    expect(presetValues("weight", undefined, today).noteCategory).toBe("weight");
+  });
+
+  test("Já dei copies the medication and dates it today", () => {
+    const source = { id: "e", petId: "p", type: "medication" as const, date: "2026-10-05", remind: true, createdAt: "x", name: "NexGard", medicationCategory: "flea" as const, intervalDays: 30, dosage: "1", notes: "old" };
+    const again = presetValues("again", source, today);
+    expect(again).toMatchObject({ date: "08/11/2026", name: "NexGard", medicationCategory: "flea", intervalDays: "30", dosage: "1", remind: true, inUse: true, notes: "" });
   });
 });

@@ -127,8 +127,8 @@ function Screens() {
         <Stack.Screen name="share/[petId]" options={{ title: "Carteirinha" }} />
         <Stack.Screen name="profile" options={{ title: "Meu perfil" }} />
         <Stack.Screen name="notifications" options={{ title: "Notificações" }} />
-        <Stack.Screen name="health/[petId]" options={{ title: "Saúde" }} />
-        <Stack.Screen name="health/event" options={{ title: "Evento de saúde" }} />
+        <Stack.Screen name="health/[petId]" options={{ headerShown: false }} />
+        <Stack.Screen name="health/event" options={{ headerShown: false }} />
         <Stack.Screen name="reports/lost" options={{ title: "Pet desaparecido" }} />
       </Stack.Protected>
       <Stack.Protected guard={state.kind === "needsProfile"}>
