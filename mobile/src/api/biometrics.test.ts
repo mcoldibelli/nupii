@@ -4,7 +4,6 @@ const baseUrl = "http://api.test";
 const petId = "0195f3c8-7a55-7c1e-9d2a-0d1c2b3a4f5e";
 const noseprint = {
   id: "0195f3c8-7a55-7c1e-9d2a-000000000001",
-  imageUrl: "http://store.test/nose.jpg",
   quality: 0.87,
   modelVersion: "tinyvit21m-s43",
   capturedAt: "2026-11-11T12:00:00Z",
