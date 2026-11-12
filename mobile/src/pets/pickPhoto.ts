@@ -1,6 +1,7 @@
 // The only file that imports the image picker and the file system of the device.
 import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
+import { Alert } from "react-native";
 
 import type { LocalFile } from "../api/pets";
 
@@ -56,4 +57,13 @@ export async function takePhoto(square = false): Promise<LocalFile | null | "den
 export function filePart(file: LocalFile): Blob {
   // On the web, the browser already gave the content of the file.
   return file.file ?? (new File(file.uri) as unknown as Blob);
+}
+
+/** Asks where the photo of the pet comes from (camera or gallery) and gives it to use. */
+export function askPetPhoto(use: (photo: LocalFile | null | "denied") => void): void {
+  Alert.alert("Foto do pet", undefined, [
+    { text: "Câmera", onPress: () => void takePhoto().then(use) },
+    { text: "Galeria", onPress: () => void pickPhoto().then(use) },
+    { text: "Cancelar", style: "cancel" },
+  ]);
 }

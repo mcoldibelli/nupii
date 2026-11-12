@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, TextInput, View, type TextInputProps } from "react-native";
+import { Pressable, Text, TextInput, View, type TextInputProps } from "react-native";
 
 import { Icon, type IconName } from "./Icon";
 import { Label } from "./Text";
@@ -46,6 +46,19 @@ export function Field({ label, icon, invalid = false, style, secureTextEntry, ..
             <Icon name="eye" size={20} color={colors.textMuted} />
           </Pressable>
         )}
+      </View>
+    </View>
+  );
+}
+
+/** An outlined text field of the AddPet-Novo artboard, with the label above it and an optional unit after the text. */
+export function OutlinedField({ label, suffix, style, ...input }: TextInputProps & { label: string; suffix?: string }) {
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={{ fontFamily: fonts.bodySemibold, fontSize: 14, color: colors.textSecondary }}>{label}</Text>
+      <View style={{ minHeight: 50, borderRadius: 16, borderWidth: 1.5, borderColor: colors.borderStrong, flexDirection: "row", alignItems: "center", paddingHorizontal: 16 }}>
+        <TextInput accessibilityLabel={label} placeholderTextColor={colors.textMuted} style={[{ flex: 1, minHeight: 48, fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.ink }, style]} {...input} />
+        {suffix && <Text style={{ fontFamily: fonts.bodySemibold, fontSize: 15, color: colors.textMuted }}>{suffix}</Text>}
       </View>
     </View>
   );

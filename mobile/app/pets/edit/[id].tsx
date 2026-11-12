@@ -91,14 +91,5 @@ export default function EditPet() {
       </View>
     );
   }
-  return (
-    <>
-      {error !== null && (
-        <Text testID="edit-pet-error" accessibilityRole="alert" style={styles.error}>
-          {error}
-        </Text>
-      )}
-      <PetFormView initial={formFromPet(pet)} photoUrl={pet.photoUrl} onSubmit={save} onDelete={confirmDelete} />
-    </>
-  );
+  return <PetFormView title={`Editar ${pet.name}`} notice={error} initial={formFromPet(pet)} photoUrl={pet.photoUrl} onSubmit={save} onDelete={confirmDelete} />;
 }

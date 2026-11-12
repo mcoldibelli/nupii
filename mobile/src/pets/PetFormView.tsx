@@ -1,58 +1,45 @@
+import { router } from "expo-router";
 import { useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { LocalFile, PetInput } from "../api/pets";
-import { styles } from "../screens/styles";
+import { Button } from "../ui/Button";
+import { OutlinedField } from "../ui/Field";
+import { Icon } from "../ui/Icon";
+import { BackButton, Segmented } from "../ui/Surfaces";
+import { ErrorText } from "../ui/Text";
+import { colors, fonts, space } from "../ui/theme";
 import { toPetInput, type PetForm } from "./form";
-import { neuteredLabels, sexLabels, sizeLabels, speciesLabels } from "./labels";
-import { pickPhoto } from "./pickPhoto";
-import { colors, fonts } from "../ui/theme";
+import { neuteredLabels, sizeLabels, speciesLabels } from "./labels";
+import { askPetPhoto } from "./pickPhoto";
 
 type Props = {
+  title: string;
   initial: PetForm;
   /** Temporary URL of the photo that the pet has now. */
   photoUrl?: string;
   /** Saves the pet. Returns null, or the message of the failure. */
   onSubmit: (input: PetInput, photo: LocalFile | null) => Promise<string | null>;
-  onDelete?: () => void;
+  onDelete: () => void;
+  /** A message above the form, as the photo that was not sent. */
+  notice?: string | null;
 };
 
-/** One choice from a short list. A second tap on the chosen option clears it. */
-function Choice<T extends string>(props: {
-  name: string;
-  labels: Record<T, string>;
-  value: T | "";
-  required?: boolean;
-  onChange: (value: T | "") => void;
-}) {
-  return (
-    <View style={local.choices} accessibilityRole="radiogroup">
-      {(Object.keys(props.labels) as T[]).map((option) => {
-        const selected = props.value === option;
-        return (
-          <Pressable
-            key={option}
-            testID={`${props.name}-${option}`}
-            accessibilityRole="radio"
-            accessibilityState={{ selected }}
-            style={[local.choice, selected && local.choiceSelected]}
-            onPress={() => props.onChange(selected && !props.required ? "" : option)}
-          >
-            <Text style={selected ? local.choiceTextSelected : local.choiceText}>{props.labels[option]}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
+/** The options of a segmented choice, from the labels of the contract. */
+const options = <T extends string>(labels: Record<T, string>) => (Object.keys(labels) as T[]).map((value) => ({ value, label: labels[value] }));
 
-/** The form of a pet, for the screens of new pet and of edit pet (RF-09, RF-10). */
-export function PetFormView({ initial, photoUrl, onSubmit, onDelete }: Props) {
+/**
+ * The form that changes a pet (RF-10), in the layout of the AddPet-Novo
+ * artboard: the canvas has no artboard for this screen. It has all the data
+ * of the pet (RN-48 to RN-51, RN-56).
+ */
+export function PetFormView({ title, initial, photoUrl, onSubmit, onDelete, notice }: Props) {
+  const insets = useSafeAreaInsets();
   const [form, setForm] = useState<PetForm>(initial);
   const [photo, setPhoto] = useState<LocalFile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
   const set = <K extends keyof PetForm>(field: K, value: PetForm[K]) => setForm((current) => ({ ...current, [field]: value }));
 
   async function submit() {
@@ -67,91 +54,111 @@ export function PetFormView({ initial, photoUrl, onSubmit, onDelete }: Props) {
   }
 
   const shownPhoto = photo?.uri ?? photoUrl;
-  const text = (label: string, field: "name" | "breed" | "birthDate" | "weightKg" | "vetName" | "vetClinic" | "vetPhone", extra?: object) => (
-    <>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        testID={`pet-${field}-input`}
-        accessibilityLabel={label}
-        style={styles.input}
-        value={form[field]}
-        onChangeText={(value) => set(field, value)}
-        {...extra}
-      />
-    </>
+  const text = (label: string, field: "name" | "breed" | "vetName" | "vetClinic" | "vetPhone", extra: object = {}) => (
+    <OutlinedField testID={`pet-${field}-input`} label={label} value={form[field]} onChangeText={(value) => set(field, value)} {...extra} />
   );
 
   return (
-    <ScrollView contentContainerStyle={local.content} keyboardShouldPersistTaps="handled">
-      <View style={local.photoRow}>
-        {shownPhoto ? (
-          <Image testID="pet-form-photo" accessibilityLabel="Foto de perfil do pet" source={{ uri: shownPhoto }} style={local.photo} />
-        ) : (
-          <View style={[local.photo, local.photoEmpty]} />
-        )}
+    <View style={local.page}>
+      <ScrollView contentContainerStyle={[local.content, { paddingTop: insets.top + space.md }]} keyboardShouldPersistTaps="handled">
+        <View style={local.top}>
+          <BackButton testID="edit-back" onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))} />
+          <Text style={local.title} accessibilityRole="header" numberOfLines={1}>
+            {title}
+          </Text>
+        </View>
+        {notice ? <ErrorText testID="edit-pet-error">{notice}</ErrorText> : null}
+
         <Pressable
           testID="pick-photo-button"
           accessibilityRole="button"
-          style={styles.link}
-          onPress={async () => {
-            const picked = await pickPhoto();
-            if (picked !== null) {
-              setPhoto(picked);
-            }
-          }}
+          accessibilityLabel={shownPhoto ? "Trocar a foto do pet" : "Escolher a foto do pet"}
+          style={local.photoRow}
+          onPress={() =>
+            askPetPhoto((picked) => {
+              if (picked === "denied") {
+                setError("O app não tem permissão para usar a câmera. Escolha uma foto da galeria.");
+              } else if (picked !== null) {
+                setPhoto(picked);
+              }
+            })
+          }
         >
-          <Text style={styles.linkText}>{shownPhoto ? "Trocar a foto" : "Escolher uma foto"}</Text>
+          <View style={local.photo}>
+            {shownPhoto ? <Image testID="pet-form-photo" source={{ uri: shownPhoto }} style={local.photoImage} /> : <Icon name="camera" size={28} />}
+            <View style={local.badge}>
+              <Icon name={shownPhoto ? "pencil" : "plus"} size={14} color={colors.onPrimary} strokeWidth={2.6} />
+            </View>
+          </View>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={local.photoTitle}>{shownPhoto ? "Trocar a foto" : "Foto do pet"}</Text>
+            <Text style={local.muted}>Da galeria ou câmera. Aparece no perfil e nos alertas.</Text>
+          </View>
         </Pressable>
+
+        {text("Nome", "name", { maxLength: 100 })}
+        <View style={local.group}>
+          <Text style={local.label}>Espécie</Text>
+          <Segmented testID="species" options={options(speciesLabels)} value={form.species === "" ? "dog" : form.species} onChange={(value) => set("species", value)} />
+        </View>
+        <View style={local.group}>
+          <Text style={local.label}>Sexo</Text>
+          <Segmented<PetForm["sex"]>
+            testID="sex"
+            options={[
+              { value: "female", label: "Fêmea" },
+              { value: "male", label: "Macho" },
+            ]}
+            value={form.sex}
+            onChange={(value) => set("sex", value)}
+          />
+        </View>
+        {text("Raça", "breed", { maxLength: 100, placeholder: "Raça ou SRD" })}
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <OutlinedField testID="pet-birthDate-input" label="Nascimento" placeholder="dd/mm/aaaa" keyboardType="numbers-and-punctuation" maxLength={10} value={form.birthDate} onChangeText={(value) => set("birthDate", value)} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <OutlinedField testID="pet-weightKg-input" label="Peso (opcional)" placeholder="0,0" suffix="kg" keyboardType="decimal-pad" maxLength={6} value={form.weightKg} onChangeText={(value) => set("weightKg", value)} />
+          </View>
+        </View>
+        <View style={local.group}>
+          <Text style={local.label}>Porte</Text>
+          <Segmented<PetForm["size"]> testID="size" options={options(sizeLabels)} value={form.size} onChange={(value) => set("size", value)} />
+        </View>
+        <View style={local.group}>
+          <Text style={local.label}>Castrado</Text>
+          <Segmented<PetForm["neutered"]> testID="neutered" options={options(neuteredLabels)} value={form.neutered} onChange={(value) => set("neutered", value)} />
+        </View>
+
+        <Text style={local.section}>Veterinário</Text>
+        {text("Nome do veterinário", "vetName", { maxLength: 120 })}
+        {text("Clínica", "vetClinic", { maxLength: 120 })}
+        {text("Telefone", "vetPhone", { maxLength: 30, keyboardType: "phone-pad" })}
+
+        {error !== null && <ErrorText testID="pet-form-error">{error}</ErrorText>}
+        <Button testID="delete-pet-button" label="Excluir pet" variant="soft" size="md" disabled={busy} onPress={onDelete} />
+      </ScrollView>
+      <View style={[local.footer, { paddingBottom: insets.bottom + space.lg }]}>
+        <Button testID="save-pet-button" label="Salvar alterações" busy={busy} onPress={() => void submit()} />
       </View>
-
-      {text("Nome", "name", { maxLength: 100 })}
-      <Text style={styles.label}>Espécie</Text>
-      <Choice name="species" labels={speciesLabels} value={form.species} required onChange={(value) => set("species", value)} />
-      {text("Raça", "breed", { maxLength: 100 })}
-      <Text style={styles.label}>Sexo</Text>
-      <Choice name="sex" labels={sexLabels} value={form.sex} onChange={(value) => set("sex", value)} />
-      <Text style={styles.label}>Porte</Text>
-      <Choice name="size" labels={sizeLabels} value={form.size} onChange={(value) => set("size", value)} />
-      {text("Data de nascimento (DD/MM/AAAA)", "birthDate", { keyboardType: "numbers-and-punctuation", maxLength: 10 })}
-      {text("Peso em quilos", "weightKg", { keyboardType: "decimal-pad", maxLength: 6 })}
-      <Text style={styles.label}>Castrado</Text>
-      <Choice name="neutered" labels={neuteredLabels} value={form.neutered} onChange={(value) => set("neutered", value)} />
-      {text("Veterinário", "vetName", { maxLength: 120 })}
-      {text("Clínica", "vetClinic", { maxLength: 120 })}
-      {text("Telefone do veterinário", "vetPhone", { keyboardType: "phone-pad", maxLength: 30 })}
-
-      {error !== null && (
-        <Text testID="pet-form-error" accessibilityRole="alert" style={styles.error}>
-          {error}
-        </Text>
-      )}
-      <Pressable
-        testID="save-pet-button"
-        accessibilityRole="button"
-        style={[styles.button, busy && styles.buttonDisabled]}
-        disabled={busy}
-        onPress={submit}
-      >
-        <Text style={styles.buttonText}>Salvar</Text>
-      </Pressable>
-      {onDelete && (
-        <Pressable testID="delete-pet-button" accessibilityRole="button" style={styles.link} disabled={busy} onPress={onDelete}>
-          <Text style={local.deleteText}>Excluir pet</Text>
-        </Pressable>
-      )}
-    </ScrollView>
+    </View>
   );
 }
 
 const local = StyleSheet.create({
-  content: { backgroundColor: colors.background, padding: 24 },
-  photoRow: { alignItems: "center", marginBottom: 16 },
-  photo: { borderRadius: 48, height: 96, width: 96 },
-  photoEmpty: { backgroundColor: colors.borderStrong },
-  choices: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  choice: { borderColor: colors.textMuted, borderRadius: 16, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8 },
-  choiceSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-  choiceText: { fontFamily: fonts.body, fontSize: 14 },
-  choiceTextSelected: { fontFamily: fonts.body, color: colors.background, fontSize: 14 },
-  deleteText: { fontFamily: fonts.body, color: colors.dangerText, fontSize: 16 },
+  page: { flex: 1, backgroundColor: colors.background },
+  content: { paddingHorizontal: space.xl, paddingBottom: space.xl, gap: 14 },
+  top: { flexDirection: "row", alignItems: "center", gap: 12 },
+  title: { flex: 1, fontFamily: fonts.title, fontSize: 28, letterSpacing: -0.6, color: colors.ink },
+  photoRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+  photo: { width: 92, height: 92, borderRadius: 46, borderWidth: 2, borderStyle: "dashed", borderColor: colors.borderDashed, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },
+  photoImage: { width: 88, height: 88, borderRadius: 44 },
+  badge: { position: "absolute", right: -2, bottom: 2, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.brand, borderWidth: 3, borderColor: colors.background, alignItems: "center", justifyContent: "center" },
+  photoTitle: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.ink },
+  muted: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary },
+  group: { gap: 8 },
+  label: { fontFamily: fonts.bodySemibold, fontSize: 14, color: colors.textSecondary },
+  section: { marginTop: 8, fontFamily: fonts.titleBold, fontSize: 19, color: colors.ink },
+  footer: { paddingHorizontal: space.xl, paddingTop: space.md, backgroundColor: colors.background },
 });
