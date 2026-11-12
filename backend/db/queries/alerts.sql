@@ -45,6 +45,11 @@ UPDATE notifications
 SET read_at = COALESCE(read_at, now())
 WHERE id = sqlc.arg(id) AND owner_id = sqlc.arg(owner_id);
 
+-- name: MarkAllNotificationsRead :exec
+-- RN-74: só as notificações do tutor; uma lida mantém a data.
+UPDATE notifications SET read_at = now()
+WHERE owner_id = sqlc.arg(owner_id) AND read_at IS NULL;
+
 -- name: SetDevice :exec
 -- RN-31: registrar de novo um token de outro tutor passa o token para o tutor atual.
 INSERT INTO devices (token, owner_id, platform, active, updated_at)

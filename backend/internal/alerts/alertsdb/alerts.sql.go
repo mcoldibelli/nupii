@@ -239,6 +239,17 @@ func (q *Queries) LockNotificationForPush(ctx context.Context, id string) (LockN
 	return i, err
 }
 
+const markAllNotificationsRead = `-- name: MarkAllNotificationsRead :exec
+UPDATE notifications SET read_at = now()
+WHERE owner_id = $1 AND read_at IS NULL
+`
+
+// RN-74: só as notificações do tutor; uma lida mantém a data.
+func (q *Queries) MarkAllNotificationsRead(ctx context.Context, ownerID string) error {
+	_, err := q.db.Exec(ctx, markAllNotificationsRead, ownerID)
+	return err
+}
+
 const markNotificationRead = `-- name: MarkNotificationRead :execrows
 UPDATE notifications
 SET read_at = COALESCE(read_at, now())

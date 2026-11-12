@@ -231,6 +231,38 @@ func TestNotificationListHasThe50Newest(t *testing.T) {
 	}
 }
 
+// RN-74: o tutor marca todas as notificações como lidas de uma vez, e só as
+// dele.
+func TestMarkAllNotificationsRead(t *testing.T) {
+	testAPI := petsAPI(t)
+	const insert = `INSERT INTO notifications (owner_id, kind, source_id, title, body)
+		SELECT o.id, 'sighting', uuidv7(), 'n' || i, 'b'
+		FROM owners AS o, generate_series(1, 3) AS i WHERE o.id = $1`
+	for _, token := range []string{"token-ana", "token-bia"} {
+		if _, err := testAPI.pool.Exec(t.Context(), insert, testAPI.ownerID(token)); err != nil {
+			t.Fatalf("create notifications: %v", err)
+		}
+	}
+
+	if rec := testAPI.call(http.MethodPost, "/v1/notifications/read", "token-ana", ""); rec.Code != http.StatusNoContent {
+		t.Fatalf("POST /v1/notifications/read: status = %d, body %s", rec.Code, rec.Body)
+	}
+	for _, notification := range testAPI.notifications("token-ana") {
+		if !notification.Read {
+			t.Errorf("notification %q of Ana is not read", notification.Title)
+		}
+	}
+	unread := 0
+	for _, notification := range testAPI.notifications("token-bia") {
+		if !notification.Read {
+			unread++
+		}
+	}
+	if unread < 3 {
+		t.Errorf("Bia has %d unread notifications, want at least 3", unread)
+	}
+}
+
 // RN-32: o alerta vai para os tutores a até 3.000 m. 0,0269 degree of
 // latitude is about 2.991 m, and 0,0271 is about 3.013 m.
 func TestNearbyAlertAtTheEdgeOf3000Meters(t *testing.T) {

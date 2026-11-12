@@ -1,4 +1,4 @@
-import { listNotifications, markNotificationRead, setMyLocation } from "./alerts";
+import { listNotifications, markAllNotificationsRead, markNotificationRead, setMyLocation } from "./alerts";
 
 const baseUrl = "http://api.test";
 
@@ -35,6 +35,15 @@ describe("alerts API", () => {
     await markNotificationRead(baseUrl, "the-token", "n1", fetchFn);
 
     expect(fetchFn.mock.calls[0][0]).toBe("http://api.test/v1/notifications/n1/read");
+    expect(fetchFn.mock.calls[0][1].method).toBe("POST");
+  });
+
+  it("RN-74: marks all the notifications as read", async () => {
+    const fetchFn = fetchThatAnswers(204);
+
+    await markAllNotificationsRead(baseUrl, "the-token", fetchFn);
+
+    expect(fetchFn.mock.calls[0][0]).toBe("http://api.test/v1/notifications/read");
     expect(fetchFn.mock.calls[0][1].method).toBe("POST");
   });
 });

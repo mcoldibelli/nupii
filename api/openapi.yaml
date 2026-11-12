@@ -927,6 +927,20 @@ paths:
           $ref: "#/components/responses/OwnerNotFound"
         default:
           $ref: "#/components/responses/Error"
+  /v1/notifications/read:
+    post:
+      operationId: markAllNotificationsRead
+      tags: [alerts]
+      summary: Marca todas as notificações do tutor como lidas (RN-74).
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: As notificações do tutor estão lidas.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        default:
+          $ref: "#/components/responses/Error"
   /v1/notifications/{notificationId}/read:
     parameters:
       - name: notificationId
