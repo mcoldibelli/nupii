@@ -112,6 +112,17 @@ func (h *Handlers) MarkNotificationRead(
 	}
 }
 
+// MarkAllNotificationsRead marks all the notifications of the owner as read.
+func (h *Handlers) MarkAllNotificationsRead(
+	ctx context.Context,
+	_ api.MarkAllNotificationsReadRequestObject,
+) (api.MarkAllNotificationsReadResponseObject, error) {
+	if err := h.service.MarkAllRead(ctx); err != nil {
+		return nil, fmt.Errorf("mark all notifications read: %w", err)
+	}
+	return api.MarkAllNotificationsRead204Response{}, nil
+}
+
 // RegisterDevice registers a device of the owner that made the request.
 func (h *Handlers) RegisterDevice(
 	ctx context.Context,

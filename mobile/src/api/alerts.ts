@@ -35,3 +35,8 @@ export function markNotificationRead(
 ): Promise<ApiResult<void>> {
   return request<void>(fetchFn, `${baseUrl}/v1/notifications/${notificationId}/read`, idToken, { method: "POST" });
 }
+
+/** Calls POST /v1/notifications/read: all the notifications of the owner are read (RN-74). */
+export function markAllNotificationsRead(baseUrl: string, idToken: string, fetchFn: typeof fetch = fetch): Promise<ApiResult<void>> {
+  return request<void>(fetchFn, `${baseUrl}/v1/notifications/read`, idToken, { method: "POST" });
+}

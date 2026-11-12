@@ -130,7 +130,8 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `src/reports/board.ts` | Distância, tempo desde a ocorrência e posição no mapa do mural, com testes |
 | `app/reports/lost.tsx` | Registro do desaparecimento de um pet |
 | `src/map/` | O mapa: a página HTML (`mapHtml.ts`, com testes), o WebView do app e o iframe da web |
-| `app/notifications.tsx` | Notificações |
+| `app/notifications.tsx` | Notificações, num painel sob o sino, agrupadas por Hoje, Esta semana e Antes, com "marcar todas como lidas" |
+| `app/profile.tsx` | Conta: nome, avisos de encontro, termos, troca da senha, saída e exclusão da conta |
 | `app/health/[petId].tsx`, `app/health/event.tsx` | Saúde de um pet: o aviso de cuidado atrasado com "Já dei", as abas por tipo e a folha "Anotar"; e o formulário de um evento com os anexos |
 | `app/share/[petId].tsx`, `app/card.tsx` | Carteirinha do tutor com a folha de compartilhar (validade, exames, QR code, WhatsApp, e-mail), e a carteirinha pública |
 | `src/cards/` | A carteirinha (`HealthCardView`), as linhas de vacinas e antiparasitários com o atraso, o link e o QR code, com testes |

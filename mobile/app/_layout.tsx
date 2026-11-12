@@ -125,8 +125,8 @@ function Screens() {
         <Stack.Screen name="noseprint/[petId]" options={{ headerShown: false }} />
         <Stack.Screen name="found-notices" options={{ title: "Avisos de encontro" }} />
         <Stack.Screen name="share/[petId]" options={{ headerShown: false }} />
-        <Stack.Screen name="profile" options={{ title: "Meu perfil" }} />
-        <Stack.Screen name="notifications" options={{ title: "Notificações" }} />
+        <Stack.Screen name="profile" options={{ headerShown: false }} />
+        <Stack.Screen name="notifications" options={{ headerShown: false, presentation: "transparentModal", animation: "fade" }} />
         <Stack.Screen name="health/[petId]" options={{ headerShown: false }} />
         <Stack.Screen name="health/event" options={{ headerShown: false }} />
         <Stack.Screen name="reports/lost" options={{ title: "Pet desaparecido" }} />

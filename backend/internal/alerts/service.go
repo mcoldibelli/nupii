@@ -138,6 +138,22 @@ func (s *Service) MarkRead(ctx context.Context, id string) error {
 	return nil
 }
 
+// MarkAllRead marks all the notifications of the owner that made the request
+// as read (RN-74). An account with no owner has no notification.
+func (s *Service) MarkAllRead(ctx context.Context) error {
+	ownerID, err := s.ownerID(ctx)
+	if errors.Is(err, identity.ErrOwnerNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if err := s.queries.MarkAllNotificationsRead(ctx, ownerID); err != nil {
+		return fmt.Errorf("mark all the notifications as read: %w", err)
+	}
+	return nil
+}
+
 // _maxTokenLength is more than the length of a token of Firebase Cloud
 // Messaging.
 const _maxTokenLength = 4096
