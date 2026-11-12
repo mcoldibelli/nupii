@@ -292,6 +292,53 @@ export function presetValues(preset: Preset, source: HealthEvent | undefined, to
     values.remind = true;
   } else {
     values.noteCategory = preset;
+    // RN-79: a anotação tem título. The weight form has no title field.
+    if (preset === "weight") {
+      values.title = "Peso";
+    }
   }
   return values;
+}
+
+/** The category of a form: one option of the Anotar sheet (Saude-Mobile-Registrar). */
+export type Category = "vaccine" | "flea" | "deworm" | "medication" | "consultation" | "exam" | "symptom" | "weight" | "note";
+
+/** The category of the form, from the type and the hidden category of the values. */
+export function categoryOf(type: HealthEventType, values: Values): Category {
+  if (type === "medication" && (values.medicationCategory === "flea" || values.medicationCategory === "deworm")) {
+    return values.medicationCategory;
+  }
+  if (type === "note" && (values.noteCategory === "weight" || values.noteCategory === "symptom")) {
+    return values.noteCategory;
+  }
+  return type;
+}
+
+/** The fields of each category, in order, with its own labels (keys of fieldsOf of the type). */
+const categoryLayout: Record<Category, [FieldKey, string?][]> = {
+  vaccine: [["name", "Qual vacina"], ["nextDoseDate", "Próxima dose (DD/MM/AAAA)"], ["remind", "Lembrar da próxima dose"], ["vet", "Veterinário ou clínica"], ["manufacturer"], ["batch"], ["dose"]],
+  flea: [["name", "Produto"], ["intervalDays", "Repetir a cada (dias)"], ["remind", "Lembrar da próxima dose"], ["dosage"]],
+  deworm: [["name", "Produto"], ["intervalDays", "Repetir a cada (dias)"], ["remind", "Lembrar da próxima dose"], ["dosage"]],
+  medication: [["name", "Remédio"], ["dosage"], ["frequency", "Frequência (ex.: de 12 em 12 horas)"], ["endDate"], ["inUse"], ["intervalDays", "Repetir a cada (dias)"], ["remind", "Lembrar da próxima dose"], ["activeIngredient"]],
+  consultation: [["reason"], ["clinic"], ["vet"], ["diagnosis"], ["weightKg"], ["returnDate"]],
+  exam: [["name", "Qual exame"], ["lab"], ["vet"], ["result"]],
+  symptom: [["title", "O que você notou"]],
+  weight: [["weightKg", "Peso em quilos"]],
+  note: [["noteCategory"], ["title"], ["weightKg"]],
+};
+
+const categoryType: Record<Category, HealthEventType> = { vaccine: "vaccine", flea: "medication", deworm: "medication", medication: "medication", consultation: "consultation", exam: "exam", symptom: "note", weight: "note", note: "note" };
+
+/** The fields that the form of a category shows. The other fields of the type keep the values of the preset. */
+export function categoryFields(category: Category): Field[] {
+  const all = fieldsOf(categoryType[category]);
+  return categoryLayout[category].map(([key, label]) => {
+    const field = all.find((item) => item.key === key)!;
+    if (key === "noteCategory") {
+      // Weight and symptom have their own options in the Anotar sheet.
+      const { weight: _weight, symptom: _symptom, ...others } = noteCategories;
+      return { ...field, options: others };
+    }
+    return label === undefined ? field : { ...field, label };
+  });
 }

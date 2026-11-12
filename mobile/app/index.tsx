@@ -11,6 +11,7 @@ import { listHealthEvents, listUpcomingCare, type UpcomingCare } from "../src/ap
 import { failureMessage, SESSION_FAILURE } from "../src/api/http";
 import { listPets, type Pet } from "../src/api/pets";
 import { apiUrl } from "../src/config";
+import { AnotarSheet } from "../src/health/AnotarSheet";
 import { careLine, dateTile } from "../src/health/care";
 import { petSubtitle, pickPet, unreadCount, weightTrend } from "../src/home/home";
 import { PetSwitcher } from "../src/home/PetSwitcher";
@@ -38,6 +39,9 @@ export default function Home() {
   const [weights, setWeights] = useState<{ date: string; weightKg?: number }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [switcher, setSwitcher] = useState(false);
+  // The quick access to a new health record (Saude-Mobile-Registrar sheet).
+  const [anotar, setAnotar] = useState(false);
+  const [loads, setLoads] = useState(0);
   const pet = pickPet(pets ?? [], savedId);
 
   const load = useCallback(async () => {
@@ -58,6 +62,8 @@ export default function Home() {
       return;
     }
     setPets(result.value);
+    // The weight chart is read again too: a weight saved from the home must show.
+    setLoads((count) => count + 1);
     setError(null);
     if (result.value.length === 0 && !firstPetOffered) {
       firstPetOffered = true;
@@ -75,7 +81,7 @@ export default function Home() {
     }, [load]),
   );
 
-  // The weight chart reads the events of the chosen pet (RN-51).
+  // The weight chart reads the events of the chosen pet (RN-51), at each load of the home.
   useEffect(() => {
     if (pet === null) {
       return;
@@ -86,7 +92,7 @@ export default function Home() {
       const events = token === null ? null : await listHealthEvents(apiUrl, token, pet.id);
       setWeights(events?.ok ? events.value : []);
     })();
-  }, [pet?.id, pet?.name, idToken, select]);
+  }, [pet?.id, pet?.name, idToken, select, loads]);
 
   // RF-22: the app sends the position of the device one time when it opens.
   useEffect(() => {
@@ -176,7 +182,10 @@ export default function Home() {
 
             <View style={local.sectionHead}>
               <Heading>Próximo cuidado</Heading>
-              <Button testID="open-health" label="Ver agenda" icon="calendar" variant="dark" size="sm" stretch={false} onPress={() => router.push({ pathname: "/health/[petId]", params: { petId: pet.id, petName: pet.name } })} />
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <Button testID="home-anotar" label="Anotar" icon="plus" variant="soft" size="sm" stretch={false} onPress={() => setAnotar(true)} />
+                <Button testID="open-health" label="Ver agenda" icon="calendar" variant="dark" size="sm" stretch={false} onPress={() => router.push({ pathname: "/health/[petId]", params: { petId: pet.id, petName: pet.name } })} />
+              </View>
             </View>
             {next !== undefined ? (
               <Pressable testID="upcoming-care" accessibilityRole="button" style={local.careRow} onPress={() => router.push({ pathname: "/health/[petId]", params: { petId: pet.id, petName: pet.name } })}>
@@ -219,6 +228,17 @@ export default function Home() {
         )}
       </ScrollView>
       <TabBar />
+      {pet !== null && (
+        <AnotarSheet
+          visible={anotar}
+          petName={pet.name}
+          onClose={() => setAnotar(false)}
+          onPick={(type, preset) => {
+            setAnotar(false);
+            router.push({ pathname: "/health/event", params: { petId: pet.id, petName: pet.name, type, ...(preset ? { preset } : {}) } });
+          }}
+        />
+      )}
       <PetSwitcher
         visible={switcher}
         pets={pets ?? []}

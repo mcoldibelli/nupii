@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getNoseprint } from "../../src/api/biometrics";
@@ -10,7 +10,8 @@ import { listPets, type Pet } from "../../src/api/pets";
 import { apiUrl } from "../../src/config";
 import { itemLine, itemStatus, lateCare, tabs, type Status } from "../../src/health/board";
 import { careLine } from "../../src/health/care";
-import { dateText, eventTitle, presetTypes, type Preset } from "../../src/health/form";
+import { dateText, eventTitle, type Preset } from "../../src/health/form";
+import { AnotarSheet } from "../../src/health/AnotarSheet";
 import { PetSwitcher } from "../../src/home/PetSwitcher";
 import { useSelectedPet } from "../../src/pets/SelectedPetContext";
 import { useSession } from "../../src/session/SessionContext";
@@ -28,17 +29,6 @@ const tones: Record<Status["tone"], { background: string; color: string }> = {
   late: { background: colors.danger, color: colors.onPrimary },
 };
 
-/** The options of the Anotar sheet (Saude-Mobile-Registrar artboard). */
-const options: { label: string; line: string; icon: IconName; color: string; type: HealthEventType; preset?: Exclude<Preset, "again"> }[] = [
-  { label: "Vacina", line: "V10, raiva, gripe…", icon: "syringe", color: colors.accent, type: "vaccine" },
-  { label: "Antipulgas", line: "pulgas e carrapatos", icon: "pill", color: colors.primary, type: "medication", preset: "flea" },
-  { label: "Vermífugo", line: "a cada 3 meses", icon: "pill", color: colors.primary, type: "medication", preset: "deworm" },
-  { label: "Medicação", line: "remédio com horário", icon: "pill", color: colors.primary, type: "medication", preset: "medication" },
-  { label: "Consulta", line: "ida ao veterinário", icon: "stethoscope", color: colors.dark, type: "consultation" },
-  { label: "Exame", line: "com laudo em PDF", icon: "flask", color: colors.dark, type: "exam" },
-  { label: "Sintoma", line: "vômito, coceira…", icon: "stethoscope", color: colors.danger, type: "note", preset: "symptom" },
-  { label: "Peso", line: "anote o peso de hoje", icon: "weight", color: colors.success, type: "note", preset: "weight" },
-];
 
 /** The health of a pet (Saude-Mobile artboard): the late care, the events by type (RF-27) and the Anotar sheet. */
 export default function Health() {
@@ -189,41 +179,15 @@ export default function Health() {
       </ScrollView>
       <TabBar />
 
-      <Modal visible={sheet} transparent animationType="slide" onRequestClose={() => setSheet(false)}>
-        <Pressable testID="registrar-close-overlay" accessibilityLabel="Fechar" style={local.overlay} onPress={() => setSheet(false)} />
-        <View style={[local.sheet, { paddingBottom: insets.bottom + space.xl }]}>
-          <View style={local.handle} />
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={local.sheetTitle}>O que você quer anotar?</Text>
-              <Text style={local.itemLine}>Fica no histórico de {petName} e gera lembretes</Text>
-            </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="Fechar" style={local.close} onPress={() => setSheet(false)}>
-              <Icon name="close" size={16} strokeWidth={2.4} />
-            </Pressable>
-          </View>
-          <View style={local.grid}>
-            {options.map((option) => (
-              <Pressable
-                key={option.label}
-                testID={`option-${option.label}`}
-                accessibilityRole="button"
-                style={local.option}
-                onPress={() => {
-                  setSheet(false);
-                  open(option.preset ? presetTypes[option.preset] : option.type, option.preset ? { preset: option.preset } : {});
-                }}
-              >
-                <View style={[local.optionIcon, { backgroundColor: option.color }]}>
-                  <Icon name={option.icon} size={19} color={colors.onPrimary} />
-                </View>
-                <Text style={local.itemTitle}>{option.label}</Text>
-                <Text style={local.optionLine}>{option.line}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      </Modal>
+      <AnotarSheet
+        visible={sheet}
+        petName={petName}
+        onClose={() => setSheet(false)}
+        onPick={(type, preset) => {
+          setSheet(false);
+          open(type, preset ? { preset } : {});
+        }}
+      />
 
       <PetSwitcher
         visible={switcher}
@@ -279,13 +243,4 @@ const local = StyleSheet.create({
   statusText: { fontFamily: fonts.bodyBold, fontSize: 12 },
   addItem: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 56, borderRadius: 20, borderWidth: 2, borderStyle: "dashed", borderColor: colors.borderDashed },
   addItemText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
-  overlay: { flex: 1, backgroundColor: "rgba(24,22,26,0.45)" },
-  sheet: { backgroundColor: colors.background, borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingTop: 10, paddingHorizontal: space.xl, gap: space.lg },
-  handle: { alignSelf: "center", width: 44, height: 5, borderRadius: 3, backgroundColor: colors.borderDashed },
-  sheetTitle: { fontFamily: fonts.title, fontSize: 22, letterSpacing: -0.4, color: colors.ink },
-  close: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  option: { width: "48%", flexGrow: 1, gap: 8, padding: 12, borderRadius: 20, backgroundColor: colors.surface },
-  optionIcon: { width: 40, height: 40, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  optionLine: { fontFamily: fonts.body, fontSize: 13, color: colors.textMuted },
 });
