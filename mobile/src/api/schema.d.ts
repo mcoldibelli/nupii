@@ -636,7 +636,7 @@ export interface paths {
         get: operations["listShareLinks"];
         put?: never;
         /**
-         * Cria um link da carteirinha do pet, válido por 30 dias (RN-40).
+         * Cria um link da carteirinha do pet, válido por 1, 7 ou 30 dias (RN-40).
          * @description O token só vem nesta resposta. O banco guarda só o SHA-256 dele (RN-39).
          */
         post: operations["createShareLink"];
@@ -1166,8 +1166,24 @@ export interface components {
             /** @enum {string} */
             status: "ok";
         };
+        /** @description As opções do link. Sem corpo, o link vale 30 dias e não mostra os exames (RN-40). */
+        ShareLinkInput: {
+            /**
+             * @description Dias de validade do link.
+             * @default 30
+             * @enum {integer}
+             */
+            validDays: 1 | 7 | 30;
+            /**
+             * @description A carteirinha mostra os exames do pet, sem os anexos (RN-83).
+             * @default false
+             */
+            includeExams: boolean;
+        };
         /** @description Um link da carteirinha, sem o token. */
         ShareLink: {
+            /** @description A carteirinha do link mostra os exames. */
+            includeExams: boolean;
             /** Format: uuid */
             id: string;
             /** Format: date-time */
@@ -1192,6 +1208,15 @@ export interface components {
             vaccines: components["schemas"]["HealthCardVaccine"][];
             /** @description As medicações antipulgas e vermífugo, da mais nova para a mais antiga. */
             parasiteControl: components["schemas"]["HealthCardMedication"][];
+            /** @description Os exames, do mais novo para o mais antigo. Só vem quando o link inclui os exames. */
+            exams?: components["schemas"]["HealthCardExam"][];
+        };
+        HealthCardExam: {
+            name: string;
+            /** Format: date */
+            date: string;
+            lab?: string;
+            result?: string;
         };
         HealthCardPet: {
             name: string;
@@ -2608,7 +2633,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ShareLinkInput"];
+            };
+        };
         responses: {
             /** @description O link criado, com o token. */
             201: {

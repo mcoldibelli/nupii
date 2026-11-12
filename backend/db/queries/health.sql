@@ -126,14 +126,15 @@ SELECT EXISTS (
 );
 
 -- name: CreateShareLink :one
--- RN-40: o link vale 30 dias.
-INSERT INTO share_links (pet_id, token_hash, expires_at)
-VALUES (sqlc.arg(pet_id), sqlc.arg(token_hash), now() + interval '30 days')
-RETURNING id, expires_at, opens, created_at;
+-- RN-40: o link vale 1, 7 ou 30 dias.
+INSERT INTO share_links (pet_id, token_hash, expires_at, include_exams)
+VALUES (sqlc.arg(pet_id), sqlc.arg(token_hash),
+    now() + make_interval(days => sqlc.arg(valid_days)::integer), sqlc.arg(include_exams))
+RETURNING id, expires_at, opens, created_at, include_exams;
 
 -- name: ListShareLinks :many
 -- RN-40: os links ativos, com as aberturas.
-SELECT id, expires_at, opens, created_at FROM share_links
+SELECT id, expires_at, opens, created_at, include_exams FROM share_links
 WHERE pet_id = sqlc.arg(pet_id) AND revoked_at IS NULL AND expires_at > now()
 ORDER BY created_at DESC;
 
@@ -148,7 +149,7 @@ UPDATE share_links AS l SET opens = l.opens + 1
 FROM pets AS p
 WHERE l.token_hash = sqlc.arg(token_hash) AND l.revoked_at IS NULL AND l.expires_at > now()
     AND p.id = l.pet_id AND p.deleted_at IS NULL
-RETURNING l.pet_id, p.name, p.species, p.breed, p.sex, p.birth_date,
+RETURNING l.pet_id, l.include_exams, p.name, p.species, p.breed, p.sex, p.birth_date,
     p.weight_kg, p.neutered, p.photo_key, p.vet_name, p.vet_clinic, p.vet_phone;
 
 -- name: ListCardVaccines :many
@@ -162,6 +163,12 @@ ORDER BY date DESC, created_at DESC;
 SELECT name, medication_category, date, interval_days FROM health_events
 WHERE pet_id = sqlc.arg(pet_id) AND type = 'medication'
     AND medication_category IN ('flea', 'deworm')
+ORDER BY date DESC, created_at DESC;
+
+-- name: ListCardExams :many
+-- RN-83: os exames da carteirinha, quando o link inclui os exames.
+SELECT name, date, lab, result FROM health_events
+WHERE pet_id = sqlc.arg(pet_id) AND type = 'exam'
 ORDER BY date DESC, created_at DESC;
 
 -- name: LockOwnerHealthEvents :exec

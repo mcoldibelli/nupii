@@ -392,6 +392,7 @@ func (h *Handlers) DeleteHealthAttachment(
 func toShareLink(link ShareLink) (api.ShareLink, error) {
 	converted := api.ShareLink{
 		ExpiresAt: link.ExpiresAt, Opens: link.Opens, CreatedAt: link.CreatedAt,
+		IncludeExams: link.IncludeExams,
 	}
 	if err := converted.Id.UnmarshalText([]byte(link.ID)); err != nil {
 		return api.ShareLink{}, fmt.Errorf("parse the share link id %q: %w", link.ID, err)
@@ -404,7 +405,25 @@ func (h *Handlers) CreateShareLink(
 	ctx context.Context,
 	request api.CreateShareLinkRequestObject,
 ) (api.CreateShareLinkResponseObject, error) {
-	link, err := h.service.CreateShareLink(ctx, request.PetId.String())
+	// RN-40: without a body, the link is valid for 30 days and has no exams.
+	validDays, includeExams := api.ShareLinkInputValidDaysN30, false
+	if body := request.Body; body != nil {
+		if body.ValidDays != nil {
+			validDays = *body.ValidDays
+		}
+		if body.IncludeExams != nil {
+			includeExams = *body.IncludeExams
+		}
+	}
+	if !validDays.Valid() {
+		invalid := api.InvalidRequestJSONResponse{
+			Error: api.ErrorCodeInvalidRequest, Message: "validDays must be 1, 7 or 30",
+		}
+		return api.CreateShareLink400JSONResponse{InvalidRequestJSONResponse: invalid}, nil
+	}
+	link, err := h.service.CreateShareLink(
+		ctx, request.PetId.String(), int32(validDays), includeExams,
+	)
 	if err != nil {
 		if status, body := classify(err); status == http.StatusNotFound {
 			return api.CreateShareLink404JSONResponse{
@@ -419,7 +438,7 @@ func (h *Handlers) CreateShareLink(
 	}
 	return api.CreateShareLink201JSONResponse{
 		Id: converted.Id, Token: link.Token, ExpiresAt: converted.ExpiresAt,
-		Opens: converted.Opens, CreatedAt: converted.CreatedAt,
+		Opens: converted.Opens, CreatedAt: converted.CreatedAt, IncludeExams: link.IncludeExams,
 	}, nil
 }
 
@@ -523,6 +542,21 @@ func (h *Handlers) OpenShareLink(
 			item.IntervalDays = &days
 		}
 		converted.ParasiteControl = append(converted.ParasiteControl, item)
+	}
+	// RN-83: the exams come only when the link includes them.
+	if pet.IncludeExams {
+		exams := make([]api.HealthCardExam, 0, len(card.Exams))
+		for _, exam := range card.Exams {
+			item := api.HealthCardExam{
+				Date: types.Date{Time: exam.Date}, Lab: exam.Lab, Result: exam.Result,
+			}
+			// RN-79: um exame tem nome.
+			if exam.Name != nil {
+				item.Name = *exam.Name
+			}
+			exams = append(exams, item)
+		}
+		converted.Exams = &exams
 	}
 	return api.OpenShareLink200JSONResponse(converted), nil
 }

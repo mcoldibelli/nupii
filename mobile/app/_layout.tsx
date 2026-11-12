@@ -75,7 +75,7 @@ function Screens() {
         <Stack.Screen name="found" options={{ title: "Nupii" }} />
         <Stack.Screen name="reports/index" options={{ title: "Mural de perdidos e achados" }} />
         <Stack.Screen name="reports/[id]" options={{ title: "Ocorrência" }} />
-        <Stack.Screen name="card" options={{ title: "Carteirinha" }} />
+        <Stack.Screen name="card" options={{ headerShown: false }} />
         <Stack.Screen name="terms" options={{ title: "Termos de uso" }} />
       </Stack>
     );
@@ -124,7 +124,7 @@ function Screens() {
         <Stack.Screen name="pets/edit/[id]" options={{ title: "Editar pet" }} />
         <Stack.Screen name="noseprint/[petId]" options={{ headerShown: false }} />
         <Stack.Screen name="found-notices" options={{ title: "Avisos de encontro" }} />
-        <Stack.Screen name="share/[petId]" options={{ title: "Carteirinha" }} />
+        <Stack.Screen name="share/[petId]" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ title: "Meu perfil" }} />
         <Stack.Screen name="notifications" options={{ title: "Notificações" }} />
         <Stack.Screen name="health/[petId]" options={{ headerShown: false }} />
@@ -159,7 +159,7 @@ function Screens() {
           the state of the session does not allow (in the app after the
           sign-out, and on the web at "/" with no session). */}
       <Stack.Protected guard={false}>
-        <Stack.Screen name="card" options={{ title: "Carteirinha" }} />
+        <Stack.Screen name="card" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>
   );

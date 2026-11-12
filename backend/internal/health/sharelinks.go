@@ -30,11 +30,12 @@ var ErrShareLinkNotFound = errors.New("share link not found")
 // ShareLink is a link of the health card of a pet. Token has a value only
 // in the answer of the creation (RN-39).
 type ShareLink struct {
-	ID        string
-	Token     string
-	ExpiresAt time.Time
-	Opens     int
-	CreatedAt time.Time
+	ID           string
+	Token        string
+	ExpiresAt    time.Time
+	Opens        int
+	CreatedAt    time.Time
+	IncludeExams bool
 }
 
 // Card is the health card that a share link opens (RN-83).
@@ -43,6 +44,8 @@ type Card struct {
 	PhotoURL        string
 	Vaccines        []healthdb.ListCardVaccinesRow
 	ParasiteControl []healthdb.ListCardParasiteControlRow
+	// Exams has the exams only when the link includes them (RN-83).
+	Exams []healthdb.ListCardExamsRow
 }
 
 // hashToken returns the SHA-256 of the token, the value that the database
@@ -52,8 +55,11 @@ func hashToken(token string) []byte {
 	return sum[:]
 }
 
-// CreateShareLink creates a share link of the pet petID (RF-30).
-func (s *Service) CreateShareLink(ctx context.Context, petID string) (ShareLink, error) {
+// CreateShareLink creates a share link of the pet petID (RF-30), valid for
+// validDays days (RN-40). The caller checks that validDays is 1, 7 or 30.
+func (s *Service) CreateShareLink(
+	ctx context.Context, petID string, validDays int32, includeExams bool,
+) (ShareLink, error) {
 	if err := s.checkPet(ctx, petID); err != nil {
 		return ShareLink{}, err
 	}
@@ -64,13 +70,14 @@ func (s *Service) CreateShareLink(ctx context.Context, petID string) (ShareLink,
 	token := base64.RawURLEncoding.EncodeToString(random)
 	row, err := s.queries.CreateShareLink(ctx, healthdb.CreateShareLinkParams{
 		PetID: petID, TokenHash: hashToken(token),
+		ValidDays: validDays, IncludeExams: includeExams,
 	})
 	if err != nil {
 		return ShareLink{}, fmt.Errorf("create share link: %w", err)
 	}
 	return ShareLink{
 		ID: row.ID, Token: token, ExpiresAt: row.ExpiresAt,
-		Opens: int(row.Opens), CreatedAt: row.CreatedAt,
+		Opens: int(row.Opens), CreatedAt: row.CreatedAt, IncludeExams: row.IncludeExams,
 	}, nil
 }
 
@@ -87,7 +94,8 @@ func (s *Service) ShareLinks(ctx context.Context, petID string) ([]ShareLink, er
 	links := make([]ShareLink, 0, len(rows))
 	for _, row := range rows {
 		links = append(links, ShareLink{
-			ID: row.ID, ExpiresAt: row.ExpiresAt, Opens: int(row.Opens), CreatedAt: row.CreatedAt,
+			ID: row.ID, ExpiresAt: row.ExpiresAt, Opens: int(row.Opens),
+			CreatedAt: row.CreatedAt, IncludeExams: row.IncludeExams,
 		})
 	}
 	return links, nil
@@ -135,6 +143,12 @@ func (s *Service) OpenCard(ctx context.Context, token string) (Card, error) {
 	card.ParasiteControl, err = s.queries.ListCardParasiteControl(ctx, pet.PetID)
 	if err != nil {
 		return Card{}, fmt.Errorf("list the parasite control of the card: %w", err)
+	}
+	if pet.IncludeExams {
+		card.Exams, err = s.queries.ListCardExams(ctx, pet.PetID)
+		if err != nil {
+			return Card{}, fmt.Errorf("list the exams of the card: %w", err)
+		}
 	}
 	return card, nil
 }
