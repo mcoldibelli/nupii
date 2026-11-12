@@ -74,7 +74,7 @@ function Screens() {
       <Stack screenOptions={headerOptions}>
         <Stack.Screen name="found" options={{ headerShown: false }} />
         <Stack.Screen name="reports/index" options={{ headerShown: false }} />
-        <Stack.Screen name="reports/[id]" options={{ title: "Ocorrência" }} />
+        <Stack.Screen name="reports/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="card" options={{ headerShown: false }} />
         <Stack.Screen name="terms" options={{ title: "Termos de uso" }} />
       </Stack>
@@ -147,7 +147,7 @@ function Screens() {
           after the groups above, so they are never the fallback screen. */}
       <Stack.Protected guard={state.kind === "ready" || state.kind === "signedOut"}>
         <Stack.Screen name="reports/index" options={{ headerShown: false }} />
-        <Stack.Screen name="reports/[id]" options={{ title: "Ocorrência" }} />
+        <Stack.Screen name="reports/[id]" options={{ headerShown: false }} />
       </Stack.Protected>
       <Stack.Protected guard={Platform.OS !== "web" && (state.kind === "ready" || state.kind === "signedOut")}>
         <Stack.Screen name="found" options={{ headerShown: false }} />
