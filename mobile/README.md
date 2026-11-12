@@ -55,7 +55,7 @@ O mapa é uma página com o Leaflet e os quadros do OpenStreetMap, dentro de um 
 
 ## Web pública
 
-As páginas públicas são rotas do mesmo projeto, no alvo web: `/found` ("encontrei um pet", com a publicação do achado), `/reports` (mural), `/reports/<id>` (ficha, com o avistamento) `/card` (carteirinha) e `/terms` (termos de uso e política de privacidade). Com o link que a publicação do achado mostra, `/reports/<id>#code=...`, quem publicou resolve o achado. O link da carteirinha é `/card#token=...` ([ADR 0027](../docs/adr/0027-link-da-carteirinha.md)). Nenhuma delas pede conta ([ADR 0022](../docs/adr/0022-web-publica-no-alvo-web-do-expo.md)).
+As páginas públicas são rotas do mesmo projeto, no alvo web: `/landing` (página de entrada do visitante, para onde vai `/` sem sessão), `/found` ("encontrei um pet", com a publicação do achado), `/reports` (mural), `/reports/<id>` (ficha, com o avistamento) `/card` (carteirinha) e `/terms` (termos de uso e política de privacidade). Com o link que a publicação do achado mostra, `/reports/<id>#code=...`, quem publicou resolve o achado. O link da carteirinha é `/card#token=...` ([ADR 0027](../docs/adr/0027-link-da-carteirinha.md)). Nenhuma delas pede conta ([ADR 0022](../docs/adr/0022-web-publica-no-alvo-web-do-expo.md)).
 
 No navegador da sua máquina, a API fica em `localhost`, e não no endereço do emulador Android. Suba a web com o endereço certo:
 

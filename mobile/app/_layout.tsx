@@ -40,9 +40,12 @@ function Screens() {
       : state.kind === "needsProfile"
         ? "/complete-profile"
         : state.kind === "signedOut"
-          ? Platform.OS !== "web" && welcome.seen === false
-            ? "/welcome"
-            : "/sign-in"
+          ? Platform.OS === "web"
+            ? // The visitor of the web starts at the landing page (Landing-Web, #231).
+              "/landing"
+            : welcome.seen === false
+              ? "/welcome"
+              : "/sign-in"
           : null;
   // The state of the session for which the app last went to the first screen.
   const lastKind = useRef<string | null>(null);
@@ -79,6 +82,7 @@ function Screens() {
         <Stack.Screen name="reports/index" options={{ headerShown: false }} />
         <Stack.Screen name="reports/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="card" options={{ headerShown: false }} />
+        <Stack.Screen name="landing" options={{ headerShown: false }} />
         <Stack.Screen name="terms" options={{ title: "Termos de uso" }} />
       </Stack>
       </WebFrame>
@@ -150,6 +154,7 @@ function Screens() {
           sign-out, and on the web at "/" with no session). */}
       <Stack.Protected guard={false}>
         <Stack.Screen name="card" options={{ headerShown: false }} />
+        <Stack.Screen name="landing" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>
     </WebFrame>
