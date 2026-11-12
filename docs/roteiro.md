@@ -26,6 +26,7 @@ A construção segue fatias verticais. Uma fatia vai do banco até a tela e term
 | 8 | Carteirinha | Link compartilhado, QR code e a página pública da carteirinha. | Um link aberto na web mostra a carteirinha. Depois de revogado, o mesmo link devolve 404. |
 | 9 | Conta e LGPD | Perfil, telas de trocar senha e esqueci a senha (pelo Firebase), excluir conta com anonimização, limpeza diária dos dados vencidos. | Uma conta excluída some da identificação e do mural, e o usuário dela não existe mais no Firebase. A tarefa de limpeza apaga um registro com data forçada para 31 dias atrás. |
 | 9b | Interface | O visual do canvas de design nas telas que já existem: tema, componentes, barra de navegação, ícone e tela de abertura ([ADR 0030](adr/0030-visual-do-app.md)). | Cada tela do app e da web pública usa os componentes do tema. Os pares de cor do tema passam no contraste AA. |
+| 9c | Telas do canvas | O layout de cada tela do canvas de design nas telas do app, com os comportamentos que a API já permite, e o backend que faltar. | Cada tela, posta lado a lado com o artboard do canvas, tem o mesmo layout. Cada comportamento do canvas funciona com a API. |
 | 10 | Publicação | Login com Google, build do app, publicação da API e da web. | O app instalado em um aparelho real usa a API publicada. |
 | 11 | Documentação final | Casos de uso, diagrama de domínio e modelo de dados (DER), escritos a partir do sistema pronto. | Cada caso de uso aponta para os RF que ele cobre. O DER tem as mesmas tabelas e relações das migrations. O README lista os três documentos. |
 

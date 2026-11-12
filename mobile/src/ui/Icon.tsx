@@ -1,4 +1,4 @@
-import Svg, { Circle, Ellipse, Path, Rect } from "react-native-svg";
+import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
 
 import { colors } from "./theme";
 
@@ -140,6 +140,49 @@ export function Mascot({ width = 186 }: { width?: number }) {
       <Path d="M120 134 V144 M120 144 C115 149 108 149 104 145 M120 144 C125 149 132 149 136 145" stroke="#1E1B18" strokeWidth={3} fill="none" strokeLinecap="round" />
       <Path d="M76 170 C100 182 140 182 164 170 L162 184 C140 196 100 196 78 184 Z" fill={colors.brand} />
       <Circle cx="120" cy="194" r="7.5" fill="#F2C14E" />
+    </Svg>
+  );
+}
+
+/** The background and the caramel dog of the welcome header (Landing-Mobile artboard). */
+export function WelcomeArt({ collar, width, noseBox = false }: { collar: string; width: number; noseBox?: boolean }) {
+  const paw = (x: number, y: number, rotate: number, scale: number) => (
+    <G fill="#FFFFFF" fillOpacity={0.3} transform={`translate(${x} ${y}) rotate(${rotate}) scale(${scale})`}>
+      <Ellipse cx="0" cy="8" rx="9" ry="7.5" />
+      <Ellipse cx="-9" cy="-4" rx="3.6" ry="4.6" />
+      <Ellipse cx="-3" cy="-10" rx="3.6" ry="4.6" />
+      <Ellipse cx="4" cy="-10" rx="3.6" ry="4.6" />
+      <Ellipse cx="10" cy="-4" rx="3.6" ry="4.6" />
+    </G>
+  );
+  const scale = width / 390;
+  return (
+    <Svg width={width} height={470 * scale} viewBox="0 0 390 470" aria-hidden style={{ position: "absolute", left: 0, top: 0 }}>
+      <Circle cx="195" cy="420" r="190" fill="#FFFFFF" fillOpacity={0.1} />
+      <Circle cx="195" cy="420" r="140" fill="#FFFFFF" fillOpacity={0.1} />
+      <Path d="M-30 250 C 50 200, 90 300, 160 250" stroke="#FFFFFF" strokeOpacity={0.35} strokeWidth={2.5} fill="none" strokeLinecap="round" />
+      <Path d="M300 220 c 40 -10 70 20 110 0" stroke="#FFFFFF" strokeOpacity={0.35} strokeWidth={2.5} fill="none" strokeLinecap="round" />
+      {paw(350, 300, 20, 1.2)}
+      {paw(36, 340, -18, 0.9)}
+      <G transform="translate(79 219) scale(0.9667)">
+        <Path d="M44 260 C44 188 82 156 120 156 C158 156 196 188 196 260 Z" fill="#D88B3F" />
+        <Path d="M94 260 C94 214 106 192 120 192 C134 192 146 214 146 260 Z" fill="#F7E8D4" />
+        <Path d="M64 82 C46 66 40 40 52 24 C72 30 90 50 98 70 Z" fill="#A9622A" />
+        <Path d="M176 82 C194 66 200 40 188 24 C168 30 150 50 142 70 Z" fill="#A9622A" />
+        <Ellipse cx="120" cy="108" rx="64" ry="58" fill="#E39C52" />
+        <Path d="M120 54 C110 70 108 90 112 104 L128 104 C132 90 130 70 120 54 Z" fill="#F7E8D4" fillOpacity={0.85} />
+        <Ellipse cx="120" cy="136" rx="34" ry="25" fill="#F7E8D4" />
+        <Circle cx="96" cy="98" r="7" fill="#1E1B18" />
+        <Circle cx="144" cy="98" r="7" fill="#1E1B18" />
+        <Circle cx="98.5" cy="95.5" r="2.2" fill="#FFFFFF" />
+        <Circle cx="146.5" cy="95.5" r="2.2" fill="#FFFFFF" />
+        <Path d="M105 121 C105 113 135 113 135 121 C135 129 127 134 120 134 C113 134 105 129 105 121 Z" fill="#1E1B18" />
+        <Path d="M114 148 C114 160 126 160 126 148 Z" fill="#E8636B" />
+        <Path d="M120 134 V144 M120 144 C115 149 108 149 104 145 M120 144 C125 149 132 149 136 145" stroke="#1E1B18" strokeWidth={3} fill="none" strokeLinecap="round" />
+        <Path d="M76 170 C100 182 140 182 164 170 L162 184 C140 196 100 196 78 184 Z" fill={collar} />
+        <Circle cx="120" cy="194" r="7.5" fill="#F2C14E" />
+      </G>
+      {noseBox && <Rect x="166" y="323" width="58" height="45" rx="14" fill="none" stroke="#FFFFFF" strokeWidth={2.5} strokeDasharray="6 5" />}
     </Svg>
   );
 }
