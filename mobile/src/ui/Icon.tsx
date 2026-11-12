@@ -1,4 +1,4 @@
-import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
+import Svg, { Circle, Ellipse, G, Line, Path, Polyline, Rect, Text as SvgText } from "react-native-svg";
 
 import { colors } from "./theme";
 
@@ -88,6 +88,7 @@ const icons = {
       <Circle cx="19" cy="11" r="2" />
     </>
   ),
+  pencil: <Path d="M4 20h4L19 9l-4-4L4 16z" />,
   flask: (
     <>
       <Path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3" />
@@ -99,9 +100,9 @@ const icons = {
 export type IconName = keyof typeof icons;
 
 /** A stroke icon of the canvas. The icon is decoration: the control around it has the label. */
-export function Icon({ name, size = 22, color = colors.ink, strokeWidth = 2 }: { name: IconName; size?: number; color?: string; strokeWidth?: number }) {
+export function Icon({ name, size = 22, color = colors.ink, strokeWidth = 2, filled = false }: { name: IconName; size?: number; color?: string; strokeWidth?: number; filled?: boolean }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : "none"} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       {icons[name]}
     </Svg>
   );
@@ -183,6 +184,40 @@ export function WelcomeArt({ collar, width, noseBox = false }: { collar: string;
         <Circle cx="120" cy="194" r="7.5" fill="#F2C14E" />
       </G>
       {noseBox && <Rect x="166" y="323" width="58" height="45" rx="14" fill="none" stroke="#FFFFFF" strokeWidth={2.5} strokeDasharray="6 5" />}
+    </Svg>
+  );
+}
+
+const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+/** The weight chart of the home (Inicio-Mobile artboard): a line with a dot per point and the month under it. */
+export function WeightChart({ points, width }: { points: { date: string; kg: number }[]; width: number }) {
+  const height = 96;
+  const values = points.map((point) => point.kg);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const x = (i: number) => (points.length === 1 ? width / 2 : 10 + (i * (width - 20)) / (points.length - 1));
+  const y = (kg: number) => 70 - ((kg - min) / span) * 42;
+  const line = points.map((point, i) => `${x(i)},${y(point.kg)}`).join(" ");
+  const label = points.map((point) => `${MONTHS[Number(point.date.slice(5, 7)) - 1]} ${point.kg.toString().replace(".", ",")} kg`).join("; ");
+  return (
+    <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} accessibilityLabel={`Peso: ${label}`}>
+      {[14, 44, 74].map((lineY) => (
+        <Line key={lineY} x1="0" y1={lineY} x2={width} y2={lineY} stroke="#E3E2DF" strokeWidth={1} strokeDasharray="3 4" />
+      ))}
+      <Polyline points={line} fill="none" stroke={colors.brand} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+      {points.map((point, i) => {
+        const lastPoint = i === points.length - 1;
+        return (
+          <G key={point.date}>
+            <Circle cx={x(i)} cy={y(point.kg)} r={lastPoint ? 6 : 3.5} fill={lastPoint ? colors.brand : "#FFFFFF"} stroke={lastPoint ? "#FFFFFF" : colors.brand} strokeWidth={lastPoint ? 2.5 : 2} />
+            <SvgText x={x(i)} y={93} fontSize={12} fill={lastPoint ? colors.ink : colors.textMuted} fontWeight={lastPoint ? "700" : "400"} textAnchor="middle">
+              {MONTHS[Number(point.date.slice(5, 7)) - 1]}
+            </SvgText>
+          </G>
+        );
+      })}
     </Svg>
   );
 }

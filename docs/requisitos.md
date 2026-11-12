@@ -72,6 +72,7 @@
 | RF-27 | O tutor cria, lista, altera e apaga os eventos de saúde de um pet: vacina, consulta, medicação, exame e anotação. | 7 | estável |
 | RF-28 | O tutor envia, lista e apaga os anexos de um evento de saúde. | 7 | estável |
 | RF-29 | O tutor vê os próximos cuidados de vacina e de medicação dos pets dele. O lembrete por push entra na fatia 10 ([ADR 0026](adr/0026-eventos-de-saude.md)). | 7 e 10 | estável |
+| RF-34 | O início mostra um pet por vez, escolhido num seletor: a foto, o próximo cuidado dele e o peso ao longo do tempo, a partir dos eventos de saúde com peso (RN-51). O seletor mostra se o focinho de cada cachorro está cadastrado. | 9c | estável |
 
 ### Carteirinha
 

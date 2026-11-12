@@ -22,3 +22,11 @@ export function dateTile(dueDate: string): { month: string; day: string } {
   const [, month, day] = dueDate.split("-").map(Number);
   return { month: MONTHS[month - 1], day: String(day) };
 }
+
+const WEEKDAYS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+
+/** "quinta · em 5 dias": the weekday and the days left of a due date (RN-81). */
+export function careLine(dueDate: string, now: Date = new Date()): string {
+  const [year, month, day] = dueDate.split("-").map(Number);
+  return `${WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()]} · ${careWhen(dueDate, now)}`;
+}
