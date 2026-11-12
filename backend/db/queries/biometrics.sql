@@ -96,9 +96,10 @@ WHERE p.id = ANY(sqlc.arg(ids)::uuid[]);
 -- name: LockCandidate :one
 -- RN-64: o candidato da confirmação é da mesma identificação. The lock of
 -- the identification puts two confirmations in sequence.
-SELECT c.id, i.photo_key
+SELECT c.id, i.photo_key, p.owner_id, p.name AS pet_name
 FROM identification_candidates AS c
 JOIN identifications AS i ON i.id = c.identification_id
+JOIN pets AS p ON p.id = c.pet_id
 WHERE c.id = sqlc.arg(candidate_id) AND i.id = sqlc.arg(identification_id)
 FOR UPDATE OF i;
 
@@ -112,7 +113,7 @@ SET contact_name = sqlc.arg(contact_name),
     photo_key = COALESCE(photo_key, sqlc.narg(photo_key))
 WHERE id = sqlc.arg(id);
 
--- name: ConfirmCandidate :exec
+-- name: ConfirmCandidate :execrows
 -- RN-65: a data da confirmação fica a da primeira vez.
 UPDATE identification_candidates
 SET confirmed_at = now()
@@ -135,4 +136,30 @@ FROM identification_candidates AS c
 JOIN identifications AS i ON i.id = c.identification_id
 JOIN pets AS p ON p.id = c.pet_id
 WHERE p.owner_id = sqlc.arg(owner_id) AND p.deleted_at IS NULL AND c.confirmed_at IS NOT NULL
+    -- RN-42: a notice with the contact purged leaves the list.
+    AND i.contact_name IS NOT NULL
 ORDER BY c.confirmed_at DESC, c.id DESC;
+
+-- name: DeleteOwnerCandidates :exec
+-- RN-84: the candidates point to the noseprints of the pets of the owner.
+DELETE FROM identification_candidates
+WHERE pet_id IN (SELECT id FROM pets WHERE owner_id = sqlc.arg(owner_id));
+
+-- name: DeleteOwnerNoseprints :many
+DELETE FROM noseprints
+WHERE pet_id IN (SELECT id FROM pets WHERE owner_id = sqlc.arg(owner_id))
+RETURNING image_key;
+
+-- name: LockExpiredIdentifications :many
+-- RN-42: the consults older than the limit that still have a contact or a
+-- photo. The update comes in the next statement.
+SELECT id, photo_key FROM identifications
+WHERE created_at < sqlc.arg(before)
+    AND (photo_key IS NOT NULL OR contact_name IS NOT NULL OR contact_phone IS NOT NULL
+        OR contact_message IS NOT NULL)
+FOR UPDATE;
+
+-- name: PurgeIdentifications :exec
+UPDATE identifications
+SET photo_key = NULL, contact_name = NULL, contact_phone = NULL, contact_message = NULL
+WHERE id = ANY(sqlc.arg(ids)::uuid[]);

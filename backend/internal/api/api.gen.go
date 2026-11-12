@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -18,18 +19,46 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for DevicePlatform.
+const (
+	DevicePlatformAndroid DevicePlatform = "android"
+	DevicePlatformIos     DevicePlatform = "ios"
+	DevicePlatformWeb     DevicePlatform = "web"
+)
+
+// Valid indicates whether the value is a known member of the DevicePlatform enum.
+func (e DevicePlatform) Valid() bool {
+	switch e {
+	case DevicePlatformAndroid:
+		return true
+	case DevicePlatformIos:
+		return true
+	case DevicePlatformWeb:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ErrorCode.
 const (
+	ErrorCodeAttachmentLimit        ErrorCode = "attachment_limit"
+	ErrorCodeHealthEventNotFound    ErrorCode = "health_event_not_found"
 	ErrorCodeIdentificationNotFound ErrorCode = "identification_not_found"
 	ErrorCodeImageFraming           ErrorCode = "image_framing"
 	ErrorCodeImageLowQuality        ErrorCode = "image_low_quality"
 	ErrorCodeInternalError          ErrorCode = "internal_error"
 	ErrorCodeInvalidRequest         ErrorCode = "invalid_request"
+	ErrorCodeLostReportOpen         ErrorCode = "lost_report_open"
 	ErrorCodeNoseprintNotFound      ErrorCode = "noseprint_not_found"
 	ErrorCodeNotFound               ErrorCode = "not_found"
+	ErrorCodeNotificationNotFound   ErrorCode = "notification_not_found"
 	ErrorCodeOwnerNotFound          ErrorCode = "owner_not_found"
 	ErrorCodePetNotFound            ErrorCode = "pet_not_found"
 	ErrorCodeRateLimited            ErrorCode = "rate_limited"
+	ErrorCodeReportNotFound         ErrorCode = "report_not_found"
+	ErrorCodeReportNotOpen          ErrorCode = "report_not_open"
+	ErrorCodeShareLinkNotFound      ErrorCode = "share_link_not_found"
 	ErrorCodeSpeciesNotSupported    ErrorCode = "species_not_supported"
 	ErrorCodeUnauthenticated        ErrorCode = "unauthenticated"
 	ErrorCodeUnavailable            ErrorCode = "unavailable"
@@ -38,6 +67,10 @@ const (
 // Valid indicates whether the value is a known member of the ErrorCode enum.
 func (e ErrorCode) Valid() bool {
 	switch e {
+	case ErrorCodeAttachmentLimit:
+		return true
+	case ErrorCodeHealthEventNotFound:
+		return true
 	case ErrorCodeIdentificationNotFound:
 		return true
 	case ErrorCodeImageFraming:
@@ -48,15 +81,25 @@ func (e ErrorCode) Valid() bool {
 		return true
 	case ErrorCodeInvalidRequest:
 		return true
+	case ErrorCodeLostReportOpen:
+		return true
 	case ErrorCodeNoseprintNotFound:
 		return true
 	case ErrorCodeNotFound:
+		return true
+	case ErrorCodeNotificationNotFound:
 		return true
 	case ErrorCodeOwnerNotFound:
 		return true
 	case ErrorCodePetNotFound:
 		return true
 	case ErrorCodeRateLimited:
+		return true
+	case ErrorCodeReportNotFound:
+		return true
+	case ErrorCodeReportNotOpen:
+		return true
+	case ErrorCodeShareLinkNotFound:
 		return true
 	case ErrorCodeSpeciesNotSupported:
 		return true
@@ -78,6 +121,183 @@ const (
 func (e HealthStatus) Valid() bool {
 	switch e {
 	case HealthStatusOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HealthAttachmentContentType.
+const (
+	HealthAttachmentContentTypeApplicationpdf HealthAttachmentContentType = "application/pdf"
+	HealthAttachmentContentTypeImagejpeg      HealthAttachmentContentType = "image/jpeg"
+	HealthAttachmentContentTypeImagepng       HealthAttachmentContentType = "image/png"
+	HealthAttachmentContentTypeImagewebp      HealthAttachmentContentType = "image/webp"
+)
+
+// Valid indicates whether the value is a known member of the HealthAttachmentContentType enum.
+func (e HealthAttachmentContentType) Valid() bool {
+	switch e {
+	case HealthAttachmentContentTypeApplicationpdf:
+		return true
+	case HealthAttachmentContentTypeImagejpeg:
+		return true
+	case HealthAttachmentContentTypeImagepng:
+		return true
+	case HealthAttachmentContentTypeImagewebp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HealthCardMedicationCategory.
+const (
+	HealthCardMedicationCategoryDeworm HealthCardMedicationCategory = "deworm"
+	HealthCardMedicationCategoryFlea   HealthCardMedicationCategory = "flea"
+)
+
+// Valid indicates whether the value is a known member of the HealthCardMedicationCategory enum.
+func (e HealthCardMedicationCategory) Valid() bool {
+	switch e {
+	case HealthCardMedicationCategoryDeworm:
+		return true
+	case HealthCardMedicationCategoryFlea:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HealthEventType.
+const (
+	HealthEventTypeConsultation HealthEventType = "consultation"
+	HealthEventTypeExam         HealthEventType = "exam"
+	HealthEventTypeMedication   HealthEventType = "medication"
+	HealthEventTypeNote         HealthEventType = "note"
+	HealthEventTypeVaccine      HealthEventType = "vaccine"
+)
+
+// Valid indicates whether the value is a known member of the HealthEventType enum.
+func (e HealthEventType) Valid() bool {
+	switch e {
+	case HealthEventTypeConsultation:
+		return true
+	case HealthEventTypeExam:
+		return true
+	case HealthEventTypeMedication:
+		return true
+	case HealthEventTypeNote:
+		return true
+	case HealthEventTypeVaccine:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MedicationCategory.
+const (
+	MedicationCategoryDeworm     MedicationCategory = "deworm"
+	MedicationCategoryFlea       MedicationCategory = "flea"
+	MedicationCategoryMedication MedicationCategory = "medication"
+)
+
+// Valid indicates whether the value is a known member of the MedicationCategory enum.
+func (e MedicationCategory) Valid() bool {
+	switch e {
+	case MedicationCategoryDeworm:
+		return true
+	case MedicationCategoryFlea:
+		return true
+	case MedicationCategoryMedication:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NoteCategory.
+const (
+	NoteCategoryAllergy NoteCategory = "allergy"
+	NoteCategoryDisease NoteCategory = "disease"
+	NoteCategoryNote    NoteCategory = "note"
+	NoteCategorySurgery NoteCategory = "surgery"
+	NoteCategorySymptom NoteCategory = "symptom"
+	NoteCategoryWeight  NoteCategory = "weight"
+)
+
+// Valid indicates whether the value is a known member of the NoteCategory enum.
+func (e NoteCategory) Valid() bool {
+	switch e {
+	case NoteCategoryAllergy:
+		return true
+	case NoteCategoryDisease:
+		return true
+	case NoteCategoryNote:
+		return true
+	case NoteCategorySurgery:
+		return true
+	case NoteCategorySymptom:
+		return true
+	case NoteCategoryWeight:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationKind.
+const (
+	NotificationKindFound      NotificationKind = "found"
+	NotificationKindLostNearby NotificationKind = "lost_nearby"
+	NotificationKindSighting   NotificationKind = "sighting"
+)
+
+// Valid indicates whether the value is a known member of the NotificationKind enum.
+func (e NotificationKind) Valid() bool {
+	switch e {
+	case NotificationKindFound:
+		return true
+	case NotificationKindLostNearby:
+		return true
+	case NotificationKindSighting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReportStatus.
+const (
+	ReportStatusOpen     ReportStatus = "open"
+	ReportStatusResolved ReportStatus = "resolved"
+)
+
+// Valid indicates whether the value is a known member of the ReportStatus enum.
+func (e ReportStatus) Valid() bool {
+	switch e {
+	case ReportStatusOpen:
+		return true
+	case ReportStatusResolved:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReportType.
+const (
+	ReportTypeFound ReportType = "found"
+	ReportTypeLost  ReportType = "lost"
+)
+
+// Valid indicates whether the value is a known member of the ReportType enum.
+func (e ReportType) Valid() bool {
+	switch e {
+	case ReportTypeFound:
+		return true
+	case ReportTypeLost:
 		return true
 	default:
 		return false
@@ -162,6 +382,30 @@ func (e TermsVersion) Valid() bool {
 	}
 }
 
+// CreatedShareLink O link criado, com o token. O app monta o endereço `<web>/card#token=<token>`.
+type CreatedShareLink struct {
+	CreatedAt time.Time          `json:"createdAt"`
+	ExpiresAt time.Time          `json:"expiresAt"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Opens Quantas vezes a carteirinha foi aberta pelo link.
+	Opens int `json:"opens"`
+
+	// Token 32 bytes aleatórios em base64url, sem preenchimento (RN-39).
+	Token string `json:"token"`
+}
+
+// Device defines model for Device.
+type Device struct {
+	Platform DevicePlatform `json:"platform"`
+
+	// Token Token de push do Firebase Cloud Messaging, com no máximo 4.096 caracteres.
+	Token string `json:"token"`
+}
+
+// DevicePlatform defines model for Device.Platform.
+type DevicePlatform string
+
 // Error Formato único de erro. Todo erro da API usa este formato.
 type Error struct {
 	// Error Código estável do erro. O cliente escolhe o texto da tela por este código.
@@ -194,6 +438,15 @@ type FoundNoticeList struct {
 	Notices []FoundNotice `json:"notices"`
 }
 
+// FoundReportCreated defines model for FoundReportCreated.
+type FoundReportCreated struct {
+	// Report Uma ocorrência. Não tem dado do autor.
+	Report Report `json:"report"`
+
+	// ResolveCode Código que resolve o achado. Ele aparece só nesta resposta.
+	ResolveCode string `json:"resolveCode"`
+}
+
 // Health defines model for Health.
 type Health struct {
 	Status HealthStatus `json:"status"`
@@ -201,6 +454,246 @@ type Health struct {
 
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
+
+// HealthAttachment defines model for HealthAttachment.
+type HealthAttachment struct {
+	ContentType HealthAttachmentContentType `json:"contentType"`
+	CreatedAt   time.Time                   `json:"createdAt"`
+
+	// FileName Nome do arquivo enviado, ou "anexo" quando o envio não tem nome.
+	FileName  string             `json:"fileName"`
+	Id        openapi_types.UUID `json:"id"`
+	SizeBytes int                `json:"sizeBytes"`
+
+	// Url URL temporária do arquivo. Vale por 900 segundos.
+	Url string `json:"url"`
+}
+
+// HealthAttachmentContentType defines model for HealthAttachment.ContentType.
+type HealthAttachmentContentType string
+
+// HealthAttachmentList defines model for HealthAttachmentList.
+type HealthAttachmentList struct {
+	Attachments []HealthAttachment `json:"attachments"`
+}
+
+// HealthCard A carteirinha do pet (RN-83). Sem dados do tutor, sem IDs internos e sem anexos.
+type HealthCard struct {
+	// ParasiteControl As medicações antipulgas e vermífugo, da mais nova para a mais antiga.
+	ParasiteControl []HealthCardMedication `json:"parasiteControl"`
+	Pet             HealthCardPet          `json:"pet"`
+
+	// Vaccines Da mais nova para a mais antiga.
+	Vaccines []HealthCardVaccine `json:"vaccines"`
+}
+
+// HealthCardMedication defines model for HealthCardMedication.
+type HealthCardMedication struct {
+	Category     HealthCardMedicationCategory `json:"category"`
+	Date         openapi_types.Date           `json:"date"`
+	IntervalDays *int                         `json:"intervalDays,omitempty"`
+	Name         string                       `json:"name"`
+}
+
+// HealthCardMedicationCategory defines model for HealthCardMedication.Category.
+type HealthCardMedicationCategory string
+
+// HealthCardPet defines model for HealthCardPet.
+type HealthCardPet struct {
+	BirthDate *openapi_types.Date `json:"birthDate,omitempty"`
+	Breed     *string             `json:"breed,omitempty"`
+	Name      string              `json:"name"`
+	Neutered  *bool               `json:"neutered,omitempty"`
+
+	// PhotoUrl URL temporária da foto de perfil, válida por 15 minutos.
+	PhotoUrl *string `json:"photoUrl,omitempty"`
+
+	// Sex Sexo do pet.
+	Sex *Sex `json:"sex,omitempty"`
+
+	// Species Espécie do pet.
+	Species   Species  `json:"species"`
+	VetClinic *string  `json:"vetClinic,omitempty"`
+	VetName   *string  `json:"vetName,omitempty"`
+	VetPhone  *string  `json:"vetPhone,omitempty"`
+	WeightKg  *float64 `json:"weightKg,omitempty"`
+}
+
+// HealthCardVaccine defines model for HealthCardVaccine.
+type HealthCardVaccine struct {
+	Batch        *string             `json:"batch,omitempty"`
+	Date         openapi_types.Date  `json:"date"`
+	Dose         *string             `json:"dose,omitempty"`
+	Manufacturer *string             `json:"manufacturer,omitempty"`
+	Name         string              `json:"name"`
+	NextDoseDate *openapi_types.Date `json:"nextDoseDate,omitempty"`
+	Vet          *string             `json:"vet,omitempty"`
+}
+
+// HealthEvent defines model for HealthEvent.
+type HealthEvent struct {
+	// ActiveIngredient Medicação.
+	ActiveIngredient *string `json:"activeIngredient,omitempty"`
+
+	// Batch Vacina.
+	Batch *string `json:"batch,omitempty"`
+
+	// Clinic Consulta.
+	Clinic    *string            `json:"clinic,omitempty"`
+	CreatedAt time.Time          `json:"createdAt"`
+	Date      openapi_types.Date `json:"date"`
+
+	// Diagnosis Consulta.
+	Diagnosis *string `json:"diagnosis,omitempty"`
+
+	// Dosage Medicação.
+	Dosage *string `json:"dosage,omitempty"`
+
+	// Dose Vacina.
+	Dose *string `json:"dose,omitempty"`
+
+	// EndDate Medicação. Não é anterior à data do evento.
+	EndDate *openapi_types.Date `json:"endDate,omitempty"`
+
+	// Frequency Medicação.
+	Frequency *string            `json:"frequency,omitempty"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// InUse Medicação.
+	InUse *bool `json:"inUse,omitempty"`
+
+	// IntervalDays Medicação. Intervalo entre as doses, em dias.
+	IntervalDays *int `json:"intervalDays,omitempty"`
+
+	// Lab Exame.
+	Lab *string `json:"lab,omitempty"`
+
+	// Manufacturer Vacina.
+	Manufacturer *string `json:"manufacturer,omitempty"`
+
+	// MedicationCategory Medicação. Obrigatório na medicação.
+	MedicationCategory *MedicationCategory `json:"medicationCategory,omitempty"`
+
+	// Name Nome da vacina, da medicação ou do exame.
+	Name *string `json:"name,omitempty"`
+
+	// NextDoseDate Vacina. Não é anterior à data do evento.
+	NextDoseDate *openapi_types.Date `json:"nextDoseDate,omitempty"`
+
+	// NoteCategory Anotação. Obrigatório na anotação.
+	NoteCategory *NoteCategory      `json:"noteCategory,omitempty"`
+	Notes        *string            `json:"notes,omitempty"`
+	PetId        openapi_types.UUID `json:"petId"`
+
+	// Reason Consulta. Obrigatório na consulta.
+	Reason *string `json:"reason,omitempty"`
+
+	// Remind Vacina e medicação. O evento entra nos próximos cuidados.
+	Remind bool `json:"remind"`
+
+	// Result Exame.
+	Result *string `json:"result,omitempty"`
+
+	// ReturnDate Consulta. Não é anterior à data do evento.
+	ReturnDate *openapi_types.Date `json:"returnDate,omitempty"`
+
+	// Title Anotação. Obrigatório na anotação.
+	Title *string         `json:"title,omitempty"`
+	Type  HealthEventType `json:"type"`
+
+	// Vet Veterinário. Vacina, consulta e exame.
+	Vet *string `json:"vet,omitempty"`
+
+	// WeightKg Consulta e anotação. De 0,01 a 999,99, com até 2 casas decimais.
+	WeightKg *float64 `json:"weightKg,omitempty"`
+}
+
+// HealthEventInput Um evento de saúde. Os campos de cada tipo estão na descrição deles.
+// Um campo de outro tipo é recusado (RN-80).
+type HealthEventInput struct {
+	// ActiveIngredient Medicação.
+	ActiveIngredient *string `json:"activeIngredient,omitempty"`
+
+	// Batch Vacina.
+	Batch *string `json:"batch,omitempty"`
+
+	// Clinic Consulta.
+	Clinic *string `json:"clinic,omitempty"`
+
+	// Date Data do evento. Não é futura.
+	Date openapi_types.Date `json:"date"`
+
+	// Diagnosis Consulta.
+	Diagnosis *string `json:"diagnosis,omitempty"`
+
+	// Dosage Medicação.
+	Dosage *string `json:"dosage,omitempty"`
+
+	// Dose Vacina.
+	Dose *string `json:"dose,omitempty"`
+
+	// EndDate Medicação. Não é anterior à data do evento.
+	EndDate *openapi_types.Date `json:"endDate,omitempty"`
+
+	// Frequency Medicação.
+	Frequency *string `json:"frequency,omitempty"`
+
+	// InUse Medicação.
+	InUse *bool `json:"inUse,omitempty"`
+
+	// IntervalDays Medicação. Intervalo entre as doses, em dias.
+	IntervalDays *int `json:"intervalDays,omitempty"`
+
+	// Lab Exame.
+	Lab *string `json:"lab,omitempty"`
+
+	// Manufacturer Vacina.
+	Manufacturer *string `json:"manufacturer,omitempty"`
+
+	// MedicationCategory Medicação. Obrigatório na medicação.
+	MedicationCategory *MedicationCategory `json:"medicationCategory,omitempty"`
+
+	// Name Nome da vacina, da medicação ou do exame.
+	Name *string `json:"name,omitempty"`
+
+	// NextDoseDate Vacina. Não é anterior à data do evento.
+	NextDoseDate *openapi_types.Date `json:"nextDoseDate,omitempty"`
+
+	// NoteCategory Anotação. Obrigatório na anotação.
+	NoteCategory *NoteCategory `json:"noteCategory,omitempty"`
+	Notes        *string       `json:"notes,omitempty"`
+
+	// Reason Consulta. Obrigatório na consulta.
+	Reason *string `json:"reason,omitempty"`
+
+	// Remind Vacina e medicação. O evento entra nos próximos cuidados. Com esta opção, a vacina tem
+	// `nextDoseDate` e a medicação tem `intervalDays`.
+	Remind *bool `json:"remind,omitempty"`
+
+	// Result Exame.
+	Result *string `json:"result,omitempty"`
+
+	// ReturnDate Consulta. Não é anterior à data do evento.
+	ReturnDate *openapi_types.Date `json:"returnDate,omitempty"`
+
+	// Title Anotação. Obrigatório na anotação.
+	Title *string         `json:"title,omitempty"`
+	Type  HealthEventType `json:"type"`
+
+	// Vet Veterinário. Vacina, consulta e exame.
+	Vet *string `json:"vet,omitempty"`
+
+	// WeightKg Consulta e anotação. De 0,01 a 999,99, com até 2 casas decimais.
+	WeightKg *float64 `json:"weightKg,omitempty"`
+}
+
+// HealthEventList defines model for HealthEventList.
+type HealthEventList struct {
+	Events []HealthEvent `json:"events"`
+}
+
+// HealthEventType defines model for HealthEventType.
+type HealthEventType string
 
 // Identification Resultado da busca de um focinho no acervo.
 type Identification struct {
@@ -223,6 +716,31 @@ type IdentificationCandidate struct {
 	Strong bool `json:"strong"`
 }
 
+// Location defines model for Location.
+type Location struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
+// LostReportInput A latitude e a longitude são obrigatórias. Sem uma delas, a resposta é 400 `invalid_request`.
+// O esquema não as marca como obrigatórias para o servidor saber quando uma delas falta.
+type LostReportInput struct {
+	// Description Recado, com no máximo 1.000 caracteres.
+	Description *string  `json:"description,omitempty"`
+	Latitude    *float64 `json:"latitude,omitempty"`
+	Longitude   *float64 `json:"longitude,omitempty"`
+
+	// OccurredAt Quando o pet desapareceu. Não é futura. Sem valor, vale o momento do registro.
+	OccurredAt *time.Time         `json:"occurredAt,omitempty"`
+	PetId      openapi_types.UUID `json:"petId"`
+
+	// Place Nome do local, com no máximo 200 caracteres.
+	Place *string `json:"place,omitempty"`
+}
+
+// MedicationCategory Medicação. Obrigatório na medicação.
+type MedicationCategory string
+
 // Noseprint Cadastro biométrico de um pet, a foto do focinho com o vetor dela.
 type Noseprint struct {
 	CapturedAt time.Time          `json:"capturedAt"`
@@ -236,6 +754,37 @@ type Noseprint struct {
 
 	// Quality Nitidez da foto, de 0 a 1.
 	Quality float64 `json:"quality"`
+}
+
+// NoteCategory Anotação. Obrigatório na anotação.
+type NoteCategory string
+
+// Notification defines model for Notification.
+type Notification struct {
+	Body      string    `json:"body"`
+	CreatedAt time.Time `json:"createdAt"`
+
+	// DistanceMeters Distância até o ponto do desaparecimento, no alerta de proximidade.
+	DistanceMeters *int               `json:"distanceMeters,omitempty"`
+	Id             openapi_types.UUID `json:"id"`
+
+	// Kind `lost_nearby`: um pet desapareceu perto do tutor. `sighting`: alguém viu o pet do tutor.
+	// `found`: alguém encontrou o pet do tutor pela foto do focinho.
+	Kind NotificationKind `json:"kind"`
+	Read bool             `json:"read"`
+
+	// ReportId A ocorrência da notificação, quando existe.
+	ReportId *openapi_types.UUID `json:"reportId,omitempty"`
+	Title    string              `json:"title"`
+}
+
+// NotificationKind `lost_nearby`: um pet desapareceu perto do tutor. `sighting`: alguém viu o pet do tutor.
+// `found`: alguém encontrou o pet do tutor pela foto do focinho.
+type NotificationKind string
+
+// NotificationList defines model for NotificationList.
+type NotificationList struct {
+	Notifications []Notification `json:"notifications"`
 }
 
 // Owner O tutor. Pessoa com conta, responsável por pets.
@@ -344,8 +893,97 @@ type RegisterOwnerRequest struct {
 	Name string `json:"name"`
 }
 
+// Report Uma ocorrência. Não tem dado do autor.
+type Report struct {
+	CreatedAt   time.Time          `json:"createdAt"`
+	Description *string            `json:"description,omitempty"`
+	Id          openapi_types.UUID `json:"id"`
+	Latitude    float64            `json:"latitude"`
+	Longitude   float64            `json:"longitude"`
+	OccurredAt  time.Time          `json:"occurredAt"`
+
+	// PetHasNoseprint O pet tem cadastro biométrico, e quem o encontrar pode identificá-lo pela foto do focinho.
+	PetHasNoseprint *bool `json:"petHasNoseprint,omitempty"`
+
+	// PetId O pet de um desaparecimento.
+	PetId   *openapi_types.UUID `json:"petId,omitempty"`
+	PetName *string             `json:"petName,omitempty"`
+
+	// PetSpecies Espécie do pet.
+	PetSpecies *Species `json:"petSpecies,omitempty"`
+
+	// PhotoUrl URL temporária da foto de perfil do pet, ou da foto do focinho de um achado. Vale por 900 segundos.
+	PhotoUrl *string `json:"photoUrl,omitempty"`
+	Place    *string `json:"place,omitempty"`
+
+	// Sightings Os avistamentos de um desaparecimento, do mais antigo para o mais novo. Vazia nas listas.
+	Sightings []Sighting   `json:"sightings"`
+	Status    ReportStatus `json:"status"`
+	Type      ReportType   `json:"type"`
+}
+
+// ReportList defines model for ReportList.
+type ReportList struct {
+	Reports []Report `json:"reports"`
+}
+
+// ReportPage defines model for ReportPage.
+type ReportPage struct {
+	HasNext bool `json:"hasNext"`
+
+	// OpenFound Número de achados abertos no mural.
+	OpenFound int `json:"openFound"`
+
+	// OpenLost Número de desaparecimentos abertos no mural.
+	OpenLost int      `json:"openLost"`
+	Page     int      `json:"page"`
+	Reports  []Report `json:"reports"`
+}
+
+// ReportStatus defines model for ReportStatus.
+type ReportStatus string
+
+// ReportType defines model for ReportType.
+type ReportType string
+
 // Sex Sexo do pet.
 type Sex string
+
+// ShareLink Um link da carteirinha, sem o token.
+type ShareLink struct {
+	CreatedAt time.Time          `json:"createdAt"`
+	ExpiresAt time.Time          `json:"expiresAt"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Opens Quantas vezes a carteirinha foi aberta pelo link.
+	Opens int `json:"opens"`
+}
+
+// ShareLinkList defines model for ShareLinkList.
+type ShareLinkList struct {
+	Links []ShareLink `json:"links"`
+}
+
+// Sighting Um avistamento. Não tem dado de quem avistou.
+type Sighting struct {
+	CreatedAt   time.Time          `json:"createdAt"`
+	Description *string            `json:"description,omitempty"`
+	Id          openapi_types.UUID `json:"id"`
+	Latitude    float64            `json:"latitude"`
+	Longitude   float64            `json:"longitude"`
+	Place       *string            `json:"place,omitempty"`
+}
+
+// SightingInput defines model for SightingInput.
+type SightingInput struct {
+	// Description Recado, com no máximo 1.000 caracteres.
+	Description *string  `json:"description,omitempty"`
+	Latitude    *float64 `json:"latitude,omitempty"`
+	Longitude   *float64 `json:"longitude,omitempty"`
+
+	// Place Nome do local, com no máximo 200 caracteres.
+	Place *string `json:"place,omitempty"`
+}
 
 // Size Porte do pet.
 type Size string
@@ -357,8 +995,28 @@ type Species string
 // Uma versão nova dos termos troca o valor desta lista.
 type TermsVersion string
 
+// UpcomingCare defines model for UpcomingCare.
+type UpcomingCare struct {
+	DueDate openapi_types.Date `json:"dueDate"`
+	EventId openapi_types.UUID `json:"eventId"`
+	PetId   openapi_types.UUID `json:"petId"`
+	PetName string             `json:"petName"`
+
+	// Title Nome da vacina ou da medicação.
+	Title string          `json:"title"`
+	Type  HealthEventType `json:"type"`
+}
+
+// UpcomingCareList defines model for UpcomingCareList.
+type UpcomingCareList struct {
+	Items []UpcomingCare `json:"items"`
+}
+
 // PetId defines model for PetId.
 type PetId = openapi_types.UUID
+
+// HealthEventNotFound Formato único de erro. Todo erro da API usa este formato.
+type HealthEventNotFound = Error
 
 // InvalidRequest Formato único de erro. Todo erro da API usa este formato.
 type InvalidRequest = Error
@@ -374,6 +1032,12 @@ type PetNotFound = Error
 
 // RateLimited Formato único de erro. Todo erro da API usa este formato.
 type RateLimited = Error
+
+// ReportNotFound Formato único de erro. Todo erro da API usa este formato.
+type ReportNotFound = Error
+
+// ShareLinkNotFound Formato único de erro. Todo erro da API usa este formato.
+type ShareLinkNotFound = Error
 
 // Unauthenticated Formato único de erro. Todo erro da API usa este formato.
 type Unauthenticated = Error
@@ -411,6 +1075,26 @@ type ConfirmIdentificationMultipartBody struct {
 	Phone string `json:"phone"`
 }
 
+// UpdateMeJSONBody defines parameters for UpdateMe.
+type UpdateMeJSONBody struct {
+	// Name Nome do tutor. Não pode ser vazio. Tem no máximo 100 caracteres.
+	Name string `json:"name"`
+}
+
+// RemoveDeviceJSONBody defines parameters for RemoveDevice.
+type RemoveDeviceJSONBody struct {
+	Token string `json:"token"`
+}
+
+// CreateHealthAttachmentMultipartBody defines parameters for CreateHealthAttachment.
+type CreateHealthAttachmentMultipartBody struct {
+	// File Imagem JPEG, PNG ou WebP, ou PDF, com no máximo 10 MB.
+	File openapi_types.File `json:"file"`
+
+	// FileName Nome do arquivo. Sem este campo, vale o nome da parte "file".
+	FileName *string `json:"fileName,omitempty"`
+}
+
 // RegisterNoseprintMultipartBody defines parameters for RegisterNoseprint.
 type RegisterNoseprintMultipartBody struct {
 	// File Foto do focinho. Imagem JPEG, PNG ou WebP, com no máximo 8 MB.
@@ -423,14 +1107,56 @@ type SetPetPhotoMultipartBody struct {
 	File openapi_types.File `json:"file"`
 }
 
+// ListReportsParams defines parameters for ListReports.
+type ListReportsParams struct {
+	// Page Número da página, a partir de 1.
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+}
+
+// ReportFoundMultipartBody defines parameters for ReportFound.
+type ReportFoundMultipartBody struct {
+	// Description Recado, com no máximo 1.000 caracteres.
+	Description *string `json:"description,omitempty"`
+
+	// File A foto do focinho usada na identificação. JPEG, PNG ou WebP, com no máximo 8 MB.
+	File      openapi_types.File `json:"file"`
+	Latitude  float64            `json:"latitude"`
+	Longitude float64            `json:"longitude"`
+
+	// Place Nome do local, com no máximo 200 caracteres.
+	Place *string `json:"place,omitempty"`
+}
+
+// ResolveFoundReportJSONBody defines parameters for ResolveFoundReport.
+type ResolveFoundReportJSONBody struct {
+	Code string `json:"code"`
+}
+
+// OpenShareLinkJSONBody defines parameters for OpenShareLink.
+type OpenShareLinkJSONBody struct {
+	Token string `json:"token"`
+}
+
 // IdentifyNoseMultipartRequestBody defines body for IdentifyNose for multipart/form-data ContentType.
 type IdentifyNoseMultipartRequestBody IdentifyNoseMultipartBody
 
 // ConfirmIdentificationMultipartRequestBody defines body for ConfirmIdentification for multipart/form-data ContentType.
 type ConfirmIdentificationMultipartRequestBody ConfirmIdentificationMultipartBody
 
+// UpdateMeJSONRequestBody defines body for UpdateMe for application/json ContentType.
+type UpdateMeJSONRequestBody UpdateMeJSONBody
+
 // RegisterMeJSONRequestBody defines body for RegisterMe for application/json ContentType.
 type RegisterMeJSONRequestBody = RegisterOwnerRequest
+
+// RegisterDeviceJSONRequestBody defines body for RegisterDevice for application/json ContentType.
+type RegisterDeviceJSONRequestBody = Device
+
+// RemoveDeviceJSONRequestBody defines body for RemoveDevice for application/json ContentType.
+type RemoveDeviceJSONRequestBody RemoveDeviceJSONBody
+
+// SetMyLocationJSONRequestBody defines body for SetMyLocation for application/json ContentType.
+type SetMyLocationJSONRequestBody = Location
 
 // CreatePetJSONRequestBody defines body for CreatePet for application/json ContentType.
 type CreatePetJSONRequestBody = PetInput
@@ -438,11 +1164,35 @@ type CreatePetJSONRequestBody = PetInput
 // UpdatePetJSONRequestBody defines body for UpdatePet for application/json ContentType.
 type UpdatePetJSONRequestBody = PetInput
 
+// CreateHealthEventJSONRequestBody defines body for CreateHealthEvent for application/json ContentType.
+type CreateHealthEventJSONRequestBody = HealthEventInput
+
+// UpdateHealthEventJSONRequestBody defines body for UpdateHealthEvent for application/json ContentType.
+type UpdateHealthEventJSONRequestBody = HealthEventInput
+
+// CreateHealthAttachmentMultipartRequestBody defines body for CreateHealthAttachment for multipart/form-data ContentType.
+type CreateHealthAttachmentMultipartRequestBody CreateHealthAttachmentMultipartBody
+
 // RegisterNoseprintMultipartRequestBody defines body for RegisterNoseprint for multipart/form-data ContentType.
 type RegisterNoseprintMultipartRequestBody RegisterNoseprintMultipartBody
 
 // SetPetPhotoMultipartRequestBody defines body for SetPetPhoto for multipart/form-data ContentType.
 type SetPetPhotoMultipartRequestBody SetPetPhotoMultipartBody
+
+// ReportFoundMultipartRequestBody defines body for ReportFound for multipart/form-data ContentType.
+type ReportFoundMultipartRequestBody ReportFoundMultipartBody
+
+// ReportLostJSONRequestBody defines body for ReportLost for application/json ContentType.
+type ReportLostJSONRequestBody = LostReportInput
+
+// ResolveFoundReportJSONRequestBody defines body for ResolveFoundReport for application/json ContentType.
+type ResolveFoundReportJSONRequestBody ResolveFoundReportJSONBody
+
+// ReportSightingJSONRequestBody defines body for ReportSighting for application/json ContentType.
+type ReportSightingJSONRequestBody = SightingInput
+
+// OpenShareLinkJSONRequestBody defines body for OpenShareLink for application/json ContentType.
+type OpenShareLinkJSONRequestBody OpenShareLinkJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -458,12 +1208,36 @@ type ServerInterface interface {
 	// ConfirmIdentification Confirma um candidato e deixa o contato para o tutor do pet.
 	// (POST /v1/identifications/{identificationId}/confirmation)
 	ConfirmIdentification(w http.ResponseWriter, r *http.Request, identificationId openapi_types.UUID)
+	// DeleteMe Exclui a conta do tutor (RF-08).
+	// (DELETE /v1/me)
+	DeleteMe(w http.ResponseWriter, r *http.Request)
 	// GetMe Devolve o tutor da conta que fez a chamada.
 	// (GET /v1/me)
 	GetMe(w http.ResponseWriter, r *http.Request)
+	// UpdateMe Altera o nome do tutor (RF-06). O e-mail não muda.
+	// (PATCH /v1/me)
+	UpdateMe(w http.ResponseWriter, r *http.Request)
 	// RegisterMe Registra o tutor da conta, com o aceite dos termos de uso.
 	// (POST /v1/me)
 	RegisterMe(w http.ResponseWriter, r *http.Request)
+	// RegisterDevice Registra o dispositivo do tutor para receber push.
+	// (PUT /v1/me/devices)
+	RegisterDevice(w http.ResponseWriter, r *http.Request)
+	// RemoveDevice Remove um dispositivo do tutor.
+	// (POST /v1/me/devices/removal)
+	RemoveDevice(w http.ResponseWriter, r *http.Request)
+	// SetMyLocation Guarda a última localização do tutor.
+	// (PUT /v1/me/location)
+	SetMyLocation(w http.ResponseWriter, r *http.Request)
+	// ListMyReports Os desaparecimentos registrados pelo tutor, abertos e resolvidos.
+	// (GET /v1/me/reports)
+	ListMyReports(w http.ResponseWriter, r *http.Request)
+	// ListNotifications As 50 notificações mais recentes do tutor.
+	// (GET /v1/notifications)
+	ListNotifications(w http.ResponseWriter, r *http.Request)
+	// MarkNotificationRead Marca uma notificação do tutor como lida.
+	// (POST /v1/notifications/{notificationId}/read)
+	MarkNotificationRead(w http.ResponseWriter, r *http.Request, notificationId openapi_types.UUID)
 	// ListPets Lista os pets do tutor, em ordem de nome.
 	// (GET /v1/pets)
 	ListPets(w http.ResponseWriter, r *http.Request)
@@ -479,6 +1253,27 @@ type ServerInterface interface {
 	// UpdatePet Troca todos os dados de um pet do tutor.
 	// (PUT /v1/pets/{petId})
 	UpdatePet(w http.ResponseWriter, r *http.Request, petId PetId)
+	// ListHealthEvents Os eventos de saúde de um pet do tutor, do mais novo para o mais antigo.
+	// (GET /v1/pets/{petId}/health-events)
+	ListHealthEvents(w http.ResponseWriter, r *http.Request, petId PetId)
+	// CreateHealthEvent Cria um evento de saúde de um pet do tutor.
+	// (POST /v1/pets/{petId}/health-events)
+	CreateHealthEvent(w http.ResponseWriter, r *http.Request, petId PetId)
+	// DeleteHealthEvent Apaga um evento de saúde e os anexos dele.
+	// (DELETE /v1/pets/{petId}/health-events/{eventId})
+	DeleteHealthEvent(w http.ResponseWriter, r *http.Request, petId PetId, eventId openapi_types.UUID)
+	// UpdateHealthEvent Troca todos os dados de um evento de saúde.
+	// (PUT /v1/pets/{petId}/health-events/{eventId})
+	UpdateHealthEvent(w http.ResponseWriter, r *http.Request, petId PetId, eventId openapi_types.UUID)
+	// ListHealthAttachments Os anexos de um evento de saúde.
+	// (GET /v1/pets/{petId}/health-events/{eventId}/attachments)
+	ListHealthAttachments(w http.ResponseWriter, r *http.Request, petId PetId, eventId openapi_types.UUID)
+	// CreateHealthAttachment Envia um anexo de um evento de saúde.
+	// (POST /v1/pets/{petId}/health-events/{eventId}/attachments)
+	CreateHealthAttachment(w http.ResponseWriter, r *http.Request, petId PetId, eventId openapi_types.UUID)
+	// DeleteHealthAttachment Apaga um anexo de um evento de saúde.
+	// (DELETE /v1/pets/{petId}/health-events/{eventId}/attachments/{attachmentId})
+	DeleteHealthAttachment(w http.ResponseWriter, r *http.Request, petId PetId, eventId openapi_types.UUID, attachmentId openapi_types.UUID)
 	// GetNoseprint Devolve o cadastro biométrico principal de um pet do tutor.
 	// (GET /v1/pets/{petId}/noseprint)
 	GetNoseprint(w http.ResponseWriter, r *http.Request, petId PetId)
@@ -488,6 +1283,42 @@ type ServerInterface interface {
 	// SetPetPhoto Envia a foto de perfil de um pet do tutor.
 	// (PUT /v1/pets/{petId}/photo)
 	SetPetPhoto(w http.ResponseWriter, r *http.Request, petId PetId)
+	// ListShareLinks Os links ativos da carteirinha de um pet, com as aberturas.
+	// (GET /v1/pets/{petId}/share-links)
+	ListShareLinks(w http.ResponseWriter, r *http.Request, petId PetId)
+	// CreateShareLink Cria um link da carteirinha do pet, válido por 30 dias (RN-40).
+	// (POST /v1/pets/{petId}/share-links)
+	CreateShareLink(w http.ResponseWriter, r *http.Request, petId PetId)
+	// RevokeShareLink Revoga um link da carteirinha. O link para de abrir na hora (RN-41).
+	// (DELETE /v1/pets/{petId}/share-links/{shareLinkId})
+	RevokeShareLink(w http.ResponseWriter, r *http.Request, petId PetId, shareLinkId openapi_types.UUID)
+	// ListReports O mural, as ocorrências abertas dos tipos perdido e achado.
+	// (GET /v1/reports)
+	ListReports(w http.ResponseWriter, r *http.Request, params ListReportsParams)
+	// ReportFound Publica um achado, com a foto do focinho.
+	// (POST /v1/reports/found)
+	ReportFound(w http.ResponseWriter, r *http.Request)
+	// ReportLost Registra o desaparecimento de um pet do tutor.
+	// (POST /v1/reports/lost)
+	ReportLost(w http.ResponseWriter, r *http.Request)
+	// GetReport A ficha de uma ocorrência.
+	// (GET /v1/reports/{reportId})
+	GetReport(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID)
+	// ResolveFoundReport Resolve um achado com o código da criação.
+	// (POST /v1/reports/{reportId}/code-resolution)
+	ResolveFoundReport(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID)
+	// ResolveReport O autor resolve uma ocorrência dele.
+	// (POST /v1/reports/{reportId}/resolution)
+	ResolveReport(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID)
+	// ReportSighting Registra um avistamento em um desaparecimento aberto.
+	// (POST /v1/reports/{reportId}/sightings)
+	ReportSighting(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID)
+	// OpenShareLink Abre a carteirinha pelo token do link e conta a abertura.
+	// (POST /v1/share-links/opening)
+	OpenShareLink(w http.ResponseWriter, r *http.Request)
+	// ListUpcomingCare Os próximos cuidados de vacina e de medicação dos pets do tutor.
+	// (GET /v1/upcoming-care)
+	ListUpcomingCare(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -567,6 +1398,20 @@ func (siw *ServerInterfaceWrapper) ConfirmIdentification(w http.ResponseWriter, 
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteMe operation middleware
+func (siw *ServerInterfaceWrapper) DeleteMe(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetMe operation middleware
 func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request) {
 
@@ -581,11 +1426,121 @@ func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request)
 	handler.ServeHTTP(w, r)
 }
 
+// UpdateMe operation middleware
+func (siw *ServerInterfaceWrapper) UpdateMe(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // RegisterMe operation middleware
 func (siw *ServerInterfaceWrapper) RegisterMe(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RegisterMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RegisterDevice operation middleware
+func (siw *ServerInterfaceWrapper) RegisterDevice(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RegisterDevice(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveDevice operation middleware
+func (siw *ServerInterfaceWrapper) RemoveDevice(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveDevice(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetMyLocation operation middleware
+func (siw *ServerInterfaceWrapper) SetMyLocation(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetMyLocation(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMyReports operation middleware
+func (siw *ServerInterfaceWrapper) ListMyReports(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMyReports(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListNotifications operation middleware
+func (siw *ServerInterfaceWrapper) ListNotifications(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListNotifications(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MarkNotificationRead operation middleware
+func (siw *ServerInterfaceWrapper) MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "notificationId" -------------
+	var notificationId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "notificationId", r.PathValue("notificationId"), &notificationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "notificationId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkNotificationRead(w, r, notificationId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -701,6 +1656,242 @@ func (siw *ServerInterfaceWrapper) UpdatePet(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// ListHealthEvents operation middleware
+func (siw *ServerInterfaceWrapper) ListHealthEvents(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListHealthEvents(w, r, petId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateHealthEvent operation middleware
+func (siw *ServerInterfaceWrapper) CreateHealthEvent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateHealthEvent(w, r, petId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteHealthEvent operation middleware
+func (siw *ServerInterfaceWrapper) DeleteHealthEvent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "eventId" -------------
+	var eventId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "eventId", r.PathValue("eventId"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "eventId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteHealthEvent(w, r, petId, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateHealthEvent operation middleware
+func (siw *ServerInterfaceWrapper) UpdateHealthEvent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "eventId" -------------
+	var eventId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "eventId", r.PathValue("eventId"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "eventId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateHealthEvent(w, r, petId, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListHealthAttachments operation middleware
+func (siw *ServerInterfaceWrapper) ListHealthAttachments(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "eventId" -------------
+	var eventId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "eventId", r.PathValue("eventId"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "eventId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListHealthAttachments(w, r, petId, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateHealthAttachment operation middleware
+func (siw *ServerInterfaceWrapper) CreateHealthAttachment(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "eventId" -------------
+	var eventId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "eventId", r.PathValue("eventId"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "eventId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateHealthAttachment(w, r, petId, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteHealthAttachment operation middleware
+func (siw *ServerInterfaceWrapper) DeleteHealthAttachment(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "eventId" -------------
+	var eventId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "eventId", r.PathValue("eventId"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "eventId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "attachmentId" -------------
+	var attachmentId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "attachmentId", r.PathValue("attachmentId"), &attachmentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attachmentId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteHealthAttachment(w, r, petId, eventId, attachmentId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetNoseprint operation middleware
 func (siw *ServerInterfaceWrapper) GetNoseprint(w http.ResponseWriter, r *http.Request) {
 
@@ -770,6 +1961,286 @@ func (siw *ServerInterfaceWrapper) SetPetPhoto(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetPetPhoto(w, r, petId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListShareLinks operation middleware
+func (siw *ServerInterfaceWrapper) ListShareLinks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListShareLinks(w, r, petId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateShareLink operation middleware
+func (siw *ServerInterfaceWrapper) CreateShareLink(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateShareLink(w, r, petId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeShareLink operation middleware
+func (siw *ServerInterfaceWrapper) RevokeShareLink(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "shareLinkId" -------------
+	var shareLinkId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "shareLinkId", r.PathValue("shareLinkId"), &shareLinkId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "shareLinkId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeShareLink(w, r, petId, shareLinkId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListReports operation middleware
+func (siw *ServerInterfaceWrapper) ListReports(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListReportsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListReports(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReportFound operation middleware
+func (siw *ServerInterfaceWrapper) ReportFound(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReportFound(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReportLost operation middleware
+func (siw *ServerInterfaceWrapper) ReportLost(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReportLost(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetReport operation middleware
+func (siw *ServerInterfaceWrapper) GetReport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "reportId" -------------
+	var reportId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "reportId", r.PathValue("reportId"), &reportId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "reportId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetReport(w, r, reportId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResolveFoundReport operation middleware
+func (siw *ServerInterfaceWrapper) ResolveFoundReport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "reportId" -------------
+	var reportId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "reportId", r.PathValue("reportId"), &reportId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "reportId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResolveFoundReport(w, r, reportId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResolveReport operation middleware
+func (siw *ServerInterfaceWrapper) ResolveReport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "reportId" -------------
+	var reportId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "reportId", r.PathValue("reportId"), &reportId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "reportId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResolveReport(w, r, reportId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReportSighting operation middleware
+func (siw *ServerInterfaceWrapper) ReportSighting(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "reportId" -------------
+	var reportId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "reportId", r.PathValue("reportId"), &reportId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "reportId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReportSighting(w, r, reportId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// OpenShareLink operation middleware
+func (siw *ServerInterfaceWrapper) OpenShareLink(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.OpenShareLink(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListUpcomingCare operation middleware
+func (siw *ServerInterfaceWrapper) ListUpcomingCare(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListUpcomingCare(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -900,7 +2371,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/health", wrapper.GetHealth)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/v1/me", wrapper.DeleteMe)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me", wrapper.GetMe)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/v1/me", wrapper.UpdateMe)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/me", wrapper.RegisterMe)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/pets", wrapper.ListPets)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/pets", wrapper.CreatePet)
@@ -913,11 +2386,38 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/identifications", wrapper.IdentifyNose)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/identifications/{identificationId}/confirmation", wrapper.ConfirmIdentification)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/found-notices", wrapper.ListFoundNotices)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/reports", wrapper.ListReports)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reports/lost", wrapper.ReportLost)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reports/found", wrapper.ReportFound)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/reports/{reportId}", wrapper.GetReport)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reports/{reportId}/sightings", wrapper.ReportSighting)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reports/{reportId}/resolution", wrapper.ResolveReport)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reports/{reportId}/code-resolution", wrapper.ResolveFoundReport)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me/reports", wrapper.ListMyReports)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/me/location", wrapper.SetMyLocation)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/me/devices", wrapper.RegisterDevice)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/me/devices/removal", wrapper.RemoveDevice)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/notifications", wrapper.ListNotifications)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/notifications/{notificationId}/read", wrapper.MarkNotificationRead)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/pets/{petId}/health-events", wrapper.ListHealthEvents)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/pets/{petId}/health-events", wrapper.CreateHealthEvent)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/v1/pets/{petId}/health-events/{eventId}", wrapper.DeleteHealthEvent)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/pets/{petId}/health-events/{eventId}", wrapper.UpdateHealthEvent)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/pets/{petId}/health-events/{eventId}/attachments", wrapper.ListHealthAttachments)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/pets/{petId}/health-events/{eventId}/attachments", wrapper.CreateHealthAttachment)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/v1/pets/{petId}/health-events/{eventId}/attachments/{attachmentId}", wrapper.DeleteHealthAttachment)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/upcoming-care", wrapper.ListUpcomingCare)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/pets/{petId}/share-links", wrapper.ListShareLinks)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/pets/{petId}/share-links", wrapper.CreateShareLink)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/v1/pets/{petId}/share-links/{shareLinkId}", wrapper.RevokeShareLink)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/share-links/opening", wrapper.OpenShareLink)
 
 	return m
 }
 
 type ErrorJSONResponse Error
+
+type HealthEventNotFoundJSONResponse Error
 
 type InvalidRequestJSONResponse Error
 
@@ -928,6 +2428,10 @@ type OwnerNotFoundJSONResponse Error
 type PetNotFoundJSONResponse Error
 
 type RateLimitedJSONResponse Error
+
+type ReportNotFoundJSONResponse Error
+
+type ShareLinkNotFoundJSONResponse Error
 
 type UnauthenticatedJSONResponse Error
 
@@ -1222,6 +2726,66 @@ func (response ConfirmIdentificationdefaultJSONResponse) VisitConfirmIdentificat
 	return err
 }
 
+type DeleteMeRequestObject struct {
+}
+
+type DeleteMeResponseObject interface {
+	VisitDeleteMeResponse(w http.ResponseWriter) error
+}
+
+type DeleteMe204Response struct {
+}
+
+func (response DeleteMe204Response) VisitDeleteMeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteMe401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response DeleteMe401JSONResponse) VisitDeleteMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMe404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response DeleteMe404JSONResponse) VisitDeleteMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response DeleteMedefaultJSONResponse) VisitDeleteMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetMeRequestObject struct {
 }
 
@@ -1277,6 +2841,87 @@ type GetMedefaultJSONResponse struct {
 }
 
 func (response GetMedefaultJSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMeRequestObject struct {
+	Body *UpdateMeJSONRequestBody
+}
+
+type UpdateMeResponseObject interface {
+	VisitUpdateMeResponse(w http.ResponseWriter) error
+}
+
+type UpdateMe200JSONResponse Owner
+
+func (response UpdateMe200JSONResponse) VisitUpdateMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMe400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response UpdateMe400JSONResponse) VisitUpdateMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMe401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response UpdateMe401JSONResponse) VisitUpdateMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMe404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response UpdateMe404JSONResponse) VisitUpdateMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response UpdateMedefaultJSONResponse) VisitUpdateMeResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -1358,6 +3003,424 @@ type RegisterMedefaultJSONResponse struct {
 }
 
 func (response RegisterMedefaultJSONResponse) VisitRegisterMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterDeviceRequestObject struct {
+	Body *RegisterDeviceJSONRequestBody
+}
+
+type RegisterDeviceResponseObject interface {
+	VisitRegisterDeviceResponse(w http.ResponseWriter) error
+}
+
+type RegisterDevice204Response struct {
+}
+
+func (response RegisterDevice204Response) VisitRegisterDeviceResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RegisterDevice400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response RegisterDevice400JSONResponse) VisitRegisterDeviceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterDevice401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response RegisterDevice401JSONResponse) VisitRegisterDeviceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterDevice404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response RegisterDevice404JSONResponse) VisitRegisterDeviceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterDevicedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response RegisterDevicedefaultJSONResponse) VisitRegisterDeviceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveDeviceRequestObject struct {
+	Body *RemoveDeviceJSONRequestBody
+}
+
+type RemoveDeviceResponseObject interface {
+	VisitRemoveDeviceResponse(w http.ResponseWriter) error
+}
+
+type RemoveDevice204Response struct {
+}
+
+func (response RemoveDevice204Response) VisitRemoveDeviceResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RemoveDevice401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response RemoveDevice401JSONResponse) VisitRemoveDeviceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveDevice404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response RemoveDevice404JSONResponse) VisitRemoveDeviceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveDevicedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response RemoveDevicedefaultJSONResponse) VisitRemoveDeviceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetMyLocationRequestObject struct {
+	Body *SetMyLocationJSONRequestBody
+}
+
+type SetMyLocationResponseObject interface {
+	VisitSetMyLocationResponse(w http.ResponseWriter) error
+}
+
+type SetMyLocation204Response struct {
+}
+
+func (response SetMyLocation204Response) VisitSetMyLocationResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type SetMyLocation400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response SetMyLocation400JSONResponse) VisitSetMyLocationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetMyLocation401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response SetMyLocation401JSONResponse) VisitSetMyLocationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetMyLocation404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response SetMyLocation404JSONResponse) VisitSetMyLocationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetMyLocationdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response SetMyLocationdefaultJSONResponse) VisitSetMyLocationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyReportsRequestObject struct {
+}
+
+type ListMyReportsResponseObject interface {
+	VisitListMyReportsResponse(w http.ResponseWriter) error
+}
+
+type ListMyReports200JSONResponse ReportList
+
+func (response ListMyReports200JSONResponse) VisitListMyReportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyReports401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ListMyReports401JSONResponse) VisitListMyReportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyReports404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response ListMyReports404JSONResponse) VisitListMyReportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyReportsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListMyReportsdefaultJSONResponse) VisitListMyReportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotificationsRequestObject struct {
+}
+
+type ListNotificationsResponseObject interface {
+	VisitListNotificationsResponse(w http.ResponseWriter) error
+}
+
+type ListNotifications200JSONResponse NotificationList
+
+func (response ListNotifications200JSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotifications401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ListNotifications401JSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotifications404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response ListNotifications404JSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotificationsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListNotificationsdefaultJSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkNotificationReadRequestObject struct {
+	NotificationId openapi_types.UUID `json:"notificationId"`
+}
+
+type MarkNotificationReadResponseObject interface {
+	VisitMarkNotificationReadResponse(w http.ResponseWriter) error
+}
+
+type MarkNotificationRead204Response struct {
+}
+
+func (response MarkNotificationRead204Response) VisitMarkNotificationReadResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type MarkNotificationRead400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response MarkNotificationRead400JSONResponse) VisitMarkNotificationReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkNotificationRead401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response MarkNotificationRead401JSONResponse) VisitMarkNotificationReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkNotificationRead404JSONResponse Error
+
+func (response MarkNotificationRead404JSONResponse) VisitMarkNotificationReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkNotificationReaddefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response MarkNotificationReaddefaultJSONResponse) VisitMarkNotificationReadResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -1754,6 +3817,594 @@ func (response UpdatePetdefaultJSONResponse) VisitUpdatePetResponse(w http.Respo
 	return err
 }
 
+type ListHealthEventsRequestObject struct {
+	PetId PetId `json:"petId"`
+}
+
+type ListHealthEventsResponseObject interface {
+	VisitListHealthEventsResponse(w http.ResponseWriter) error
+}
+
+type ListHealthEvents200JSONResponse HealthEventList
+
+func (response ListHealthEvents200JSONResponse) VisitListHealthEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHealthEvents400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ListHealthEvents400JSONResponse) VisitListHealthEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHealthEvents401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ListHealthEvents401JSONResponse) VisitListHealthEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHealthEvents404JSONResponse struct{ PetNotFoundJSONResponse }
+
+func (response ListHealthEvents404JSONResponse) VisitListHealthEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHealthEventsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListHealthEventsdefaultJSONResponse) VisitListHealthEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthEventRequestObject struct {
+	PetId PetId `json:"petId"`
+	Body  *CreateHealthEventJSONRequestBody
+}
+
+type CreateHealthEventResponseObject interface {
+	VisitCreateHealthEventResponse(w http.ResponseWriter) error
+}
+
+type CreateHealthEvent201JSONResponse HealthEvent
+
+func (response CreateHealthEvent201JSONResponse) VisitCreateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthEvent400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response CreateHealthEvent400JSONResponse) VisitCreateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthEvent401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response CreateHealthEvent401JSONResponse) VisitCreateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthEvent404JSONResponse struct{ PetNotFoundJSONResponse }
+
+func (response CreateHealthEvent404JSONResponse) VisitCreateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthEventdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response CreateHealthEventdefaultJSONResponse) VisitCreateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteHealthEventRequestObject struct {
+	PetId   PetId              `json:"petId"`
+	EventId openapi_types.UUID `json:"eventId"`
+}
+
+type DeleteHealthEventResponseObject interface {
+	VisitDeleteHealthEventResponse(w http.ResponseWriter) error
+}
+
+type DeleteHealthEvent204Response struct {
+}
+
+func (response DeleteHealthEvent204Response) VisitDeleteHealthEventResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteHealthEvent400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response DeleteHealthEvent400JSONResponse) VisitDeleteHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteHealthEvent401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response DeleteHealthEvent401JSONResponse) VisitDeleteHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteHealthEvent404JSONResponse struct {
+	HealthEventNotFoundJSONResponse
+}
+
+func (response DeleteHealthEvent404JSONResponse) VisitDeleteHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteHealthEventdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response DeleteHealthEventdefaultJSONResponse) VisitDeleteHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateHealthEventRequestObject struct {
+	PetId   PetId              `json:"petId"`
+	EventId openapi_types.UUID `json:"eventId"`
+	Body    *UpdateHealthEventJSONRequestBody
+}
+
+type UpdateHealthEventResponseObject interface {
+	VisitUpdateHealthEventResponse(w http.ResponseWriter) error
+}
+
+type UpdateHealthEvent200JSONResponse HealthEvent
+
+func (response UpdateHealthEvent200JSONResponse) VisitUpdateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateHealthEvent400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response UpdateHealthEvent400JSONResponse) VisitUpdateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateHealthEvent401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response UpdateHealthEvent401JSONResponse) VisitUpdateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateHealthEvent404JSONResponse struct {
+	HealthEventNotFoundJSONResponse
+}
+
+func (response UpdateHealthEvent404JSONResponse) VisitUpdateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateHealthEventdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response UpdateHealthEventdefaultJSONResponse) VisitUpdateHealthEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHealthAttachmentsRequestObject struct {
+	PetId   PetId              `json:"petId"`
+	EventId openapi_types.UUID `json:"eventId"`
+}
+
+type ListHealthAttachmentsResponseObject interface {
+	VisitListHealthAttachmentsResponse(w http.ResponseWriter) error
+}
+
+type ListHealthAttachments200JSONResponse HealthAttachmentList
+
+func (response ListHealthAttachments200JSONResponse) VisitListHealthAttachmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHealthAttachments400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ListHealthAttachments400JSONResponse) VisitListHealthAttachmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHealthAttachments401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ListHealthAttachments401JSONResponse) VisitListHealthAttachmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHealthAttachments404JSONResponse struct {
+	HealthEventNotFoundJSONResponse
+}
+
+func (response ListHealthAttachments404JSONResponse) VisitListHealthAttachmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHealthAttachmentsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListHealthAttachmentsdefaultJSONResponse) VisitListHealthAttachmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthAttachmentRequestObject struct {
+	PetId   PetId              `json:"petId"`
+	EventId openapi_types.UUID `json:"eventId"`
+	Body    *multipart.Reader
+}
+
+type CreateHealthAttachmentResponseObject interface {
+	VisitCreateHealthAttachmentResponse(w http.ResponseWriter) error
+}
+
+type CreateHealthAttachment201JSONResponse HealthAttachment
+
+func (response CreateHealthAttachment201JSONResponse) VisitCreateHealthAttachmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthAttachment400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response CreateHealthAttachment400JSONResponse) VisitCreateHealthAttachmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthAttachment401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response CreateHealthAttachment401JSONResponse) VisitCreateHealthAttachmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthAttachment404JSONResponse struct {
+	HealthEventNotFoundJSONResponse
+}
+
+func (response CreateHealthAttachment404JSONResponse) VisitCreateHealthAttachmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthAttachment409JSONResponse Error
+
+func (response CreateHealthAttachment409JSONResponse) VisitCreateHealthAttachmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHealthAttachmentdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response CreateHealthAttachmentdefaultJSONResponse) VisitCreateHealthAttachmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteHealthAttachmentRequestObject struct {
+	PetId        PetId              `json:"petId"`
+	EventId      openapi_types.UUID `json:"eventId"`
+	AttachmentId openapi_types.UUID `json:"attachmentId"`
+}
+
+type DeleteHealthAttachmentResponseObject interface {
+	VisitDeleteHealthAttachmentResponse(w http.ResponseWriter) error
+}
+
+type DeleteHealthAttachment204Response struct {
+}
+
+func (response DeleteHealthAttachment204Response) VisitDeleteHealthAttachmentResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteHealthAttachment400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response DeleteHealthAttachment400JSONResponse) VisitDeleteHealthAttachmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteHealthAttachment401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response DeleteHealthAttachment401JSONResponse) VisitDeleteHealthAttachmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteHealthAttachment404JSONResponse struct {
+	HealthEventNotFoundJSONResponse
+}
+
+func (response DeleteHealthAttachment404JSONResponse) VisitDeleteHealthAttachmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteHealthAttachmentdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response DeleteHealthAttachmentdefaultJSONResponse) VisitDeleteHealthAttachmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetNoseprintRequestObject struct {
 	PetId PetId `json:"petId"`
 }
@@ -2013,6 +4664,932 @@ func (response SetPetPhotodefaultJSONResponse) VisitSetPetPhotoResponse(w http.R
 	return err
 }
 
+type ListShareLinksRequestObject struct {
+	PetId PetId `json:"petId"`
+}
+
+type ListShareLinksResponseObject interface {
+	VisitListShareLinksResponse(w http.ResponseWriter) error
+}
+
+type ListShareLinks200JSONResponse ShareLinkList
+
+func (response ListShareLinks200JSONResponse) VisitListShareLinksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListShareLinks400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ListShareLinks400JSONResponse) VisitListShareLinksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListShareLinks401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ListShareLinks401JSONResponse) VisitListShareLinksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListShareLinks404JSONResponse struct{ ShareLinkNotFoundJSONResponse }
+
+func (response ListShareLinks404JSONResponse) VisitListShareLinksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListShareLinksdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListShareLinksdefaultJSONResponse) VisitListShareLinksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateShareLinkRequestObject struct {
+	PetId PetId `json:"petId"`
+}
+
+type CreateShareLinkResponseObject interface {
+	VisitCreateShareLinkResponse(w http.ResponseWriter) error
+}
+
+type CreateShareLink201JSONResponse CreatedShareLink
+
+func (response CreateShareLink201JSONResponse) VisitCreateShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateShareLink400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response CreateShareLink400JSONResponse) VisitCreateShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateShareLink401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response CreateShareLink401JSONResponse) VisitCreateShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateShareLink404JSONResponse struct{ ShareLinkNotFoundJSONResponse }
+
+func (response CreateShareLink404JSONResponse) VisitCreateShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateShareLinkdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response CreateShareLinkdefaultJSONResponse) VisitCreateShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeShareLinkRequestObject struct {
+	PetId       PetId              `json:"petId"`
+	ShareLinkId openapi_types.UUID `json:"shareLinkId"`
+}
+
+type RevokeShareLinkResponseObject interface {
+	VisitRevokeShareLinkResponse(w http.ResponseWriter) error
+}
+
+type RevokeShareLink204Response struct {
+}
+
+func (response RevokeShareLink204Response) VisitRevokeShareLinkResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RevokeShareLink400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response RevokeShareLink400JSONResponse) VisitRevokeShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeShareLink401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response RevokeShareLink401JSONResponse) VisitRevokeShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeShareLink404JSONResponse struct{ ShareLinkNotFoundJSONResponse }
+
+func (response RevokeShareLink404JSONResponse) VisitRevokeShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeShareLinkdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response RevokeShareLinkdefaultJSONResponse) VisitRevokeShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReportsRequestObject struct {
+	Params ListReportsParams
+}
+
+type ListReportsResponseObject interface {
+	VisitListReportsResponse(w http.ResponseWriter) error
+}
+
+type ListReports200JSONResponse ReportPage
+
+func (response ListReports200JSONResponse) VisitListReportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReports400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ListReports400JSONResponse) VisitListReportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReportsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListReportsdefaultJSONResponse) VisitListReportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportFoundRequestObject struct {
+	Body *multipart.Reader
+}
+
+type ReportFoundResponseObject interface {
+	VisitReportFoundResponse(w http.ResponseWriter) error
+}
+
+type ReportFound201JSONResponse FoundReportCreated
+
+func (response ReportFound201JSONResponse) VisitReportFoundResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportFound400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ReportFound400JSONResponse) VisitReportFoundResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportFound429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response ReportFound429JSONResponse) VisitReportFoundResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportFounddefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ReportFounddefaultJSONResponse) VisitReportFoundResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportLostRequestObject struct {
+	Body *ReportLostJSONRequestBody
+}
+
+type ReportLostResponseObject interface {
+	VisitReportLostResponse(w http.ResponseWriter) error
+}
+
+type ReportLost201JSONResponse Report
+
+func (response ReportLost201JSONResponse) VisitReportLostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportLost400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ReportLost400JSONResponse) VisitReportLostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportLost401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ReportLost401JSONResponse) VisitReportLostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportLost404JSONResponse struct{ PetNotFoundJSONResponse }
+
+func (response ReportLost404JSONResponse) VisitReportLostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportLost409JSONResponse Error
+
+func (response ReportLost409JSONResponse) VisitReportLostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportLostdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ReportLostdefaultJSONResponse) VisitReportLostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReportRequestObject struct {
+	ReportId openapi_types.UUID `json:"reportId"`
+}
+
+type GetReportResponseObject interface {
+	VisitGetReportResponse(w http.ResponseWriter) error
+}
+
+type GetReport200JSONResponse Report
+
+func (response GetReport200JSONResponse) VisitGetReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReport400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response GetReport400JSONResponse) VisitGetReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReport404JSONResponse struct{ ReportNotFoundJSONResponse }
+
+func (response GetReport404JSONResponse) VisitGetReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReportdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetReportdefaultJSONResponse) VisitGetReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveFoundReportRequestObject struct {
+	ReportId openapi_types.UUID `json:"reportId"`
+	Body     *ResolveFoundReportJSONRequestBody
+}
+
+type ResolveFoundReportResponseObject interface {
+	VisitResolveFoundReportResponse(w http.ResponseWriter) error
+}
+
+type ResolveFoundReport200JSONResponse Report
+
+func (response ResolveFoundReport200JSONResponse) VisitResolveFoundReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveFoundReport400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ResolveFoundReport400JSONResponse) VisitResolveFoundReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveFoundReport404JSONResponse struct{ ReportNotFoundJSONResponse }
+
+func (response ResolveFoundReport404JSONResponse) VisitResolveFoundReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveFoundReport429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response ResolveFoundReport429JSONResponse) VisitResolveFoundReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveFoundReportdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ResolveFoundReportdefaultJSONResponse) VisitResolveFoundReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveReportRequestObject struct {
+	ReportId openapi_types.UUID `json:"reportId"`
+}
+
+type ResolveReportResponseObject interface {
+	VisitResolveReportResponse(w http.ResponseWriter) error
+}
+
+type ResolveReport200JSONResponse Report
+
+func (response ResolveReport200JSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveReport400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ResolveReport400JSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveReport401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ResolveReport401JSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveReport404JSONResponse struct{ ReportNotFoundJSONResponse }
+
+func (response ResolveReport404JSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveReportdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ResolveReportdefaultJSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportSightingRequestObject struct {
+	ReportId openapi_types.UUID `json:"reportId"`
+	Body     *ReportSightingJSONRequestBody
+}
+
+type ReportSightingResponseObject interface {
+	VisitReportSightingResponse(w http.ResponseWriter) error
+}
+
+type ReportSighting201JSONResponse Sighting
+
+func (response ReportSighting201JSONResponse) VisitReportSightingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportSighting400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response ReportSighting400JSONResponse) VisitReportSightingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportSighting404JSONResponse struct{ ReportNotFoundJSONResponse }
+
+func (response ReportSighting404JSONResponse) VisitReportSightingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportSighting409JSONResponse Error
+
+func (response ReportSighting409JSONResponse) VisitReportSightingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportSighting429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response ReportSighting429JSONResponse) VisitReportSightingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportSightingdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ReportSightingdefaultJSONResponse) VisitReportSightingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type OpenShareLinkRequestObject struct {
+	Body *OpenShareLinkJSONRequestBody
+}
+
+type OpenShareLinkResponseObject interface {
+	VisitOpenShareLinkResponse(w http.ResponseWriter) error
+}
+
+type OpenShareLink200JSONResponse HealthCard
+
+func (response OpenShareLink200JSONResponse) VisitOpenShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type OpenShareLink400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response OpenShareLink400JSONResponse) VisitOpenShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type OpenShareLink404JSONResponse struct{ ShareLinkNotFoundJSONResponse }
+
+func (response OpenShareLink404JSONResponse) VisitOpenShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type OpenShareLink429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response OpenShareLink429JSONResponse) VisitOpenShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type OpenShareLinkdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response OpenShareLinkdefaultJSONResponse) VisitOpenShareLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUpcomingCareRequestObject struct {
+}
+
+type ListUpcomingCareResponseObject interface {
+	VisitListUpcomingCareResponse(w http.ResponseWriter) error
+}
+
+type ListUpcomingCare200JSONResponse UpcomingCareList
+
+func (response ListUpcomingCare200JSONResponse) VisitListUpcomingCareResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUpcomingCare401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response ListUpcomingCare401JSONResponse) VisitListUpcomingCareResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUpcomingCare404JSONResponse struct{ OwnerNotFoundJSONResponse }
+
+func (response ListUpcomingCare404JSONResponse) VisitListUpcomingCareResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUpcomingCaredefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListUpcomingCaredefaultJSONResponse) VisitListUpcomingCareResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// ListFoundNotices Lista os avisos de quem encontrou um pet do tutor.
@@ -2027,12 +5604,36 @@ type StrictServerInterface interface {
 	// ConfirmIdentification Confirma um candidato e deixa o contato para o tutor do pet.
 	// (POST /v1/identifications/{identificationId}/confirmation)
 	ConfirmIdentification(ctx context.Context, request ConfirmIdentificationRequestObject) (ConfirmIdentificationResponseObject, error)
+	// DeleteMe Exclui a conta do tutor (RF-08).
+	// (DELETE /v1/me)
+	DeleteMe(ctx context.Context, request DeleteMeRequestObject) (DeleteMeResponseObject, error)
 	// GetMe Devolve o tutor da conta que fez a chamada.
 	// (GET /v1/me)
 	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
+	// UpdateMe Altera o nome do tutor (RF-06). O e-mail não muda.
+	// (PATCH /v1/me)
+	UpdateMe(ctx context.Context, request UpdateMeRequestObject) (UpdateMeResponseObject, error)
 	// RegisterMe Registra o tutor da conta, com o aceite dos termos de uso.
 	// (POST /v1/me)
 	RegisterMe(ctx context.Context, request RegisterMeRequestObject) (RegisterMeResponseObject, error)
+	// RegisterDevice Registra o dispositivo do tutor para receber push.
+	// (PUT /v1/me/devices)
+	RegisterDevice(ctx context.Context, request RegisterDeviceRequestObject) (RegisterDeviceResponseObject, error)
+	// RemoveDevice Remove um dispositivo do tutor.
+	// (POST /v1/me/devices/removal)
+	RemoveDevice(ctx context.Context, request RemoveDeviceRequestObject) (RemoveDeviceResponseObject, error)
+	// SetMyLocation Guarda a última localização do tutor.
+	// (PUT /v1/me/location)
+	SetMyLocation(ctx context.Context, request SetMyLocationRequestObject) (SetMyLocationResponseObject, error)
+	// ListMyReports Os desaparecimentos registrados pelo tutor, abertos e resolvidos.
+	// (GET /v1/me/reports)
+	ListMyReports(ctx context.Context, request ListMyReportsRequestObject) (ListMyReportsResponseObject, error)
+	// ListNotifications As 50 notificações mais recentes do tutor.
+	// (GET /v1/notifications)
+	ListNotifications(ctx context.Context, request ListNotificationsRequestObject) (ListNotificationsResponseObject, error)
+	// MarkNotificationRead Marca uma notificação do tutor como lida.
+	// (POST /v1/notifications/{notificationId}/read)
+	MarkNotificationRead(ctx context.Context, request MarkNotificationReadRequestObject) (MarkNotificationReadResponseObject, error)
 	// ListPets Lista os pets do tutor, em ordem de nome.
 	// (GET /v1/pets)
 	ListPets(ctx context.Context, request ListPetsRequestObject) (ListPetsResponseObject, error)
@@ -2048,6 +5649,27 @@ type StrictServerInterface interface {
 	// UpdatePet Troca todos os dados de um pet do tutor.
 	// (PUT /v1/pets/{petId})
 	UpdatePet(ctx context.Context, request UpdatePetRequestObject) (UpdatePetResponseObject, error)
+	// ListHealthEvents Os eventos de saúde de um pet do tutor, do mais novo para o mais antigo.
+	// (GET /v1/pets/{petId}/health-events)
+	ListHealthEvents(ctx context.Context, request ListHealthEventsRequestObject) (ListHealthEventsResponseObject, error)
+	// CreateHealthEvent Cria um evento de saúde de um pet do tutor.
+	// (POST /v1/pets/{petId}/health-events)
+	CreateHealthEvent(ctx context.Context, request CreateHealthEventRequestObject) (CreateHealthEventResponseObject, error)
+	// DeleteHealthEvent Apaga um evento de saúde e os anexos dele.
+	// (DELETE /v1/pets/{petId}/health-events/{eventId})
+	DeleteHealthEvent(ctx context.Context, request DeleteHealthEventRequestObject) (DeleteHealthEventResponseObject, error)
+	// UpdateHealthEvent Troca todos os dados de um evento de saúde.
+	// (PUT /v1/pets/{petId}/health-events/{eventId})
+	UpdateHealthEvent(ctx context.Context, request UpdateHealthEventRequestObject) (UpdateHealthEventResponseObject, error)
+	// ListHealthAttachments Os anexos de um evento de saúde.
+	// (GET /v1/pets/{petId}/health-events/{eventId}/attachments)
+	ListHealthAttachments(ctx context.Context, request ListHealthAttachmentsRequestObject) (ListHealthAttachmentsResponseObject, error)
+	// CreateHealthAttachment Envia um anexo de um evento de saúde.
+	// (POST /v1/pets/{petId}/health-events/{eventId}/attachments)
+	CreateHealthAttachment(ctx context.Context, request CreateHealthAttachmentRequestObject) (CreateHealthAttachmentResponseObject, error)
+	// DeleteHealthAttachment Apaga um anexo de um evento de saúde.
+	// (DELETE /v1/pets/{petId}/health-events/{eventId}/attachments/{attachmentId})
+	DeleteHealthAttachment(ctx context.Context, request DeleteHealthAttachmentRequestObject) (DeleteHealthAttachmentResponseObject, error)
 	// GetNoseprint Devolve o cadastro biométrico principal de um pet do tutor.
 	// (GET /v1/pets/{petId}/noseprint)
 	GetNoseprint(ctx context.Context, request GetNoseprintRequestObject) (GetNoseprintResponseObject, error)
@@ -2057,6 +5679,42 @@ type StrictServerInterface interface {
 	// SetPetPhoto Envia a foto de perfil de um pet do tutor.
 	// (PUT /v1/pets/{petId}/photo)
 	SetPetPhoto(ctx context.Context, request SetPetPhotoRequestObject) (SetPetPhotoResponseObject, error)
+	// ListShareLinks Os links ativos da carteirinha de um pet, com as aberturas.
+	// (GET /v1/pets/{petId}/share-links)
+	ListShareLinks(ctx context.Context, request ListShareLinksRequestObject) (ListShareLinksResponseObject, error)
+	// CreateShareLink Cria um link da carteirinha do pet, válido por 30 dias (RN-40).
+	// (POST /v1/pets/{petId}/share-links)
+	CreateShareLink(ctx context.Context, request CreateShareLinkRequestObject) (CreateShareLinkResponseObject, error)
+	// RevokeShareLink Revoga um link da carteirinha. O link para de abrir na hora (RN-41).
+	// (DELETE /v1/pets/{petId}/share-links/{shareLinkId})
+	RevokeShareLink(ctx context.Context, request RevokeShareLinkRequestObject) (RevokeShareLinkResponseObject, error)
+	// ListReports O mural, as ocorrências abertas dos tipos perdido e achado.
+	// (GET /v1/reports)
+	ListReports(ctx context.Context, request ListReportsRequestObject) (ListReportsResponseObject, error)
+	// ReportFound Publica um achado, com a foto do focinho.
+	// (POST /v1/reports/found)
+	ReportFound(ctx context.Context, request ReportFoundRequestObject) (ReportFoundResponseObject, error)
+	// ReportLost Registra o desaparecimento de um pet do tutor.
+	// (POST /v1/reports/lost)
+	ReportLost(ctx context.Context, request ReportLostRequestObject) (ReportLostResponseObject, error)
+	// GetReport A ficha de uma ocorrência.
+	// (GET /v1/reports/{reportId})
+	GetReport(ctx context.Context, request GetReportRequestObject) (GetReportResponseObject, error)
+	// ResolveFoundReport Resolve um achado com o código da criação.
+	// (POST /v1/reports/{reportId}/code-resolution)
+	ResolveFoundReport(ctx context.Context, request ResolveFoundReportRequestObject) (ResolveFoundReportResponseObject, error)
+	// ResolveReport O autor resolve uma ocorrência dele.
+	// (POST /v1/reports/{reportId}/resolution)
+	ResolveReport(ctx context.Context, request ResolveReportRequestObject) (ResolveReportResponseObject, error)
+	// ReportSighting Registra um avistamento em um desaparecimento aberto.
+	// (POST /v1/reports/{reportId}/sightings)
+	ReportSighting(ctx context.Context, request ReportSightingRequestObject) (ReportSightingResponseObject, error)
+	// OpenShareLink Abre a carteirinha pelo token do link e conta a abertura.
+	// (POST /v1/share-links/opening)
+	OpenShareLink(ctx context.Context, request OpenShareLinkRequestObject) (OpenShareLinkResponseObject, error)
+	// ListUpcomingCare Os próximos cuidados de vacina e de medicação dos pets do tutor.
+	// (GET /v1/upcoming-care)
+	ListUpcomingCare(ctx context.Context, request ListUpcomingCareRequestObject) (ListUpcomingCareResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -2210,6 +5868,30 @@ func (sh *strictHandler) ConfirmIdentification(w http.ResponseWriter, r *http.Re
 	}
 }
 
+// DeleteMe operation middleware
+func (sh *strictHandler) DeleteMe(w http.ResponseWriter, r *http.Request) {
+	var request DeleteMeRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteMe(ctx, request.(DeleteMeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteMe")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteMeResponseObject); ok {
+		if err := validResponse.VisitDeleteMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetMe operation middleware
 func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	var request GetMeRequestObject
@@ -2227,6 +5909,37 @@ func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetMeResponseObject); ok {
 		if err := validResponse.VisitGetMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateMe operation middleware
+func (sh *strictHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
+	var request UpdateMeRequestObject
+
+	var body UpdateMeJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateMe(ctx, request.(UpdateMeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateMe")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateMeResponseObject); ok {
+		if err := validResponse.VisitUpdateMeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -2258,6 +5971,173 @@ func (sh *strictHandler) RegisterMe(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RegisterMeResponseObject); ok {
 		if err := validResponse.VisitRegisterMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RegisterDevice operation middleware
+func (sh *strictHandler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
+	var request RegisterDeviceRequestObject
+
+	var body RegisterDeviceJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RegisterDevice(ctx, request.(RegisterDeviceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RegisterDevice")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RegisterDeviceResponseObject); ok {
+		if err := validResponse.VisitRegisterDeviceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RemoveDevice operation middleware
+func (sh *strictHandler) RemoveDevice(w http.ResponseWriter, r *http.Request) {
+	var request RemoveDeviceRequestObject
+
+	var body RemoveDeviceJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RemoveDevice(ctx, request.(RemoveDeviceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RemoveDevice")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RemoveDeviceResponseObject); ok {
+		if err := validResponse.VisitRemoveDeviceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetMyLocation operation middleware
+func (sh *strictHandler) SetMyLocation(w http.ResponseWriter, r *http.Request) {
+	var request SetMyLocationRequestObject
+
+	var body SetMyLocationJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetMyLocation(ctx, request.(SetMyLocationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetMyLocation")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetMyLocationResponseObject); ok {
+		if err := validResponse.VisitSetMyLocationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListMyReports operation middleware
+func (sh *strictHandler) ListMyReports(w http.ResponseWriter, r *http.Request) {
+	var request ListMyReportsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMyReports(ctx, request.(ListMyReportsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMyReports")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListMyReportsResponseObject); ok {
+		if err := validResponse.VisitListMyReportsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListNotifications operation middleware
+func (sh *strictHandler) ListNotifications(w http.ResponseWriter, r *http.Request) {
+	var request ListNotificationsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListNotifications(ctx, request.(ListNotificationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListNotifications")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListNotificationsResponseObject); ok {
+		if err := validResponse.VisitListNotificationsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// MarkNotificationRead operation middleware
+func (sh *strictHandler) MarkNotificationRead(w http.ResponseWriter, r *http.Request, notificationId openapi_types.UUID) {
+	var request MarkNotificationReadRequestObject
+
+	request.NotificationId = notificationId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.MarkNotificationRead(ctx, request.(MarkNotificationReadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MarkNotificationRead")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(MarkNotificationReadResponseObject); ok {
+		if err := validResponse.VisitMarkNotificationReadResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -2405,6 +6285,215 @@ func (sh *strictHandler) UpdatePet(w http.ResponseWriter, r *http.Request, petId
 	}
 }
 
+// ListHealthEvents operation middleware
+func (sh *strictHandler) ListHealthEvents(w http.ResponseWriter, r *http.Request, petId PetId) {
+	var request ListHealthEventsRequestObject
+
+	request.PetId = petId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListHealthEvents(ctx, request.(ListHealthEventsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListHealthEvents")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListHealthEventsResponseObject); ok {
+		if err := validResponse.VisitListHealthEventsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateHealthEvent operation middleware
+func (sh *strictHandler) CreateHealthEvent(w http.ResponseWriter, r *http.Request, petId PetId) {
+	var request CreateHealthEventRequestObject
+
+	request.PetId = petId
+
+	var body CreateHealthEventJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateHealthEvent(ctx, request.(CreateHealthEventRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateHealthEvent")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateHealthEventResponseObject); ok {
+		if err := validResponse.VisitCreateHealthEventResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteHealthEvent operation middleware
+func (sh *strictHandler) DeleteHealthEvent(w http.ResponseWriter, r *http.Request, petId PetId, eventId openapi_types.UUID) {
+	var request DeleteHealthEventRequestObject
+
+	request.PetId = petId
+	request.EventId = eventId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteHealthEvent(ctx, request.(DeleteHealthEventRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteHealthEvent")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteHealthEventResponseObject); ok {
+		if err := validResponse.VisitDeleteHealthEventResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateHealthEvent operation middleware
+func (sh *strictHandler) UpdateHealthEvent(w http.ResponseWriter, r *http.Request, petId PetId, eventId openapi_types.UUID) {
+	var request UpdateHealthEventRequestObject
+
+	request.PetId = petId
+	request.EventId = eventId
+
+	var body UpdateHealthEventJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateHealthEvent(ctx, request.(UpdateHealthEventRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateHealthEvent")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateHealthEventResponseObject); ok {
+		if err := validResponse.VisitUpdateHealthEventResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListHealthAttachments operation middleware
+func (sh *strictHandler) ListHealthAttachments(w http.ResponseWriter, r *http.Request, petId PetId, eventId openapi_types.UUID) {
+	var request ListHealthAttachmentsRequestObject
+
+	request.PetId = petId
+	request.EventId = eventId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListHealthAttachments(ctx, request.(ListHealthAttachmentsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListHealthAttachments")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListHealthAttachmentsResponseObject); ok {
+		if err := validResponse.VisitListHealthAttachmentsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateHealthAttachment operation middleware
+func (sh *strictHandler) CreateHealthAttachment(w http.ResponseWriter, r *http.Request, petId PetId, eventId openapi_types.UUID) {
+	var request CreateHealthAttachmentRequestObject
+
+	request.PetId = petId
+	request.EventId = eventId
+
+	if reader, err := r.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateHealthAttachment(ctx, request.(CreateHealthAttachmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateHealthAttachment")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateHealthAttachmentResponseObject); ok {
+		if err := validResponse.VisitCreateHealthAttachmentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteHealthAttachment operation middleware
+func (sh *strictHandler) DeleteHealthAttachment(w http.ResponseWriter, r *http.Request, petId PetId, eventId openapi_types.UUID, attachmentId openapi_types.UUID) {
+	var request DeleteHealthAttachmentRequestObject
+
+	request.PetId = petId
+	request.EventId = eventId
+	request.AttachmentId = attachmentId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteHealthAttachment(ctx, request.(DeleteHealthAttachmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteHealthAttachment")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteHealthAttachmentResponseObject); ok {
+		if err := validResponse.VisitDeleteHealthAttachmentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetNoseprint operation middleware
 func (sh *strictHandler) GetNoseprint(w http.ResponseWriter, r *http.Request, petId PetId) {
 	var request GetNoseprintRequestObject
@@ -2490,6 +6579,346 @@ func (sh *strictHandler) SetPetPhoto(w http.ResponseWriter, r *http.Request, pet
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(SetPetPhotoResponseObject); ok {
 		if err := validResponse.VisitSetPetPhotoResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListShareLinks operation middleware
+func (sh *strictHandler) ListShareLinks(w http.ResponseWriter, r *http.Request, petId PetId) {
+	var request ListShareLinksRequestObject
+
+	request.PetId = petId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListShareLinks(ctx, request.(ListShareLinksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListShareLinks")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListShareLinksResponseObject); ok {
+		if err := validResponse.VisitListShareLinksResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateShareLink operation middleware
+func (sh *strictHandler) CreateShareLink(w http.ResponseWriter, r *http.Request, petId PetId) {
+	var request CreateShareLinkRequestObject
+
+	request.PetId = petId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateShareLink(ctx, request.(CreateShareLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateShareLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateShareLinkResponseObject); ok {
+		if err := validResponse.VisitCreateShareLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RevokeShareLink operation middleware
+func (sh *strictHandler) RevokeShareLink(w http.ResponseWriter, r *http.Request, petId PetId, shareLinkId openapi_types.UUID) {
+	var request RevokeShareLinkRequestObject
+
+	request.PetId = petId
+	request.ShareLinkId = shareLinkId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevokeShareLink(ctx, request.(RevokeShareLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevokeShareLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RevokeShareLinkResponseObject); ok {
+		if err := validResponse.VisitRevokeShareLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListReports operation middleware
+func (sh *strictHandler) ListReports(w http.ResponseWriter, r *http.Request, params ListReportsParams) {
+	var request ListReportsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListReports(ctx, request.(ListReportsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListReports")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListReportsResponseObject); ok {
+		if err := validResponse.VisitListReportsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReportFound operation middleware
+func (sh *strictHandler) ReportFound(w http.ResponseWriter, r *http.Request) {
+	var request ReportFoundRequestObject
+
+	if reader, err := r.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReportFound(ctx, request.(ReportFoundRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReportFound")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReportFoundResponseObject); ok {
+		if err := validResponse.VisitReportFoundResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReportLost operation middleware
+func (sh *strictHandler) ReportLost(w http.ResponseWriter, r *http.Request) {
+	var request ReportLostRequestObject
+
+	var body ReportLostJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReportLost(ctx, request.(ReportLostRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReportLost")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReportLostResponseObject); ok {
+		if err := validResponse.VisitReportLostResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetReport operation middleware
+func (sh *strictHandler) GetReport(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID) {
+	var request GetReportRequestObject
+
+	request.ReportId = reportId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetReport(ctx, request.(GetReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetReport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetReportResponseObject); ok {
+		if err := validResponse.VisitGetReportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ResolveFoundReport operation middleware
+func (sh *strictHandler) ResolveFoundReport(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID) {
+	var request ResolveFoundReportRequestObject
+
+	request.ReportId = reportId
+
+	var body ResolveFoundReportJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ResolveFoundReport(ctx, request.(ResolveFoundReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResolveFoundReport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ResolveFoundReportResponseObject); ok {
+		if err := validResponse.VisitResolveFoundReportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ResolveReport operation middleware
+func (sh *strictHandler) ResolveReport(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID) {
+	var request ResolveReportRequestObject
+
+	request.ReportId = reportId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ResolveReport(ctx, request.(ResolveReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResolveReport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ResolveReportResponseObject); ok {
+		if err := validResponse.VisitResolveReportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReportSighting operation middleware
+func (sh *strictHandler) ReportSighting(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID) {
+	var request ReportSightingRequestObject
+
+	request.ReportId = reportId
+
+	var body ReportSightingJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReportSighting(ctx, request.(ReportSightingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReportSighting")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReportSightingResponseObject); ok {
+		if err := validResponse.VisitReportSightingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// OpenShareLink operation middleware
+func (sh *strictHandler) OpenShareLink(w http.ResponseWriter, r *http.Request) {
+	var request OpenShareLinkRequestObject
+
+	var body OpenShareLinkJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.OpenShareLink(ctx, request.(OpenShareLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "OpenShareLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(OpenShareLinkResponseObject); ok {
+		if err := validResponse.VisitOpenShareLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListUpcomingCare operation middleware
+func (sh *strictHandler) ListUpcomingCare(w http.ResponseWriter, r *http.Request) {
+	var request ListUpcomingCareRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListUpcomingCare(ctx, request.(ListUpcomingCareRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListUpcomingCare")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListUpcomingCareResponseObject); ok {
+		if err := validResponse.VisitListUpcomingCareResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

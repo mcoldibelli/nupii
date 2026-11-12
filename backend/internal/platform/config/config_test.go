@@ -161,3 +161,33 @@ func TestLoadRejectsInvalidStorageConfiguration(t *testing.T) {
 		})
 	}
 }
+
+// RN-36: o push só é enviado com a credencial configurada.
+func TestPushEnabled(t *testing.T) {
+	tests := []struct {
+		name string
+		vars map[string]string
+		want bool
+	}{
+		{name: "no credential", vars: map[string]string{}, want: false},
+		{name: "credential", vars: map[string]string{
+			"GOOGLE_APPLICATION_CREDENTIALS": "/run/secrets/firebase.json",
+			"FIREBASE_PROJECT_ID":            "nupii-test",
+		}, want: true},
+		{name: "credential with the emulator", vars: map[string]string{
+			"GOOGLE_APPLICATION_CREDENTIALS": "/run/secrets/firebase.json",
+			"FIREBASE_AUTH_EMULATOR_HOST":    "127.0.0.1:9099",
+		}, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := config.Load(env(tt.vars))
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if cfg.PushEnabled != tt.want {
+				t.Errorf("PushEnabled = %t, want %t", cfg.PushEnabled, tt.want)
+			}
+		})
+	}
+}

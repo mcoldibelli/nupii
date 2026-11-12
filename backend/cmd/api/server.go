@@ -11,13 +11,17 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/mcoldibelli/nupii/backend/internal/alerts"
 	"github.com/mcoldibelli/nupii/backend/internal/api"
 	"github.com/mcoldibelli/nupii/backend/internal/biometrics"
+	"github.com/mcoldibelli/nupii/backend/internal/health"
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/pets"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/jobs"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/storage"
+	"github.com/mcoldibelli/nupii/backend/internal/reports"
 )
 
 const (
@@ -29,6 +33,9 @@ const (
 	// _maxPhotoBodyBytes is the maximum size of the body of a photo
 	// upload: the 5 MB of the photo (RN-54) and the multipart envelope.
 	_maxPhotoBodyBytes = 6 << 20
+	// _maxAttachmentBodyBytes is the maximum size of the body of an upload
+	// of an attachment: the 10 MB of the file (RN-82) and the envelope.
+	_maxAttachmentBodyBytes = 11 << 20
 	// _publicPostLimit is the number of POST requests that one address
 	// can send to one public route in one minute (RN-43).
 	_publicPostLimit = 10
@@ -43,7 +50,10 @@ func bodyLimit(r *http.Request) int64 {
 	switch r.Pattern {
 	case "PUT /v1/pets/{petId}/photo":
 		return _maxPhotoBodyBytes
+	case "POST /v1/pets/{petId}/health-events/{eventId}/attachments":
+		return _maxAttachmentBodyBytes
 	case "POST /v1/pets/{petId}/noseprints",
+		"POST /v1/reports/found",
 		"POST /v1/identifications",
 		"POST /v1/identifications/{identificationId}/confirmation":
 		return _maxNosePhotoBodyBytes
@@ -63,6 +73,9 @@ type (
 	identityHandlers   = identity.Handlers
 	petsHandlers       = pets.Handlers
 	biometricsHandlers = biometrics.Handlers
+	reportsHandlers    = reports.Handlers
+	alertsHandlers     = alerts.Handlers
+	healthHandlers     = health.Handlers
 )
 
 // server implements the operations of the contract. The operations of each
@@ -71,7 +84,16 @@ type server struct {
 	*identityHandlers
 	*petsHandlers
 	*biometricsHandlers
+	*reportsHandlers
+	*alertsHandlers
+	*healthHandlers
 
+	// purge is the handler of the daily purge job (RN-42).
+	purge jobs.Handler
+	// accounts gives the job of the delete of an account (RN-03, RN-84).
+	accounts *identity.Accounts
+	// owners tells the middleware which accounts are deleted (RN-04).
+	owners *identity.Service
 	// noseprints runs the recompute of the vectors when the API starts.
 	noseprints *biometrics.Service
 
@@ -92,10 +114,24 @@ func newServer(
 	owners := identity.NewService(pool)
 	petService := pets.NewService(pool, owners, photos, logger)
 	noseprints := biometrics.NewService(pool, owners, petService, embedder, photos, logger)
+	reportService := reports.NewService(pool, owners, petService, photos, logger)
+	alertService := alerts.NewService(pool, owners)
+	healthService := health.NewService(pool, owners, petService, photos, logger)
+	// RN-84: each module erases its data when an account is deleted. The
+	// pets go first: their lock puts a registration of a noseprint or an
+	// upload before the delete.
+	accounts := identity.NewAccounts(pool, photos, logger,
+		petService, noseprints, healthService, reportService, alertService)
 	return server{
-		identityHandlers:   identity.NewHandlers(owners),
+		identityHandlers:   identity.NewHandlers(owners, accounts),
 		petsHandlers:       pets.NewHandlers(petService),
 		biometricsHandlers: biometrics.NewHandlers(noseprints, logger),
+		reportsHandlers:    reports.NewHandlers(reportService),
+		alertsHandlers:     alerts.NewHandlers(alertService),
+		healthHandlers:     health.NewHandlers(healthService),
+		owners:             owners,
+		purge:              purgeHandler(pool, noseprints, alertService, logger),
+		accounts:           accounts,
 		noseprints:         noseprints,
 		logger:             logger,
 		database:           pool,
@@ -127,7 +163,13 @@ func isPublic(r *http.Request) bool {
 	switch r.Pattern {
 	case "GET /v1/health",
 		"POST /v1/identifications",
-		"POST /v1/identifications/{identificationId}/confirmation":
+		"POST /v1/identifications/{identificationId}/confirmation",
+		"GET /v1/reports",
+		"GET /v1/reports/{reportId}",
+		"POST /v1/reports/found",
+		"POST /v1/reports/{reportId}/sightings",
+		"POST /v1/reports/{reportId}/code-resolution",
+		"POST /v1/share-links/opening":
 		return true
 	default:
 		return false
@@ -154,6 +196,48 @@ func allowOtherOrigins(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// answerPreflight answers the preflight request that a browser sends before
+// a request to another origin with a JSON body. Only a public route gets
+// the answer that allows the request. mux finds the route of the request.
+func answerPreflight(mux *http.ServeMux, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		method := r.Header.Get("Access-Control-Request-Method")
+		if r.Method != http.MethodOptions || method == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		// The route that would get the real request.
+		real := r.Clone(r.Context())
+		real.Method = method
+		if _, real.Pattern = mux.Handler(real); !isPublic(real) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", method)
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.WriteHeader(http.StatusNoContent)
+	})
+}
+
+// firebasePusher adapts the sender of Firebase Cloud Messaging to the
+// interface of the alerts module.
+type firebasePusher struct {
+	firebase *firebase.Pusher
+}
+
+func (p firebasePusher) Send(
+	ctx context.Context,
+	tokens []string,
+	message alerts.PushMessage,
+) (alerts.PushResult, error) {
+	result, err := p.firebase.Send(ctx, tokens, message.Title, message.Body, message.Data)
+	if err != nil {
+		return alerts.PushResult{}, fmt.Errorf("send with firebase: %w", err)
+	}
+	return alerts.PushResult{Sent: result.Sent, InvalidTokens: result.InvalidTokens}, nil
 }
 
 // tokenVerifier adapts the Firebase verifier to the interface of the
@@ -184,6 +268,7 @@ func newHandler(
 	logger *slog.Logger,
 	operations api.StrictServerInterface,
 	verifier identity.TokenVerifier,
+	accounts identity.AccountChecker,
 ) http.Handler {
 	invalidRequest := func(w http.ResponseWriter, r *http.Request, err error) {
 		httpx.WriteError(r.Context(), logger, w,
@@ -214,14 +299,14 @@ func newHandler(
 		Middlewares: []api.MiddlewareFunc{
 			httpx.LimitBody(bodyLimit),
 			httpx.RateLimit(logger, _publicPostLimit, time.Minute, isRateLimited, time.Now),
-			identity.RequireIdentity(logger, verifier, isPublic),
+			identity.RequireIdentity(logger, verifier, accounts, isPublic),
 			allowOtherOrigins,
 		},
 		// A parameter of the request could not be read.
 		ErrorHandlerFunc: invalidRequest,
 	})
 
-	return httpx.RequestLog(logger)(recoverPanic(logger, routes))
+	return httpx.RequestLog(logger)(recoverPanic(logger, answerPreflight(mux, routes)))
 }
 
 // recoverPanic answers with the internal error of the contract when next

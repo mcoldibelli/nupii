@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 
@@ -75,6 +76,11 @@ export function AuthScreen() {
       >
         <Text style={styles.linkText}>{creating ? "Já tenho conta" : "Criar uma conta"}</Text>
       </Pressable>
+      {!creating && (
+        <Pressable testID="forgot-password-link" accessibilityRole="button" style={styles.link} onPress={() => router.push("/forgot-password")}>
+          <Text style={styles.linkText}>Esqueci a senha</Text>
+        </Pressable>
+      )}
     </View>
   );
 }

@@ -62,3 +62,13 @@ func (v *Verifier) VerifyIDToken(ctx context.Context, rawToken string) (Token, e
 	}
 	return Token{UID: token.UID, Email: email}, nil
 }
+
+// DeleteUser deletes the user uid in Firebase Authentication. A user that
+// does not exist counts as deleted, so a job that runs again succeeds.
+func (v *Verifier) DeleteUser(ctx context.Context, uid string) error {
+	err := v.client.DeleteUser(ctx, uid)
+	if err != nil && !auth.IsUserNotFound(err) {
+		return fmt.Errorf("delete the firebase user: %w", err)
+	}
+	return nil
+}

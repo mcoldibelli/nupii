@@ -4,18 +4,23 @@ import { FirebaseError, initializeApp } from "firebase/app";
 import {
   connectAuthEmulator,
   createUserWithEmailAndPassword,
+  EmailAuthProvider,
   getAuth,
   getReactNativePersistence,
   initializeAuth,
   onAuthStateChanged,
+  reauthenticateWithCredential,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
   type Auth,
 } from "firebase/auth";
 
 import { Platform } from "react-native";
 
 import { authEmulatorUrl, firebaseConfig } from "../config";
+import { authMessage, resetMessage } from "./messages";
 
 let instance: Auth | null = null;
 
@@ -64,26 +69,13 @@ export async function currentIdToken(): Promise<string | null> {
   return user === null ? null : user.getIdToken();
 }
 
-/** Messages for the error codes of Firebase Authentication that the user can fix. */
-const messages: Record<string, string> = {
-  "auth/invalid-credential": "E-mail ou senha incorretos.",
-  "auth/user-not-found": "E-mail ou senha incorretos.",
-  "auth/wrong-password": "E-mail ou senha incorretos.",
-  "auth/email-already-in-use": "Este e-mail já tem uma conta. Use a opção de entrar.",
-  "auth/invalid-email": "Informe um e-mail válido.",
-  "auth/weak-password": "A senha é fraca demais. Use uma senha mais longa.",
-  "auth/too-many-requests": "Muitas tentativas. Espere um pouco e tente de novo.",
-  "auth/network-request-failed": "Sem conexão com o serviço de contas. Confira a internet e tente de novo.",
-};
-
 /** Runs a Firebase call and returns null, or the message of the failure. */
 async function messageOf(action: () => Promise<unknown>): Promise<string | null> {
   try {
     await action();
     return null;
   } catch (error) {
-    const code = error instanceof FirebaseError ? error.code : "";
-    return messages[code] ?? "Não foi possível concluir. Tente de novo.";
+    return authMessage(error instanceof FirebaseError ? error.code : "");
   }
 }
 
@@ -100,4 +92,43 @@ export function createAccount(email: string, password: string): Promise<string |
 /** Signs out. Returns null, or the message of the failure. */
 export function signOutAccount(): Promise<string | null> {
   return messageOf(() => signOut(auth()));
+}
+
+/**
+ * Sends the e-mail with the link to reset the password (RF-05). An e-mail
+ * with no account gets the same answer, so the screen does not tell which
+ * e-mails have an account.
+ */
+export async function sendPasswordReset(email: string): Promise<string | null> {
+  try {
+    await sendPasswordResetEmail(auth(), email.trim());
+    return null;
+  } catch (error) {
+    return resetMessage(error instanceof FirebaseError ? error.code : "");
+  }
+}
+
+/** Signs in again with the password of the account. Firebase asks for it before a sensitive change. */
+async function reauthenticate(password: string): Promise<void> {
+  const user = auth().currentUser;
+  if (user === null || user.email === null) {
+    throw new FirebaseError("auth/no-current-user", "no account is signed in");
+  }
+  await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
+}
+
+/** Changes the password (RF-07). Returns null, or the message of the failure. */
+export function changePassword(current: string, next: string): Promise<string | null> {
+  return messageOf(async () => {
+    await reauthenticate(current);
+    const user = auth().currentUser;
+    if (user !== null) {
+      await updatePassword(user, next);
+    }
+  });
+}
+
+/** Checks the password of the account before the delete of the account (RF-08). */
+export function confirmPassword(password: string): Promise<string | null> {
+  return messageOf(() => reauthenticate(password));
 }

@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { failureMessage, SESSION_FAILURE } from "../api/http";
-import { getMe, registerMe, type Owner } from "../api/owner";
-import { currentIdToken, signOutAccount, subscribeToAccount } from "../auth/firebase";
+import { deleteMe, getMe, registerMe, updateMe, type Owner } from "../api/owner";
+import { confirmPassword, currentIdToken, signOutAccount, subscribeToAccount } from "../auth/firebase";
 import { apiUrl, missingConfig } from "../config";
+import { deleteAccountFlow, renameFailure } from "./account";
 
 export type SessionState =
   | { kind: "loading" }
@@ -19,6 +20,10 @@ type Session = {
   reload: () => Promise<void>;
   /** Registers the owner. Returns null, or the message of the failure. */
   register: (name: string) => Promise<string | null>;
+  /** Changes the name of the owner (RF-06). Returns null, or the message of the failure. */
+  rename: (name: string) => Promise<string | null>;
+  /** Checks the password and deletes the account (RF-08). Returns null, or the message of the failure. */
+  deleteAccount: (password: string) => Promise<string | null>;
   signOut: () => void;
   /** Returns the ID token for a call of the API, or null when it cannot get one. */
   idToken: () => Promise<string | null>;
@@ -103,10 +108,38 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [idToken],
   );
 
+  const rename = useCallback(
+    async (name: string): Promise<string | null> => {
+      const token = await idToken();
+      if (token === null) {
+        return SESSION_FAILURE;
+      }
+      const result = await updateMe(apiUrl, token, name);
+      if (!result.ok) {
+        return renameFailure(result);
+      }
+      setState({ kind: "ready", owner: result.value });
+      return null;
+    },
+    [idToken],
+  );
+
+  const deleteAccount = useCallback(
+    (password: string) =>
+      deleteAccountFlow(
+        { confirm: confirmPassword, idToken, remove: (token) => deleteMe(apiUrl, token), signOut: signOutAccount },
+        password,
+      ),
+    [idToken],
+  );
+
   const signOut = useCallback(() => {
     void signOutAccount();
   }, []);
 
-  const session = useMemo(() => ({ state, reload, register, signOut, idToken }), [state, reload, register, signOut, idToken]);
+  const session = useMemo(
+    () => ({ state, reload, register, rename, deleteAccount, signOut, idToken }),
+    [state, reload, register, rename, deleteAccount, signOut, idToken],
+  );
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/inference"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/jobs"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres/postgrestest"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/storage"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/storage/storagetest"
@@ -35,6 +36,12 @@ type testAPI struct {
 	pool    *pgxpool.Pool
 	// embedder is in the place of the inference service.
 	embedder *fakeEmbedder
+	// accounts is the delete of accounts of the server (RN-84).
+	accounts *identity.Accounts
+	// purge is the handler of the daily purge job (RN-42).
+	purge jobs.Handler
+	// photos is the object store of the server.
+	photos *storage.Store
 	// noseprints is the biometrics service of the server.
 	noseprints *biometrics.Service
 }
@@ -79,10 +86,13 @@ func newTestAPI(t *testing.T, verifier identity.TokenVerifier, uids ...string) t
 	operations := newServer(logger, pool, photos, embedder)
 	return testAPI{
 		t:          t,
-		handler:    newHandler(logger, operations, verifier),
+		handler:    newHandler(logger, operations, verifier, operations.owners),
 		pool:       pool,
 		embedder:   embedder,
 		noseprints: operations.noseprints,
+		purge:      operations.purge,
+		accounts:   operations.accounts,
+		photos:     photos,
 	}
 }
 
@@ -90,6 +100,29 @@ func deleteOwners(t *testing.T, pool *pgxpool.Pool, uids []string) {
 	t.Helper()
 	ctx := context.WithoutCancel(t.Context())
 	const ownedPets = "SELECT p.id FROM pets AS p JOIN owners AS o ON o.id = p.owner_id WHERE o.firebase_uid = ANY($1)"
+	const ownerIDs = "SELECT id FROM owners WHERE firebase_uid = ANY($1)"
+	for _, table := range []string{"notifications", "owner_locations", "devices"} {
+		if _, err := pool.Exec(ctx, "DELETE FROM "+table+" WHERE owner_id IN ("+ownerIDs+")", uids); err != nil {
+			t.Errorf("delete the %s of the test: %v", table, err)
+		}
+	}
+	const ownedEvents = "SELECT id FROM health_events WHERE pet_id IN (" + ownedPets + ")"
+	if _, err := pool.Exec(ctx, "DELETE FROM health_attachments WHERE event_id IN ("+ownedEvents+")", uids); err != nil {
+		t.Errorf("delete the health attachments of the test: %v", err)
+	}
+	if _, err := pool.Exec(ctx, "DELETE FROM share_links WHERE pet_id IN ("+ownedPets+")", uids); err != nil {
+		t.Errorf("delete the share links of the test: %v", err)
+	}
+	if _, err := pool.Exec(ctx, "DELETE FROM health_events WHERE pet_id IN ("+ownedPets+")", uids); err != nil {
+		t.Errorf("delete the health events of the test: %v", err)
+	}
+	const ownedReports = "SELECT id FROM reports WHERE pet_id IN (" + ownedPets + ")"
+	if _, err := pool.Exec(ctx, "DELETE FROM sightings WHERE report_id IN ("+ownedReports+")", uids); err != nil {
+		t.Errorf("delete the sightings of the test: %v", err)
+	}
+	if _, err := pool.Exec(ctx, "DELETE FROM reports WHERE pet_id IN ("+ownedPets+")", uids); err != nil {
+		t.Errorf("delete the reports of the test: %v", err)
+	}
 	// The identifications stay: they have no owner. Their candidates point to the pets.
 	if _, err := pool.Exec(ctx, "DELETE FROM identification_candidates WHERE pet_id IN ("+ownedPets+")", uids); err != nil {
 		t.Errorf("delete the identification candidates of the test: %v", err)

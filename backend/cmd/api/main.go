@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"net"
 	"net/http"
 	"os"
@@ -14,13 +15,16 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/mcoldibelli/nupii/backend/db/migrations"
+	"github.com/mcoldibelli/nupii/backend/internal/alerts"
 	"github.com/mcoldibelli/nupii/backend/internal/biometrics"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/config"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/firebase"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/inference"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/jobs"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/storage"
 )
@@ -111,14 +115,31 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 		AccessKeyID:     cfg.StorageAccessKeyID,
 		SecretAccessKey: cfg.StorageSecretAccessKey,
 	})
+	var pusher alerts.Pusher
+	// RN-36: o push só é enviado com a credencial configurada.
+	if cfg.PushEnabled {
+		sender, err := firebase.NewPusher(startCtx, cfg.FirebaseProjectID)
+		if err != nil {
+			return fmt.Errorf("create the push sender: %w", err)
+		}
+		pusher = firebasePusher{firebase: sender}
+	} else {
+		logger.InfoContext(ctx, "push notifications are off: no credential of firebase")
+	}
 	operations := newServer(logger, pool, photos, inference.New(cfg.InferenceURL))
+
+	// RF-32, RN-42: the start writes the next daily purge.
+	if err := schedulePurge(ctx, pool, time.Now()); err != nil {
+		return err
+	}
 
 	listener, err := net.Listen("tcp", cfg.HTTPAddr)
 	if err != nil {
 		return fmt.Errorf("listen on %s: %w", cfg.HTTPAddr, err)
 	}
 	srv := &http.Server{
-		Handler:           newHandler(logger, operations, tokenVerifier{firebase: verifier}),
+		Handler: newHandler(
+			logger, operations, tokenVerifier{firebase: verifier}, operations.owners),
 		ReadHeaderTimeout: _readHeaderTimeout,
 		ReadTimeout:       _readTimeout,
 		WriteTimeout:      _writeTimeout,
@@ -138,6 +159,18 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	backgroundCtx, cancelBackground := context.WithCancel(ctx)
 	var background sync.WaitGroup
 	background.Go(func() { reembedNoseprints(backgroundCtx, logger, operations.noseprints) })
+	// RNF-01: um alerta de desaparecimento não se perde quando o processo
+	// para. The jobs that wait in the database run from the start of the
+	// API. Run ends the job in progress and returns when the context ends.
+	handlers := alerts.JobHandlers(pusher)
+	// RN-03: a job deletes the user of a deleted account in Firebase.
+	maps.Copy(handlers, operations.accounts.JobHandlers(verifier))
+	// The objects that a transaction made unused leave the store after it.
+	maps.Copy(handlers, storage.JobHandlers(photos, logger))
+	// RF-32, RN-42: a limpeza diária. Each purge writes the one after it.
+	handlers[_jobPurge] = operations.purge
+	runner := jobs.NewRunner(pool, logger, handlers)
+	background.Go(func() { runner.Run(backgroundCtx) })
 	defer func() {
 		cancelBackground()
 		background.Wait()

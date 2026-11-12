@@ -29,6 +29,12 @@ type TokenVerifier interface {
 	VerifyIDToken(ctx context.Context, rawToken string) (Identity, error)
 }
 
+// AccountChecker tells if the account of a user is deleted. *Service
+// implements it.
+type AccountChecker interface {
+	IsDeleted(ctx context.Context, uid string) (bool, error)
+}
+
 type identityKey struct{}
 
 // FromContext returns the identity that RequireIdentity put in the context
@@ -45,9 +51,11 @@ func FromContext(ctx context.Context) (Identity, bool) {
 //
 // RN-46: uma chamada sem token, com token inválido ou com token vencido
 // recebe 401.
+// RN-04: uma conta excluída recebe 401, mesmo com um token ainda válido.
 func RequireIdentity(
 	logger *slog.Logger,
 	verifier TokenVerifier,
+	accounts AccountChecker,
 	isPublic func(*http.Request) bool,
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -70,6 +78,16 @@ func RequireIdentity(
 			if err != nil {
 				logger.ErrorContext(ctx, "verify ID token", slog.Any("error", err))
 				httpx.WriteInternalError(ctx, logger, w)
+				return
+			}
+			deleted, err := accounts.IsDeleted(ctx, who.UID)
+			if err != nil {
+				logger.ErrorContext(ctx, "check if the account is deleted", slog.Any("error", err))
+				httpx.WriteInternalError(ctx, logger, w)
+				return
+			}
+			if deleted {
+				unauthenticated(ctx, logger, w, "the account is deleted")
 				return
 			}
 			next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, identityKey{}, who)))

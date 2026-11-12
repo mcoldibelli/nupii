@@ -62,8 +62,13 @@ func (g *gallery) queryPhoto() []byte {
 // address, so the rate limit of RN-43 does not count the calls together.
 func (a testAPI) public(path string, fields map[string]string, file []byte) *httptest.ResponseRecorder {
 	a.t.Helper()
-	return a.publicFrom("198.51.100."+fmt.Sprint(1+randomByte()%250)+":"+fmt.Sprint(1024+int(randomByte())*200+int(randomByte())),
-		path, fields, file)
+	return a.publicFrom(randomAddress(), path, fields, file)
+}
+
+// randomAddress returns a client address that is new in each call, so the
+// rate limit of RN-43 does not count the calls together.
+func randomAddress() string {
+	return fmt.Sprintf("198.51.%d.%d:4000", randomByte(), randomByte())
 }
 
 func randomByte() byte {

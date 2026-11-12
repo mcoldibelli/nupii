@@ -15,6 +15,7 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/api"
 	"github.com/mcoldibelli/nupii/backend/internal/identity"
 	"github.com/mcoldibelli/nupii/backend/internal/pets"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/inference"
 )
 
@@ -181,10 +182,6 @@ func noseprintToAPI(noseprint Noseprint) (api.Noseprint, error) {
 	}, nil
 }
 
-// _maxFieldBytes is the maximum size of a text field of a multipart body.
-// The longest field is the message of the contact: 500 characters (RN-63).
-const _maxFieldBytes = 4 << 10
-
 // form has the parts of a multipart body.
 type form struct {
 	// fields has the text of each part that is not the file.
@@ -197,33 +194,11 @@ type form struct {
 // ValidationError when the body cannot be read or a text field is too long.
 // The size of the file is checked by the service.
 func readForm(body *multipart.Reader) (form, error) {
-	result := form{fields: make(map[string]string)}
-	for {
-		part, err := body.NextPart()
-		if errors.Is(err, io.EOF) {
-			return result, nil
-		}
-		if err != nil {
-			return form{}, &ValidationError{Message: "the multipart body could not be read"}
-		}
-		limit := int64(_maxFieldBytes)
-		if part.FormName() == "file" {
-			limit = _maxPhotoBytes
-		}
-		// One byte over the limit is enough to know that the part is too big.
-		data, err := io.ReadAll(io.LimitReader(part, limit+1))
-		if err != nil {
-			return form{}, &ValidationError{Message: "the multipart body could not be read"}
-		}
-		if part.FormName() == "file" {
-			result.file = data
-			continue
-		}
-		if int64(len(data)) > limit {
-			return form{}, &ValidationError{Message: "the field " + part.FormName() + " is too long"}
-		}
-		result.fields[part.FormName()] = string(data)
+	parts, err := httpx.ReadForm(body, _maxPhotoBytes)
+	if err != nil {
+		return form{}, &ValidationError{Message: err.Error()}
 	}
+	return form{fields: parts.Fields, file: parts.File}, nil
 }
 
 // location returns the point of the fields latitude and longitude, or nil

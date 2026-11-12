@@ -10,16 +10,19 @@ import (
 	"time"
 )
 
-const confirmCandidate = `-- name: ConfirmCandidate :exec
+const confirmCandidate = `-- name: ConfirmCandidate :execrows
 UPDATE identification_candidates
 SET confirmed_at = now()
 WHERE id = $1 AND confirmed_at IS NULL
 `
 
 // RN-65: a data da confirmação fica a da primeira vez.
-func (q *Queries) ConfirmCandidate(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, confirmCandidate, id)
-	return err
+func (q *Queries) ConfirmCandidate(ctx context.Context, id string) (int64, error) {
+	result, err := q.db.Exec(ctx, confirmCandidate, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const countGalleryPets = `-- name: CountGalleryPets :one
@@ -144,6 +147,43 @@ func (q *Queries) CreateNoseprint(ctx context.Context, arg CreateNoseprintParams
 	return i, err
 }
 
+const deleteOwnerCandidates = `-- name: DeleteOwnerCandidates :exec
+DELETE FROM identification_candidates
+WHERE pet_id IN (SELECT id FROM pets WHERE owner_id = $1)
+`
+
+// RN-84: the candidates point to the noseprints of the pets of the owner.
+func (q *Queries) DeleteOwnerCandidates(ctx context.Context, ownerID string) error {
+	_, err := q.db.Exec(ctx, deleteOwnerCandidates, ownerID)
+	return err
+}
+
+const deleteOwnerNoseprints = `-- name: DeleteOwnerNoseprints :many
+DELETE FROM noseprints
+WHERE pet_id IN (SELECT id FROM pets WHERE owner_id = $1)
+RETURNING image_key
+`
+
+func (q *Queries) DeleteOwnerNoseprints(ctx context.Context, ownerID string) ([]string, error) {
+	rows, err := q.db.Query(ctx, deleteOwnerNoseprints, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var image_key string
+		if err := rows.Scan(&image_key); err != nil {
+			return nil, err
+		}
+		items = append(items, image_key)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const demotePrimaryNoseprint = `-- name: DemotePrimaryNoseprint :exec
 UPDATE noseprints
 SET is_primary = false
@@ -231,6 +271,8 @@ FROM identification_candidates AS c
 JOIN identifications AS i ON i.id = c.identification_id
 JOIN pets AS p ON p.id = c.pet_id
 WHERE p.owner_id = $1 AND p.deleted_at IS NULL AND c.confirmed_at IS NOT NULL
+    -- RN-42: a notice with the contact purged leaves the list.
+    AND i.contact_name IS NOT NULL
 ORDER BY c.confirmed_at DESC, c.id DESC
 `
 
@@ -315,9 +357,10 @@ func (q *Queries) ListNoseprintsOfOtherVersions(ctx context.Context, modelVersio
 }
 
 const lockCandidate = `-- name: LockCandidate :one
-SELECT c.id, i.photo_key
+SELECT c.id, i.photo_key, p.owner_id, p.name AS pet_name
 FROM identification_candidates AS c
 JOIN identifications AS i ON i.id = c.identification_id
+JOIN pets AS p ON p.id = c.pet_id
 WHERE c.id = $1 AND i.id = $2
 FOR UPDATE OF i
 `
@@ -330,6 +373,8 @@ type LockCandidateParams struct {
 type LockCandidateRow struct {
 	ID       string
 	PhotoKey *string
+	OwnerID  string
+	PetName  string
 }
 
 // RN-64: o candidato da confirmação é da mesma identificação. The lock of
@@ -337,8 +382,48 @@ type LockCandidateRow struct {
 func (q *Queries) LockCandidate(ctx context.Context, arg LockCandidateParams) (LockCandidateRow, error) {
 	row := q.db.QueryRow(ctx, lockCandidate, arg.CandidateID, arg.IdentificationID)
 	var i LockCandidateRow
-	err := row.Scan(&i.ID, &i.PhotoKey)
+	err := row.Scan(
+		&i.ID,
+		&i.PhotoKey,
+		&i.OwnerID,
+		&i.PetName,
+	)
 	return i, err
+}
+
+const lockExpiredIdentifications = `-- name: LockExpiredIdentifications :many
+SELECT id, photo_key FROM identifications
+WHERE created_at < $1
+    AND (photo_key IS NOT NULL OR contact_name IS NOT NULL OR contact_phone IS NOT NULL
+        OR contact_message IS NOT NULL)
+FOR UPDATE
+`
+
+type LockExpiredIdentificationsRow struct {
+	ID       string
+	PhotoKey *string
+}
+
+// RN-42: the consults older than the limit that still have a contact or a
+// photo. The update comes in the next statement.
+func (q *Queries) LockExpiredIdentifications(ctx context.Context, before time.Time) ([]LockExpiredIdentificationsRow, error) {
+	rows, err := q.db.Query(ctx, lockExpiredIdentifications, before)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LockExpiredIdentificationsRow
+	for rows.Next() {
+		var i LockExpiredIdentificationsRow
+		if err := rows.Scan(&i.ID, &i.PhotoKey); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const lockPet = `-- name: LockPet :one
@@ -355,6 +440,17 @@ func (q *Queries) LockPet(ctx context.Context, id string) (string, error) {
 	var id_2 string
 	err := row.Scan(&id_2)
 	return id_2, err
+}
+
+const purgeIdentifications = `-- name: PurgeIdentifications :exec
+UPDATE identifications
+SET photo_key = NULL, contact_name = NULL, contact_phone = NULL, contact_message = NULL
+WHERE id = ANY($1::uuid[])
+`
+
+func (q *Queries) PurgeIdentifications(ctx context.Context, ids []string) error {
+	_, err := q.db.Exec(ctx, purgeIdentifications, ids)
+	return err
 }
 
 const searchNoseprints = `-- name: SearchNoseprints :many

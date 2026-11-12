@@ -6,6 +6,11 @@ overrides:
     overrides:
       - db_type: uuid
         go_type: string
+      - db_type: uuid
+        nullable: true
+        go_type:
+          type: string
+          pointer: true
       - db_type: timestamptz
         go_type: time.Time
       - db_type: timestamptz
@@ -14,6 +19,8 @@ overrides:
           import: time
           type: Time
           pointer: true
+      - db_type: date
+        go_type: time.Time
       - db_type: date
         nullable: true
         go_type:
@@ -55,6 +62,39 @@ sql:
       go:
         package: biometricsdb
         out: internal/biometrics/biometricsdb
+        sql_package: pgx/v5
+        initialisms: ["id", "uid"]
+        emit_pointers_for_null_types: true
+        omit_unused_structs: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries/reports.sql
+    gen:
+      go:
+        package: reportsdb
+        out: internal/reports/reportsdb
+        sql_package: pgx/v5
+        initialisms: ["id", "uid"]
+        emit_pointers_for_null_types: true
+        omit_unused_structs: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries/alerts.sql
+    gen:
+      go:
+        package: alertsdb
+        out: internal/alerts/alertsdb
+        sql_package: pgx/v5
+        initialisms: ["id", "uid"]
+        emit_pointers_for_null_types: true
+        omit_unused_structs: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries/health.sql
+    gen:
+      go:
+        package: healthdb
+        out: internal/health/healthdb
         sql_package: pgx/v5
         initialisms: ["id", "uid"]
         emit_pointers_for_null_types: true

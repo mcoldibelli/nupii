@@ -36,10 +36,16 @@ export interface paths {
          * @description O e-mail vem do token. Uma segunda chamada da mesma conta não muda o tutor e devolve 200.
          */
         post: operations["registerMe"];
-        delete?: never;
+        /**
+         * Exclui a conta do tutor (RF-08).
+         * @description Anonimiza o tutor e apaga os dados dele (RN-03, RN-84). O usuário sai do provedor de
+         *     identidade logo depois, numa tarefa. Depois desta chamada, o token recebe 401 (RN-04).
+         */
+        delete: operations["deleteMe"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Altera o nome do tutor (RF-06). O e-mail não muda. */
+        patch: operations["updateMe"];
         trace?: never;
     };
     "/v1/pets": {
@@ -217,6 +223,452 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * O mural, as ocorrências abertas dos tipos perdido e achado.
+         * @description Operação pública. 20 ocorrências por página, da mais nova para a mais antiga.
+         */
+        get: operations["listReports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reports/lost": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Registra o desaparecimento de um pet do tutor. */
+        post: operations["reportLost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reports/found": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publica um achado, com a foto do focinho.
+         * @description Operação pública. A resposta tem o código que resolve o achado. O código aparece só nesta resposta.
+         */
+        post: operations["reportFound"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reports/{reportId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * A ficha de uma ocorrência.
+         * @description Operação pública. A ficha de um desaparecimento tem os avistamentos.
+         */
+        get: operations["getReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reports/{reportId}/sightings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registra um avistamento em um desaparecimento aberto.
+         * @description Operação pública. Sem latitude e longitude, vale o ponto do desaparecimento.
+         */
+        post: operations["reportSighting"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reports/{reportId}/resolution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** O autor resolve uma ocorrência dele. */
+        post: operations["resolveReport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reports/{reportId}/code-resolution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve um achado com o código da criação.
+         * @description Operação pública. Um código errado recebe a mesma resposta de um achado que não existe.
+         */
+        post: operations["resolveFoundReport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Os desaparecimentos registrados pelo tutor, abertos e resolvidos. */
+        get: operations["listMyReports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Guarda a última localização do tutor.
+         * @description O sistema guarda só a última localização. Ela decide quem recebe o alerta de proximidade.
+         */
+        put: operations["setMyLocation"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Registra o dispositivo do tutor para receber push.
+         * @description Um token de outro tutor passa para o tutor que chama (RN-31).
+         */
+        put: operations["registerDevice"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/devices/removal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove um dispositivo do tutor.
+         * @description Um token de outro tutor fica como está, com a mesma resposta (RN-31).
+         *     O token vai no corpo, e não no caminho, para não entrar no log das requisições.
+         */
+        post: operations["removeDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** As 50 notificações mais recentes do tutor. */
+        get: operations["listNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notifications/{notificationId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da notificação. */
+                notificationId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marca uma notificação do tutor como lida. */
+        post: operations["markNotificationRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets/{petId}/health-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        /** Os eventos de saúde de um pet do tutor, do mais novo para o mais antigo. */
+        get: operations["listHealthEvents"];
+        put?: never;
+        /** Cria um evento de saúde de um pet do tutor. */
+        post: operations["createHealthEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets/{petId}/health-events/{eventId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do evento de saúde. */
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Troca todos os dados de um evento de saúde. */
+        put: operations["updateHealthEvent"];
+        post?: never;
+        /** Apaga um evento de saúde e os anexos dele. */
+        delete: operations["deleteHealthEvent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets/{petId}/health-events/{eventId}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do evento de saúde. */
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        /** Os anexos de um evento de saúde. */
+        get: operations["listHealthAttachments"];
+        put?: never;
+        /** Envia um anexo de um evento de saúde. */
+        post: operations["createHealthAttachment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets/{petId}/health-events/{eventId}/attachments/{attachmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do evento de saúde. */
+                eventId: string;
+                /** @description Identificador do anexo. */
+                attachmentId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Apaga um anexo de um evento de saúde. */
+        delete: operations["deleteHealthAttachment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/upcoming-care": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Os próximos cuidados de vacina e de medicação dos pets do tutor.
+         * @description Da data mais próxima para a mais distante. Uma data passada é um cuidado atrasado.
+         */
+        get: operations["listUpcomingCare"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets/{petId}/share-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Os links ativos da carteirinha de um pet, com as aberturas.
+         * @description Um link revogado ou vencido não vem na lista (RN-40).
+         */
+        get: operations["listShareLinks"];
+        put?: never;
+        /**
+         * Cria um link da carteirinha do pet, válido por 30 dias (RN-40).
+         * @description O token só vem nesta resposta. O banco guarda só o SHA-256 dele (RN-39).
+         */
+        post: operations["createShareLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets/{petId}/share-links/{shareLinkId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do link da carteirinha. */
+                shareLinkId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoga um link da carteirinha. O link para de abrir na hora (RN-41).
+         * @description Revogar um link já revogado ou vencido recebe a mesma resposta.
+         */
+        delete: operations["revokeShareLink"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/share-links/opening": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Abre a carteirinha pelo token do link e conta a abertura.
+         * @description Operação pública (RF-31). O token vai no corpo, e não no caminho, para não entrar no log
+         *     das requisições. Um token desconhecido, revogado, vencido ou de um pet excluído recebe
+         *     a mesma resposta 404 (RN-41).
+         */
+        post: operations["openShareLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -337,6 +789,325 @@ export interface components {
         FoundNoticeList: {
             notices: components["schemas"]["FoundNotice"][];
         };
+        /** @enum {string} */
+        ReportType: "lost" | "found";
+        /** @enum {string} */
+        ReportStatus: "open" | "resolved";
+        /**
+         * @description A latitude e a longitude são obrigatórias. Sem uma delas, a resposta é 400 `invalid_request`.
+         *     O esquema não as marca como obrigatórias para o servidor saber quando uma delas falta.
+         */
+        LostReportInput: {
+            /** Format: uuid */
+            petId: string;
+            /** Format: double */
+            latitude?: number;
+            /** Format: double */
+            longitude?: number;
+            /** @description Nome do local, com no máximo 200 caracteres. */
+            place?: string;
+            /** @description Recado, com no máximo 1.000 caracteres. */
+            description?: string;
+            /**
+             * Format: date-time
+             * @description Quando o pet desapareceu. Não é futura. Sem valor, vale o momento do registro.
+             */
+            occurredAt?: string;
+        };
+        SightingInput: {
+            /** Format: double */
+            latitude?: number;
+            /** Format: double */
+            longitude?: number;
+            /** @description Nome do local, com no máximo 200 caracteres. */
+            place?: string;
+            /** @description Recado, com no máximo 1.000 caracteres. */
+            description?: string;
+        };
+        /** @description Um avistamento. Não tem dado de quem avistou. */
+        Sighting: {
+            /** Format: uuid */
+            id: string;
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+            place?: string;
+            description?: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description Uma ocorrência. Não tem dado do autor. */
+        Report: {
+            /** Format: uuid */
+            id: string;
+            type: components["schemas"]["ReportType"];
+            status: components["schemas"]["ReportStatus"];
+            /**
+             * Format: uuid
+             * @description O pet de um desaparecimento.
+             */
+            petId?: string;
+            petName?: string;
+            petSpecies?: components["schemas"]["Species"];
+            /** @description O pet tem cadastro biométrico, e quem o encontrar pode identificá-lo pela foto do focinho. */
+            petHasNoseprint?: boolean;
+            /** @description URL temporária da foto de perfil do pet, ou da foto do focinho de um achado. Vale por 900 segundos. */
+            photoUrl?: string;
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+            place?: string;
+            description?: string;
+            /** Format: date-time */
+            occurredAt: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Os avistamentos de um desaparecimento, do mais antigo para o mais novo. Vazia nas listas. */
+            sightings: components["schemas"]["Sighting"][];
+        };
+        ReportList: {
+            reports: components["schemas"]["Report"][];
+        };
+        ReportPage: {
+            reports: components["schemas"]["Report"][];
+            page: number;
+            hasNext: boolean;
+            /** @description Número de desaparecimentos abertos no mural. */
+            openLost: number;
+            /** @description Número de achados abertos no mural. */
+            openFound: number;
+        };
+        FoundReportCreated: {
+            report: components["schemas"]["Report"];
+            /** @description Código que resolve o achado. Ele aparece só nesta resposta. */
+            resolveCode: string;
+        };
+        Location: {
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+        };
+        Device: {
+            /** @description Token de push do Firebase Cloud Messaging, com no máximo 4.096 caracteres. */
+            token: string;
+            /** @enum {string} */
+            platform: "android" | "ios" | "web";
+        };
+        /**
+         * @description `lost_nearby`: um pet desapareceu perto do tutor. `sighting`: alguém viu o pet do tutor.
+         *     `found`: alguém encontrou o pet do tutor pela foto do focinho.
+         * @enum {string}
+         */
+        NotificationKind: "lost_nearby" | "sighting" | "found";
+        Notification: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["NotificationKind"];
+            title: string;
+            body: string;
+            /**
+             * Format: uuid
+             * @description A ocorrência da notificação, quando existe.
+             */
+            reportId?: string;
+            /** @description Distância até o ponto do desaparecimento, no alerta de proximidade. */
+            distanceMeters?: number;
+            /** Format: date-time */
+            createdAt: string;
+            read: boolean;
+        };
+        NotificationList: {
+            notifications: components["schemas"]["Notification"][];
+        };
+        /** @enum {string} */
+        HealthEventType: "vaccine" | "consultation" | "medication" | "exam" | "note";
+        /**
+         * @description Medicação. Obrigatório na medicação.
+         * @enum {string}
+         */
+        MedicationCategory: "medication" | "flea" | "deworm";
+        /**
+         * @description Anotação. Obrigatório na anotação.
+         * @enum {string}
+         */
+        NoteCategory: "disease" | "weight" | "allergy" | "surgery" | "note" | "symptom";
+        /**
+         * @description Um evento de saúde. Os campos de cada tipo estão na descrição deles.
+         *     Um campo de outro tipo é recusado (RN-80).
+         */
+        HealthEventInput: {
+            type: components["schemas"]["HealthEventType"];
+            /**
+             * Format: date
+             * @description Data do evento. Não é futura.
+             */
+            date: string;
+            notes?: string;
+            /** @description Nome da vacina, da medicação ou do exame. */
+            name?: string;
+            /** @description Veterinário. Vacina, consulta e exame. */
+            vet?: string;
+            /** @description Vacina. */
+            manufacturer?: string;
+            /** @description Vacina. */
+            batch?: string;
+            /** @description Vacina. */
+            dose?: string;
+            /**
+             * Format: date
+             * @description Vacina. Não é anterior à data do evento.
+             */
+            nextDoseDate?: string;
+            /** @description Consulta. */
+            clinic?: string;
+            /** @description Consulta. Obrigatório na consulta. */
+            reason?: string;
+            /** @description Consulta. */
+            diagnosis?: string;
+            /**
+             * Format: double
+             * @description Consulta e anotação. De 0,01 a 999,99, com até 2 casas decimais.
+             */
+            weightKg?: number;
+            /**
+             * Format: date
+             * @description Consulta. Não é anterior à data do evento.
+             */
+            returnDate?: string;
+            medicationCategory?: components["schemas"]["MedicationCategory"];
+            /** @description Medicação. */
+            activeIngredient?: string;
+            /** @description Medicação. */
+            dosage?: string;
+            /** @description Medicação. */
+            frequency?: string;
+            /**
+             * Format: date
+             * @description Medicação. Não é anterior à data do evento.
+             */
+            endDate?: string;
+            /** @description Medicação. */
+            inUse?: boolean;
+            /** @description Medicação. Intervalo entre as doses, em dias. */
+            intervalDays?: number;
+            /** @description Exame. */
+            lab?: string;
+            /** @description Exame. */
+            result?: string;
+            noteCategory?: components["schemas"]["NoteCategory"];
+            /** @description Anotação. Obrigatório na anotação. */
+            title?: string;
+            /**
+             * @description Vacina e medicação. O evento entra nos próximos cuidados. Com esta opção, a vacina tem
+             *     `nextDoseDate` e a medicação tem `intervalDays`.
+             */
+            remind?: boolean;
+        };
+        HealthEvent: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            petId: string;
+            type: components["schemas"]["HealthEventType"];
+            /** Format: date */
+            date: string;
+            notes?: string;
+            /** @description Nome da vacina, da medicação ou do exame. */
+            name?: string;
+            /** @description Veterinário. Vacina, consulta e exame. */
+            vet?: string;
+            /** @description Vacina. */
+            manufacturer?: string;
+            /** @description Vacina. */
+            batch?: string;
+            /** @description Vacina. */
+            dose?: string;
+            /**
+             * Format: date
+             * @description Vacina. Não é anterior à data do evento.
+             */
+            nextDoseDate?: string;
+            /** @description Consulta. */
+            clinic?: string;
+            /** @description Consulta. Obrigatório na consulta. */
+            reason?: string;
+            /** @description Consulta. */
+            diagnosis?: string;
+            /**
+             * Format: double
+             * @description Consulta e anotação. De 0,01 a 999,99, com até 2 casas decimais.
+             */
+            weightKg?: number;
+            /**
+             * Format: date
+             * @description Consulta. Não é anterior à data do evento.
+             */
+            returnDate?: string;
+            medicationCategory?: components["schemas"]["MedicationCategory"];
+            /** @description Medicação. */
+            activeIngredient?: string;
+            /** @description Medicação. */
+            dosage?: string;
+            /** @description Medicação. */
+            frequency?: string;
+            /**
+             * Format: date
+             * @description Medicação. Não é anterior à data do evento.
+             */
+            endDate?: string;
+            /** @description Medicação. */
+            inUse?: boolean;
+            /** @description Medicação. Intervalo entre as doses, em dias. */
+            intervalDays?: number;
+            /** @description Exame. */
+            lab?: string;
+            /** @description Exame. */
+            result?: string;
+            noteCategory?: components["schemas"]["NoteCategory"];
+            /** @description Anotação. Obrigatório na anotação. */
+            title?: string;
+            /** @description Vacina e medicação. O evento entra nos próximos cuidados. */
+            remind: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        HealthEventList: {
+            events: components["schemas"]["HealthEvent"][];
+        };
+        HealthAttachment: {
+            /** Format: uuid */
+            id: string;
+            /** @description URL temporária do arquivo. Vale por 900 segundos. */
+            url: string;
+            /** @enum {string} */
+            contentType: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+            /** @description Nome do arquivo enviado, ou "anexo" quando o envio não tem nome. */
+            fileName: string;
+            sizeBytes: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        HealthAttachmentList: {
+            attachments: components["schemas"]["HealthAttachment"][];
+        };
+        UpcomingCare: {
+            /** Format: uuid */
+            eventId: string;
+            /** Format: uuid */
+            petId: string;
+            petName: string;
+            type: components["schemas"]["HealthEventType"];
+            /** @description Nome da vacina ou da medicação. */
+            title: string;
+            /** Format: date */
+            dueDate: string;
+        };
+        UpcomingCareList: {
+            items: components["schemas"]["UpcomingCare"][];
+        };
         /** @description O tutor. Pessoa com conta, responsável por pets. */
         Owner: {
             /** @description Identificador do tutor, um UUID. */
@@ -363,6 +1134,71 @@ export interface components {
             /** @enum {string} */
             status: "ok";
         };
+        /** @description Um link da carteirinha, sem o token. */
+        ShareLink: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description Quantas vezes a carteirinha foi aberta pelo link. */
+            opens: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description O link criado, com o token. O app monta o endereço `<web>/card#token=<token>`. */
+        CreatedShareLink: components["schemas"]["ShareLink"] & {
+            /** @description 32 bytes aleatórios em base64url, sem preenchimento (RN-39). */
+            token: string;
+        };
+        ShareLinkList: {
+            links: components["schemas"]["ShareLink"][];
+        };
+        /** @description A carteirinha do pet (RN-83). Sem dados do tutor, sem IDs internos e sem anexos. */
+        HealthCard: {
+            pet: components["schemas"]["HealthCardPet"];
+            /** @description Da mais nova para a mais antiga. */
+            vaccines: components["schemas"]["HealthCardVaccine"][];
+            /** @description As medicações antipulgas e vermífugo, da mais nova para a mais antiga. */
+            parasiteControl: components["schemas"]["HealthCardMedication"][];
+        };
+        HealthCardPet: {
+            name: string;
+            species: components["schemas"]["Species"];
+            breed?: string;
+            sex?: components["schemas"]["Sex"];
+            /** Format: date */
+            birthDate?: string;
+            /** Format: double */
+            weightKg?: number;
+            neutered?: boolean;
+            /**
+             * Format: uri
+             * @description URL temporária da foto de perfil, válida por 15 minutos.
+             */
+            photoUrl?: string;
+            vetName?: string;
+            vetClinic?: string;
+            vetPhone?: string;
+        };
+        HealthCardVaccine: {
+            name: string;
+            /** Format: date */
+            date: string;
+            /** Format: date */
+            nextDoseDate?: string;
+            manufacturer?: string;
+            batch?: string;
+            dose?: string;
+            vet?: string;
+        };
+        HealthCardMedication: {
+            name: string;
+            /** @enum {string} */
+            category: "flea" | "deworm";
+            /** Format: date */
+            date: string;
+            intervalDays?: number;
+        };
         /** @description Formato único de erro. Todo erro da API usa este formato. */
         Error: {
             error: components["schemas"]["ErrorCode"];
@@ -374,7 +1210,7 @@ export interface components {
          *     Um código novo entra nesta lista antes de entrar no código do servidor.
          * @enum {string}
          */
-        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found" | "pet_not_found" | "noseprint_not_found" | "identification_not_found" | "rate_limited" | "species_not_supported" | "image_low_quality" | "image_framing";
+        ErrorCode: "not_found" | "internal_error" | "unavailable" | "unauthenticated" | "invalid_request" | "owner_not_found" | "pet_not_found" | "noseprint_not_found" | "identification_not_found" | "report_not_found" | "lost_report_open" | "report_not_open" | "notification_not_found" | "health_event_not_found" | "attachment_limit" | "share_link_not_found" | "rate_limited" | "species_not_supported" | "image_low_quality" | "image_framing";
     };
     responses: {
         /** @description O corpo ou um parâmetro é inválido. O código do erro é `invalid_request`. */
@@ -414,6 +1250,39 @@ export interface components {
          *     `image_framing` quando a foto não mostra um focinho.
          */
         NosePhotoRefused: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description A ocorrência não existe. O código do erro é `report_not_found`. */
+        ReportNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /**
+         * @description O evento ou o anexo não existe para este pet, com o código `health_event_not_found`.
+         *     Ou o pet não existe para este tutor, com o código `pet_not_found`.
+         */
+        HealthEventNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /**
+         * @description O link da carteirinha não existe, com o código `share_link_not_found`.
+         *     Ou o pet não existe para este tutor, com o código `pet_not_found`.
+         */
+        ShareLinkNotFound: {
             headers: {
                 [name: string]: unknown;
             };
@@ -570,6 +1439,58 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthenticated"];
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A conta foi excluída. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    updateMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Nome do tutor. Não pode ser vazio. Tem no máximo 100 caracteres. */
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description O tutor com o nome novo. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Owner"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
             default: components["responses"]["Error"];
         };
     };
@@ -940,6 +1861,753 @@ export interface operations {
             };
             401: components["responses"]["Unauthenticated"];
             404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listReports: {
+        parameters: {
+            query?: {
+                /** @description Número da página, a partir de 1. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Uma página do mural, com as contagens. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportPage"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            default: components["responses"]["Error"];
+        };
+    };
+    reportLost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LostReportInput"];
+            };
+        };
+        responses: {
+            /** @description O desaparecimento registrado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Report"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["PetNotFound"];
+            /** @description O pet já tem um desaparecimento aberto. O código do erro é `lost_report_open`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    reportFound: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description A foto do focinho usada na identificação. JPEG, PNG ou WebP, com no máximo 8 MB.
+                     */
+                    file: string;
+                    /** Format: double */
+                    latitude: number;
+                    /** Format: double */
+                    longitude: number;
+                    /** @description Nome do local, com no máximo 200 caracteres. */
+                    place?: string;
+                    /** @description Recado, com no máximo 1.000 caracteres. */
+                    description?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description O achado publicado, com o código que resolve o achado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoundReportCreated"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            429: components["responses"]["RateLimited"];
+            default: components["responses"]["Error"];
+        };
+    };
+    getReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A ocorrência. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Report"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            404: components["responses"]["ReportNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    reportSighting: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SightingInput"];
+            };
+        };
+        responses: {
+            /** @description O avistamento registrado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Sighting"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            404: components["responses"]["ReportNotFound"];
+            /** @description A ocorrência não é um desaparecimento aberto. O código do erro é `report_not_open`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+            default: components["responses"]["Error"];
+        };
+    };
+    resolveReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A ocorrência resolvida. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Report"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["ReportNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    resolveFoundReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da ocorrência. */
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            /** @description O achado resolvido. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Report"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            404: components["responses"]["ReportNotFound"];
+            429: components["responses"]["RateLimited"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listMyReports: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description As ocorrências do tutor, da mais nova para a mais antiga. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    setMyLocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Location"];
+            };
+        };
+        responses: {
+            /** @description A localização foi guardada. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    registerDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Device"];
+            };
+        };
+        responses: {
+            /** @description O dispositivo está registrado. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    removeDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                };
+            };
+        };
+        responses: {
+            /** @description O dispositivo não recebe mais push deste tutor. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description As notificações, da mais nova para a mais antiga. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    markNotificationRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador da notificação. */
+                notificationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A notificação está lida. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            /** @description A notificação não existe para este tutor. O código do erro é `notification_not_found`. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listHealthEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os eventos de saúde. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthEventList"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["PetNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    createHealthEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HealthEventInput"];
+            };
+        };
+        responses: {
+            /** @description O evento criado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthEvent"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["PetNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    updateHealthEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do evento de saúde. */
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HealthEventInput"];
+            };
+        };
+        responses: {
+            /** @description O evento alterado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthEvent"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["HealthEventNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteHealthEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do evento de saúde. */
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O evento foi apagado. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["HealthEventNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listHealthAttachments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do evento de saúde. */
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os anexos, do mais antigo para o mais novo. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthAttachmentList"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["HealthEventNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    createHealthAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do evento de saúde. */
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description Imagem JPEG, PNG ou WebP, ou PDF, com no máximo 10 MB.
+                     */
+                    file: string;
+                    /** @description Nome do arquivo. Sem este campo, vale o nome da parte "file". */
+                    fileName?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description O anexo criado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthAttachment"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["HealthEventNotFound"];
+            /** @description O evento já tem 10 anexos. O código do erro é `attachment_limit`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteHealthAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do evento de saúde. */
+                eventId: string;
+                /** @description Identificador do anexo. */
+                attachmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O anexo foi apagado. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["HealthEventNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listUpcomingCare: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os próximos cuidados. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpcomingCareList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["OwnerNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listShareLinks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os links ativos, do mais novo para o mais antigo. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareLinkList"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["ShareLinkNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    createShareLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O link criado, com o token. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedShareLink"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["ShareLinkNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    revokeShareLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+                /** @description Identificador do link da carteirinha. */
+                shareLinkId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O link está revogado. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["ShareLinkNotFound"];
+            default: components["responses"]["Error"];
+        };
+    };
+    openShareLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                };
+            };
+        };
+        responses: {
+            /** @description A carteirinha. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthCard"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            404: components["responses"]["ShareLinkNotFound"];
+            429: components["responses"]["RateLimited"];
             default: components["responses"]["Error"];
         };
     };

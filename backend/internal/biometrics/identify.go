@@ -14,6 +14,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/mcoldibelli/nupii/backend/internal/alerts"
 	"github.com/mcoldibelli/nupii/backend/internal/biometrics/biometricsdb"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/inference"
 )
@@ -299,10 +300,21 @@ func (s *Service) Confirm(
 		if err != nil {
 			return fmt.Errorf("set the contact of the identification: %w", err)
 		}
-		if err := queries.ConfirmCandidate(ctx, row.ID); err != nil {
+		confirmed, err := queries.ConfirmCandidate(ctx, row.ID)
+		if err != nil {
 			return fmt.Errorf("confirm candidate: %w", err)
 		}
-		return nil
+		if confirmed == 0 {
+			// RN-65: a confirmação de novo muda só o contato, sem nova notificação.
+			return nil
+		}
+		// RN-16: o tutor do pet confirmado recebe uma notificação.
+		return alerts.EnqueueFound(ctx, tx, alerts.Found{
+			CandidateID: row.ID,
+			OwnerID:     row.OwnerID,
+			PetName:     row.PetName,
+			ContactName: contact.Name,
+		})
 	})
 	if storedKey != nil && (err != nil || !photoUsed) {
 		// No identification points to the object. The delete continues

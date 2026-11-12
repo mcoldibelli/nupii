@@ -66,17 +66,20 @@ Regras, iguais para todos os módulos:
 3. Um módulo chama outro módulo por uma interface declarada em quem consome. Exemplo: `reports` declara a interface `PetOwnerChecker`, e `pets` a satisfaz.
 4. Leitura com `JOIN` entre tabelas de módulos diferentes é permitida e fica listada abaixo. É o custo aceito de um banco único.
 5. `platform` não conhece nenhum módulo de domínio.
+6. Um módulo que guarda dados de um tutor implementa `identity.Eraser`, e `cmd/api` o coloca na lista da exclusão da conta (RN-84, [ADR 0028](adr/0028-exclusao-da-conta-e-limpeza.md)).
 
 Dependências permitidas:
 
 ```mermaid
 flowchart TD
     reports --> pets
+    reports --> identity
     reports --> alerts
     biometrics --> pets
     biometrics --> identity
     biometrics --> alerts
     health --> pets
+    health --> identity
     pets --> identity
     alerts --> identity
     identity --> platform
@@ -87,18 +90,21 @@ flowchart TD
     health --> platform
 ```
 
-A dependência de `biometrics` para `alerts` é a notificação de RN-16. Ela passa a existir na fatia 6, com o módulo `alerts`.
+As dependências de `biometrics` e de `reports` para `alerts` são as tarefas de notificação. O módulo que cria a tarefa usa uma função de `alerts` (`EnqueueLostReport`, `EnqueueSighting`, `EnqueueFound`), na própria transação. A tarefa leva os dados da notificação, e `alerts` não lê as tabelas dos outros módulos.
 
 Leituras com `JOIN` entre módulos, conhecidas pelos requisitos:
 
 | Consulta | Módulo dono | Lê também | Requisito |
 |---|---|---|---|
-| Busca dos focinhos mais parecidos | `biometrics` | `pets` (pet não excluído). A leitura de `identity` (conta ativa) entra na fatia 9 | RN-10, RN-11 |
+| Busca dos focinhos mais parecidos | `biometrics` | `pets` (pet não excluído). A exclusão da conta exclui os pets dela e apaga os cadastros, então a busca não lê `identity` (RN-84) | RN-10, RN-11 |
 | Trava do pet durante o cadastro do focinho | `biometrics` | `pets` (linha do pet, com `FOR UPDATE`, sem escrita) | RN-09 |
 | Nome e foto de perfil dos candidatos | `biometrics` | `pets` | RN-62 |
+| Mural e ficha (visão `report_views`) | `reports` | `pets` (nome, espécie, foto, pet não excluído), `biometrics` (o pet tem cadastro) | RN-24, RN-72 |
 | Avisos de encontro do tutor | `biometrics` | `pets` (pets do tutor, não excluídos) | RN-66 |
-| Tutores perto de um ponto | `alerts` | `identity` (conta ativa) | RN-32, RN-33 |
-| Mural com a foto do pet | `reports` | `pets` | RF-16 |
+| Próximos cuidados | `health` | `pets` (nome, pets do tutor, não excluídos) | RN-81 |
+| Carteirinha aberta pelo link | `health` | `pets` (dados e foto do pet, pet não excluído) | RN-41, RN-83 |
+| Exclusão da conta: os dados dos pets do tutor | `biometrics`, `health` | `pets` (os pets do tutor, por `owner_id`, sem escrita) | RN-84 |
+| Tutores perto de um ponto | `alerts` | Nenhum. A consulta lê só `owner_locations`: a exclusão da conta apaga a localização (RN-84) | RN-32, RN-33 |
 
 ## Tarefas em segundo plano
 
@@ -107,16 +113,32 @@ Uma tabela `jobs` no Postgres. Workers no mesmo binário leem com `SELECT ... FO
 | Tarefa | Quem cria | Requisito |
 |---|---|---|
 | `notify_lost_report` | `reports`, na mesma transação da ocorrência | RF-24, RNF-01 |
-| `send_push` | `alerts` | RF-26 |
-| `reembed_noseprint` | `biometrics`, quando a versão do modelo muda. Até a fila de tarefas existir (fatia 6), o recálculo é executado na subida da API, em uma goroutine (RN-67) | RF-15 |
-| `purge_expired_data` | agenda diária | RF-32, RN-42 |
-| `delete_identity_user` | `identity`, na mesma transação da anonimização | RF-08, RN-03 |
+| `notify_sighting` | `reports`, na mesma transação do avistamento | RN-73 |
+| `notify_found` | `biometrics`, na mesma transação da confirmação | RN-16, RN-73 |
+| `send_push` | `alerts`, na mesma transação da notificação | RF-26 |
+| (recálculo dos vetores) | Não é uma tarefa da fila: o recálculo é executado na subida da API, em uma goroutine (RN-67). Ele refaz tudo o que falta a cada subida, então não precisa de uma tarefa por cadastro | RF-15 |
+| `purge_expired_data` | a própria tarefa, que grava a próxima execução às 3h de `America/Sao_Paulo`; a subida da API grava a primeira | RF-32, RN-42 |
+| `delete_identity_user` | `identity`, na mesma transação da exclusão da conta, para 5 minutos depois. A tarefa passa os apagadores de novo e apaga o usuário no Firebase | RF-08, RN-03, RN-84 |
+| `delete_stored_objects` | quem deixa arquivos sem uso dentro de uma transação que trava linhas (a limpeza diária, a segunda passagem da exclusão) | RN-42, RN-84 |
 
 Concorrência, declarada por regra:
 
 - O contexto raiz nasce em `main` e é cancelado por `SIGTERM`.
 - Cada worker para quando o contexto é cancelado e termina a tarefa em curso antes de sair.
+- Uma tarefa com hora marcada usa `jobs.EnqueueAt`. Um índice único em `(kind, run_at)` impede duas execuções no mesmo horário. A limpeza diária usa esse índice (RN-42).
 - Uma tarefa que falha volta para a fila com espera crescente. Depois do limite de tentativas ela fica marcada como falha.
+- O código da fila fica em `platform/jobs`. Um runner pega uma tarefa vencida com `FOR UPDATE SKIP LOCKED`, só dos tipos que ele conhece, e espera 1 segundo quando nenhuma tarefa vence. Uma tarefa tem 1 minuto.
+- O worker executa a tarefa na mesma transação que trava a linha dela. As escritas da tarefa no banco e o fim da tarefa entram juntos, ou não entram.
+- Cada notificação grava, na mesma transação, a tarefa `send_push`. A tarefa envia só uma notificação com o push pendente. Sem a credencial do Firebase, ela marca o push como não enviado (RN-36).
+- Um panic em uma tarefa é uma falha da tarefa, e não derruba a API. A tarefa que chega ao limite de tentativas escreve uma linha de erro no log.
+
+Limites conhecidos da fila:
+
+- A tarefa `send_push` envia antes de gravar o fim da tarefa. Se a gravação falha depois do envio, o push sai duas vezes. O push é uma mensagem, e uma mensagem repetida não muda dado nenhum.
+- Uma tarefa `send_push` que chega ao limite de tentativas deixa a notificação com o push pendente. A tabela `jobs` tem a falha.
+- O alerta de proximidade sai também quando o desaparecimento é resolvido, ou o pet é excluído, antes de a tarefa rodar. A ficha mostra a ocorrência resolvida, ou responde 404.
+- Na parada, a API espera a tarefa em curso terminar: até 1 minuto, além do tempo de parada do servidor HTTP.
+- A tarefa leva os dados de que precisa. O módulo que executa a tarefa não lê as tabelas do módulo que a criou.
 - Toda tarefa precisa ser segura para executar duas vezes.
 - O recálculo dos vetores (RN-67) é uma goroutine que nasce em `main` depois de o servidor HTTP subir. Ela termina quando o recálculo termina ou quando o contexto é cancelado, e `main` espera por ela antes de sair. Se o serviço de inferência não responde, ela escreve um aviso no log e para: os cadastros que faltam ficam para a subida seguinte.
 
@@ -147,19 +169,24 @@ Concorrência, declarada por regra:
 - Rotas em inglês, com versão no caminho: `/v1/...`.
 - Endpoints públicos têm limite de tentativas por IP (RN-43). O IP é o endereço da conexão, e a rota é o padrão do contrato, não o caminho com os identificadores. Acima do limite, a resposta é 429 com o código `rate_limited`. Atrás de um proxy, o endereço da conexão é o do proxy: a fatia 10 decide de onde a API lê o endereço do cliente.
 - Uma rota pública responde com `Access-Control-Allow-Origin: *`, para a página pública ler a resposta de outra origem. As rotas com token não têm esse cabeçalho.
+- O mapa da web fica em um `iframe` com `sandbox="allow-scripts"`: os scripts do mapa rodam em uma origem própria, sem acesso à página. Por isso, na web, o mapa não começa na posição do aparelho, e o visitante toca o ponto.
+- A API responde 204 à requisição `OPTIONS` de verificação que o navegador envia antes de um `POST` com JSON para uma rota pública. Uma rota com token recebe 404.
 - Autenticação: uma operação do contrato sem `security` é pública. Toda outra operação pede o ID token do Firebase no cabeçalho `Authorization: Bearer`. Sem token válido, a resposta é 401 com o código `unauthenticated` (RN-46). A conferência do token acontece antes da leitura do corpo.
 - O módulo `identity` depende da interface `TokenVerifier`. A implementação com o Firebase Admin SDK fica em `platform/firebase`, e `cmd/api` liga as duas.
 - Um corpo ou um parâmetro que não pode ser lido recebe 400 com o código `invalid_request`. Um dado que quebra uma regra de negócio recebe a mesma resposta, com a regra na mensagem.
 - Um recurso de outro tutor não existe para quem chama: a resposta é 404, igual à de um recurso que nunca existiu (RN-52).
+- Uma conta excluída recebe 401 em toda rota com token. O middleware de autenticação lê a data da exclusão do tutor em cada requisição (RN-04).
 - Uma conta sem tutor registrado recebe 404 com o código `owner_not_found` nas operações que precisam do tutor.
-- O corpo de uma requisição JSON tem no máximo 1 MiB, o de um envio de foto de perfil tem no máximo 6 MiB, e o de um envio de foto de focinho tem no máximo 9 MiB. Um corpo maior recebe a mesma resposta 400.
+- O corpo de uma requisição JSON tem no máximo 1 MiB. O corpo de um envio de foto de perfil tem no máximo 6 MiB, o de uma foto de focinho 9 MiB e o de um anexo de saúde 11 MiB. Um corpo maior recebe a mesma resposta 400.
 - Uma foto de focinho recusada recebe 422, com o motivo no código: `species_not_supported`, `image_low_quality` ou `image_framing`.
 - Quando o serviço de inferência não responde, a operação que precisa dele recebe 503 com o código `unavailable`. A causa vai para o log. A API sobe sem o serviço de inferência.
 - Um arquivo enviado tem o tipo conferido pelos bytes do arquivo, não pelo que o cliente declara (RN-54).
+- O anexo de saúde aceita o nome do arquivo no campo `fileName` do corpo. Sem o campo, vale o nome da parte do arquivo. O app envia o campo, porque o `fetch` do Expo não envia o nome dado ao `FormData`.
 - A URL temporária de uma foto é assinada com o endereço público do armazenamento (`S3_PUBLIC_ENDPOINT`).
 - O emulador do Authentication só é aceito com um projeto de demonstração (`FIREBASE_PROJECT_ID` com o prefixo `demo-`). Com outro projeto, a API não sobe.
 - O servidor HTTP dá 2 minutos para o cliente enviar uma requisição e 3 minutos para a resposta terminar. Uma foto de 8 MB em uma rede móvel lenta leva cerca de 45 segundos.
 - No app e na página pública, a foto de focinho escolhida da galeria vai para a API sem nova compressão. A foto tirada pela câmera é comprimida uma vez, com qualidade 0,9.
+- Uma trava com `FOR UPDATE` fica num comando separado. Os comandos que leem ou apagam as linhas que outra transação pode gravar vêm depois dela. Um comando lê as linhas gravadas até o começo dele, e a trava pode esperar o fim de outra transação. Exemplo: o envio e a exclusão de anexos travam o evento de saúde primeiro (RN-82).
 - A confirmação grava a foto no armazenamento antes da transação. A transação que trava a identificação não chama o armazenamento. Se a foto não for usada, ela é apagada.
 - Toda resposta tem o cabeçalho `X-Request-Id`, com o identificador que aparece nas linhas de log da requisição (RNF-07).
 
@@ -218,7 +245,7 @@ Os arquivos de pesos ficam em uma release do repositório, com a tag `model-<ver
 
 ### Documentação
 
-- Um ADR por decisão, no formato de [ADR 0001](adr/0001-registrar-decisoes-em-adrs.md). Um ADR aceito não é editado: uma decisão nova cria um ADR novo que substitui o anterior.
+- Um ADR por decisão, no formato de [ADR 0001](adr/0001-registrar-decisoes-em-adrs.md). Um ADR aceito não é editado: uma decisão nova cria um ADR novo que substitui o anterior. A única mudança aceita é o resultado de um item de "Não verificado", em uma seção "Verificação posterior", com a data. O texto da decisão não muda.
 - Uma decisão ou uma implementação que muda o que um documento diz atualiza esse documento no mesmo PR. Isso vale para este documento, para os requisitos, para o roteiro e para os READMEs.
 - Um requisito em rascunho é fechado em [requisitos.md](requisitos.md) antes do código da fatia dele.
 - Cada projeto (`backend`, `mobile`, `inference`) tem um README com três partes: como executar, como testar, variáveis de ambiente.
@@ -288,10 +315,19 @@ O código usa o termo em inglês. A documentação e as telas usam o termo em po
 | ocorrência | report | Registro de perdido, achado ou avistado |
 | perdido, achado, avistado | lost, found, sighting | Tipos de ocorrência |
 | mural | board | Lista pública de ocorrências abertas |
+| ficha | report detail | Página de uma ocorrência, com os avistamentos |
+| resolver | resolve | O autor fecha a ocorrência: o pet voltou para casa |
+| código do achado | resolve code | Código que quem publicou um achado sem conta usa para resolver o achado |
 | aviso, notificação | notification | Mensagem para um tutor |
+| tarefa | job | Trabalho em segundo plano, gravado na tabela `jobs` |
+| dispositivo | device | O aparelho do tutor, com o token de push |
+| alerta de proximidade | nearby alert | Notificação de um desaparecimento perto do tutor |
 | evento de saúde | health event | Vacina, consulta, medicação, exame ou anotação |
 | carteirinha | health card | Resumo de saúde do pet |
-| compartilhamento | share link | Link público da carteirinha |
+| próximo cuidado | upcoming care | Data da próxima dose de uma vacina ou de uma medicação |
+| anexo | attachment | Arquivo de um evento de saúde: foto ou PDF |
+| compartilhamento, link da carteirinha | share link | Link público da carteirinha, com validade de 30 dias |
+| abertura | opening | Uma carga da carteirinha pelo link |
 
 ## Fora da v1
 
@@ -305,3 +341,4 @@ Cada item entra quando o gatilho acontece.
 | Detector de focinho no aparelho | Depois da prova técnica descrita no [roteiro](roteiro.md) |
 | Login com Apple | Publicação na App Store |
 | Endpoints de administração | Uma tarefa de administração que se repete |
+| Aceite de uma versão nova dos termos de uso | A primeira mudança do texto dos termos ([ADR 0028](adr/0028-exclusao-da-conta-e-limpeza.md)) |

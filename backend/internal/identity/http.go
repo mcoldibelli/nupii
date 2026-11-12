@@ -10,12 +10,62 @@ import (
 
 // Handlers implements the operations of the contract for the owner.
 type Handlers struct {
-	service *Service
+	service  *Service
+	accounts *Accounts
 }
 
-// NewHandlers returns the handlers that use service.
-func NewHandlers(service *Service) *Handlers {
-	return &Handlers{service: service}
+// NewHandlers returns the handlers that use service and accounts.
+func NewHandlers(service *Service, accounts *Accounts) *Handlers {
+	return &Handlers{service: service, accounts: accounts}
+}
+
+// UpdateMe changes the name of the owner of the account (RF-06).
+func (h *Handlers) UpdateMe(
+	ctx context.Context,
+	request api.UpdateMeRequestObject,
+) (api.UpdateMeResponseObject, error) {
+	who, ok := FromContext(ctx)
+	if !ok {
+		return nil, ErrNoIdentity
+	}
+	owner, err := h.service.UpdateName(ctx, who, request.Body.Name)
+	switch {
+	case errors.Is(err, ErrInvalidName):
+		return api.UpdateMe400JSONResponse{
+			InvalidRequestJSONResponse: api.InvalidRequestJSONResponse{
+				Error:   api.ErrorCodeInvalidRequest,
+				Message: "the name is empty or has more than 100 characters",
+			},
+		}, nil
+	case errors.Is(err, ErrOwnerNotFound):
+		return api.UpdateMe404JSONResponse{
+			OwnerNotFoundJSONResponse: api.OwnerNotFoundJSONResponse{
+				Error: api.ErrorCodeOwnerNotFound, Message: "the account has no owner yet",
+			},
+		}, nil
+	case err != nil:
+		return nil, fmt.Errorf("update the owner of the account: %w", err)
+	}
+	return api.UpdateMe200JSONResponse(ownerToAPI(owner)), nil
+}
+
+// DeleteMe deletes the account that made the request (RF-08).
+func (h *Handlers) DeleteMe(
+	ctx context.Context,
+	_ api.DeleteMeRequestObject,
+) (api.DeleteMeResponseObject, error) {
+	err := h.accounts.Delete(ctx)
+	if errors.Is(err, ErrOwnerNotFound) {
+		return api.DeleteMe404JSONResponse{
+			OwnerNotFoundJSONResponse: api.OwnerNotFoundJSONResponse{
+				Error: api.ErrorCodeOwnerNotFound, Message: "the account has no owner yet",
+			},
+		}, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("delete the account: %w", err)
+	}
+	return api.DeleteMe204Response{}, nil
 }
 
 // GetMe returns the owner of the account that made the request.

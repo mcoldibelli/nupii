@@ -30,7 +30,7 @@ Com `FIREBASE_AUTH_EMULATOR_HOST`, a API aceita os tokens do emulador e não con
 
 Na subida, a API espera o banco responder e aplica as migrations que faltam. Se o banco não responde em 30 segundos, o processo termina com erro.
 
-Depois de subir, a API calcula de novo os vetores dos focinhos gravados com outra versão do modelo (RF-15). Ela atende requisições durante esse trabalho, e o resultado aparece em uma linha do log: `recompute of the noseprint vectors ended` ou `stopped`.
+Depois de subir, a API executa as tarefas da fila que esperam no banco, também as gravadas com a API parada (RNF-01). Ela também calcula de novo os vetores dos focinhos gravados com outra versão do modelo (RF-15). Ela atende requisições durante esse trabalho, e o resultado aparece em uma linha do log: `recompute of the noseprint vectors ended` ou `stopped`.
 
 Em outro terminal:
 
@@ -63,8 +63,11 @@ go test -race ./...
 Testes de integração, com o compose em execução e as variáveis `DATABASE_URL`, `FIREBASE_AUTH_EMULATOR_HOST`, `S3_ENDPOINT` e `INFERENCE_URL` definidas como na seção anterior:
 
 ```bash
+docker compose -f ../deploy/compose.yaml stop api
 go test -race -tags=integration ./...
 ```
+
+Pare a API do compose antes: a fila da API pega as tarefas que os testes criam, e um teste que roda a própria fila falha às vezes. O CI faz o mesmo.
 
 Sem essas variáveis, um teste de integração falha. Ele não é pulado.
 
@@ -85,6 +88,7 @@ O processo não sobe com um valor inválido. Ele escreve o erro na saída de err
 | `HTTP_ADDR` | Não | `:8080` | Endereço em que o servidor HTTP escuta, no formato `host:porta` |
 | `DATABASE_URL` | Sim | | URL de conexão do Postgres, com o esquema `postgres` ou `postgresql`. Ela tem a senha: não fica no repositório e não é escrita no log |
 | `FIREBASE_PROJECT_ID` | Sim | | Identificador do projeto do Firebase. A API só aceita ID tokens desse projeto. No ambiente local é `demo-nupii` |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Não | | Arquivo da chave da conta de serviço do Firebase. Com ele, e sem o emulador, a API envia push (RN-36) e apaga o usuário de uma conta excluída (RN-03). Sem ele, a notificação fica só na lista |
 | `INFERENCE_URL` | Sim | | Endereço do serviço de inferência, com `http://` ou `https://`. A API sobe sem o serviço responder |
 | `S3_ENDPOINT` | Sim | | Endereço do armazenamento de objetos visto pela API, com `http://` ou `https://` |
 | `S3_PUBLIC_ENDPOINT` | Não | o valor de `S3_ENDPOINT` | Endereço do armazenamento visto pelos clientes da API. Ele vai nas URLs temporárias |
@@ -165,14 +169,18 @@ A primeira execução baixa o `oapi-codegen` na versão fixada em `internal/api/
 | `cmd/api/server.go` | O tipo que implementa as operações do contrato, e a montagem do handler |
 | `internal/api/` | Código gerado do contrato |
 | `internal/platform/config/` | Leitura e validação das variáveis de ambiente |
-| `internal/platform/httpx/` | Middleware HTTP: identificador e log de cada requisição, limite do corpo e limite de chamadas dos endpoints públicos (RN-43) |
+| `internal/platform/httpx/` | Middleware HTTP: identificador e log de cada requisição, limite do corpo, limite de chamadas dos endpoints públicos (RN-43) e leitura de um corpo multipart |
 | `internal/platform/postgres/` | Conexão com o banco e aplicação das migrations |
 | `db/migrations/` | Arquivos SQL das migrations |
 | `db/queries/` | Arquivos SQL das consultas, a entrada do `sqlc` |
 | `sqlc.yaml` | Configuração do `sqlc`: qual arquivo de consultas gera qual pacote |
-| `internal/identity/` | Módulo do tutor: validação do token das requisições, regras do registro, handlers de `/v1/me`. `identitydb/` é o código gerado das consultas |
+| `internal/identity/` | Módulo do tutor: validação do token das requisições (uma conta excluída recebe 401, RN-04), regras do registro e do perfil (RF-06, RN-45), exclusão da conta (RN-03, RN-84) e a tarefa que apaga o usuário no Firebase, handlers de `/v1/me`. `identitydb/` é o código gerado das consultas |
 | `internal/biometrics/` | Módulo de biometria: cadastro do focinho (RN-07 a RN-09, RN-59, RN-60), identificação (RN-10 a RN-15, RN-61, RN-62), confirmação (RN-16, RN-63 a RN-65), avisos de encontro (RN-66) e recálculo dos vetores (RN-67). `biometricsdb/` é o código gerado das consultas |
+| `internal/alerts/` | Módulo de alertas: última localização (RN-30), dispositivos (RN-31), notificações (RN-35, RN-74), as tarefas que criam as notificações (RN-32 a RN-34, RN-73) e o envio de push (RN-36). `alertsdb/` é o código gerado das consultas |
+| `internal/health/` | Módulo de saúde: eventos dos cinco tipos (RN-37, RN-38, RN-76 a RN-80), anexos (RN-82), próximos cuidados (RN-81) e links da carteirinha (RN-39 a RN-41, RN-83). `healthdb/` é o código gerado das consultas |
+| `internal/reports/` | Módulo de ocorrências: perdido, achado, avistamento, resolver, mural e ficha (RN-24 a RN-29, RN-68 a RN-72). `reportsdb/` é o código gerado das consultas |
 | `internal/platform/inference/` | Cliente do serviço de inferência |
+| `internal/platform/jobs/` | Fila de tarefas no banco (ADR 0003, RNF-01, RNF-02) |
 | `internal/platform/imagefile/` | Tipo de um arquivo de imagem pelo conteúdo |
 | `internal/pets/` | Módulo de pets: regras dos dados (RN-48 a RN-56), operações de `/v1/pets`. `petsdb/` é o código gerado das consultas |
 | `internal/platform/firebase/` | Validação do ID token com o Firebase Admin SDK |
