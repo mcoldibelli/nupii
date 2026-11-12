@@ -20,6 +20,11 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres"
 )
 
+// _migrationLock is the key of the advisory lock that puts the migrations of
+// the test packages in sequence. Two packages that migrate a new database at
+// the same time fail on CREATE EXTENSION.
+const _migrationLock = 20480204
+
 // _duplicateDatabase is the SQLSTATE of CREATE DATABASE for a database that
 // exists. The test packages run at the same time, so two of them can create it.
 const _duplicateDatabase = "42P04"
@@ -75,7 +80,37 @@ func testDatabase(ctx context.Context, mainURL string) (string, error) {
 		}
 	}
 	parsed.Path = "/" + name
+	if err := migrate(ctx, parsed.String()); err != nil {
+		return "", err
+	}
 	return parsed.String(), nil
+}
+
+// migrate applies the migrations to the test database, one package at a time.
+func migrate(ctx context.Context, testURL string) (err error) {
+	pool, err := postgres.Open(ctx, testURL)
+	if err != nil {
+		return fmt.Errorf("open the test database: %w", err)
+	}
+	defer pool.Close()
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("acquire a connection: %w", err)
+	}
+	defer conn.Release()
+	if _, err := conn.Exec(ctx, "SELECT pg_advisory_lock($1)", _migrationLock); err != nil {
+		return fmt.Errorf("lock the migrations: %w", err)
+	}
+	defer func() {
+		_, unlockErr := conn.Exec(context.WithoutCancel(ctx), "SELECT pg_advisory_unlock($1)", _migrationLock)
+		if unlockErr != nil {
+			err = errors.Join(err, fmt.Errorf("unlock the migrations: %w", unlockErr))
+		}
+	}()
+	if err := postgres.Migrate(ctx, pool, migrations.FS); err != nil {
+		return fmt.Errorf("migrate the test database: %w", err)
+	}
+	return nil
 }
 
 // Open returns a connection pool for the test database, with all the
