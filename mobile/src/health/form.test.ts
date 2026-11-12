@@ -1,4 +1,4 @@
-import { attachmentFailure, emptyValues, fieldsOf, toEventInput, presetValues, valuesFromEvent } from "./form";
+import { attachmentFailure, categoryFields, categoryOf, emptyValues, fieldsOf, presetValues, toEventInput, valuesFromEvent } from "./form";
 
 const now = new Date(Date.UTC(2026, 10, 11, 12));
 
@@ -141,5 +141,36 @@ describe("presetValues", () => {
     const source = { id: "e", petId: "p", type: "medication" as const, date: "2026-10-05", remind: true, createdAt: "x", name: "NexGard", medicationCategory: "flea" as const, intervalDays: 30, dosage: "1", notes: "old" };
     const again = presetValues("again", source, today);
     expect(again).toMatchObject({ date: "08/11/2026", name: "NexGard", medicationCategory: "flea", intervalDays: "30", dosage: "1", remind: true, inUse: true, notes: "" });
+  });
+});
+
+describe("categories of the Anotar sheet", () => {
+  const today = new Date("2026-11-08T12:00:00Z");
+  const keys = (category: Parameters<typeof categoryFields>[0]) => categoryFields(category).map((field) => field.key);
+
+  test("each category shows only its own fields", () => {
+    expect(keys("weight")).toEqual(["weightKg"]);
+    expect(keys("symptom")).toEqual(["title"]);
+    expect(keys("flea")).toEqual(["name", "intervalDays", "remind", "dosage"]);
+    expect(keys("deworm")).toEqual(["name", "intervalDays", "remind", "dosage"]);
+    expect(keys("vaccine")).toEqual(["name", "nextDoseDate", "remind", "vet", "manufacturer", "batch", "dose"]);
+    expect(keys("medication")).not.toContain("medicationCategory");
+    expect(keys("note")).toContain("noteCategory");
+    expect(Object.keys(categoryFields("note").find((field) => field.key === "noteCategory")!.options!)).toEqual(["disease", "allergy", "surgery", "note"]);
+    expect(categoryFields("flea")[0].label).toBe("Produto");
+  });
+
+  test("the category of a form comes from the type and the hidden category", () => {
+    expect(categoryOf("medication", presetValues("flea", undefined, today))).toBe("flea");
+    expect(categoryOf("note", presetValues("weight", undefined, today))).toBe("weight");
+    expect(categoryOf("note", presetValues("symptom", undefined, today))).toBe("symptom");
+    expect(categoryOf("vaccine", emptyValues())).toBe("vaccine");
+    expect(categoryOf("note", emptyValues())).toBe("note");
+  });
+
+  test("a weight needs only the date and the weight", () => {
+    const values = presetValues("weight", undefined, today);
+    values.weightKg = "7,4";
+    expect(toEventInput("note", values, today)).toEqual({ ok: true, input: { type: "note", date: "2026-11-08", noteCategory: "weight", title: "Peso", weightKg: 7.4 } });
   });
 });
