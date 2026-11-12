@@ -8,6 +8,7 @@ import { MapView } from "../map/MapView";
 import { foundReportLink } from "./foundLink";
 import { REPORT_LIMITS, reportFailureMessage, toDetails } from "./form";
 import { styles } from "../screens/styles";
+import { colors, fonts } from "../ui/theme";
 
 /**
  * Publishes a found dog on the board, with the photo of the nose of the
@@ -112,9 +113,9 @@ export function PublishFound({ photo }: { photo: () => Blob }) {
 }
 
 const local = StyleSheet.create({
-  section: { fontSize: 18, fontWeight: "600", marginBottom: 8, marginTop: 24 },
+  section: { fontSize: 18, fontFamily: fonts.titleBold, marginBottom: 8, marginTop: 24 },
   map: { height: 260, marginVertical: 8, width: "100%" },
-  point: { color: "#555", fontSize: 14, marginBottom: 12 },
+  point: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 14, marginBottom: 12 },
   message: { minHeight: 80, textAlignVertical: "top" },
-  link: { color: "#1f5fbf", fontSize: 14, marginVertical: 8 },
+  link: { fontFamily: fonts.body, color: colors.primary, fontSize: 14, marginVertical: 8 },
 });
