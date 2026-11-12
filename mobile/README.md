@@ -155,6 +155,7 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `src/pets/save.ts` | Salva os dados do pet e depois envia a foto, com testes |
 | `src/pets/PetFormView.tsx` | O formulário de editar pet, com todos os dados do pet |
 | `src/pets/profile.ts` | Os cuidados e os dados do perfil do pet, com testes |
+| `src/pets/breeds.ts`, `src/pets/BreedPicker.tsx` | A lista de raças de cachorro com a busca (com testes) e o campo que abre a lista |
 | `src/pets/pickPhoto.ts` | O único arquivo que importa a galeria e o sistema de arquivos do aparelho |
 | `src/screens/` | Telas de entrada e de primeiro acesso, e os estilos comuns |
 | `src/home/` | O início (RF-34): subtítulo do pet, pet escolhido, série do peso, notificações não lidas, com testes; a folha do seletor de pets |

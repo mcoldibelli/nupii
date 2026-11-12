@@ -11,7 +11,8 @@ import { BackButton, Segmented } from "../ui/Surfaces";
 import { ErrorText } from "../ui/Text";
 import { colors, fonts, space } from "../ui/theme";
 import { toPetInput, type PetForm } from "./form";
-import { neuteredLabels, sizeLabels, speciesLabels } from "./labels";
+import { BreedPicker } from "./BreedPicker";
+import { neuteredLabels, sizeLabels } from "./labels";
 import { askPetPhoto } from "./pickPhoto";
 
 type Props = {
@@ -31,8 +32,8 @@ const options = <T extends string>(labels: Record<T, string>) => (Object.keys(la
 
 /**
  * The form that changes a pet (RF-10), in the layout of the AddPet-Novo
- * artboard: the canvas has no artboard for this screen. It has all the data
- * of the pet (RN-48 to RN-51, RN-56).
+ * artboard and the EditPet-Mobile artboard. It has all the data of the pet
+ * (RN-48 to RN-51, RN-56); the species does not change.
  */
 export function PetFormView({ title, initial, photoUrl, onSubmit, onDelete, notice }: Props) {
   const insets = useSafeAreaInsets();
@@ -54,7 +55,7 @@ export function PetFormView({ title, initial, photoUrl, onSubmit, onDelete, noti
   }
 
   const shownPhoto = photo?.uri ?? photoUrl;
-  const text = (label: string, field: "name" | "breed" | "vetName" | "vetClinic" | "vetPhone", extra: object = {}) => (
+  const text = (label: string, field: "name" | "vetName" | "vetClinic" | "vetPhone", extra: object = {}) => (
     <OutlinedField testID={`pet-${field}-input`} label={label} value={form[field]} onChangeText={(value) => set(field, value)} {...extra} />
   );
 
@@ -98,10 +99,6 @@ export function PetFormView({ title, initial, photoUrl, onSubmit, onDelete, noti
 
         {text("Nome", "name", { maxLength: 100 })}
         <View style={local.group}>
-          <Text style={local.label}>Espécie</Text>
-          <Segmented testID="species" options={options(speciesLabels)} value={form.species === "" ? "dog" : form.species} onChange={(value) => set("species", value)} />
-        </View>
-        <View style={local.group}>
           <Text style={local.label}>Sexo</Text>
           <Segmented<PetForm["sex"]>
             testID="sex"
@@ -113,10 +110,10 @@ export function PetFormView({ title, initial, photoUrl, onSubmit, onDelete, noti
             onChange={(value) => set("sex", value)}
           />
         </View>
-        {text("Raça", "breed", { maxLength: 100, placeholder: "Raça ou SRD" })}
+        <BreedPicker value={form.breed} onChange={(value) => set("breed", value)} />
         <View style={{ flexDirection: "row", gap: 12 }}>
           <View style={{ flex: 1 }}>
-            <OutlinedField testID="pet-birthDate-input" label="Nascimento" placeholder="dd/mm/aaaa" keyboardType="numbers-and-punctuation" maxLength={10} value={form.birthDate} onChangeText={(value) => set("birthDate", value)} />
+            <OutlinedField testID="pet-birthDate-input" label="Nascimento (opcional)" placeholder="dd/mm/aaaa" keyboardType="numbers-and-punctuation" maxLength={10} value={form.birthDate} onChangeText={(value) => set("birthDate", value)} />
           </View>
           <View style={{ flex: 1 }}>
             <OutlinedField testID="pet-weightKg-input" label="Peso (opcional)" placeholder="0,0" suffix="kg" keyboardType="decimal-pad" maxLength={6} value={form.weightKg} onChangeText={(value) => set("weightKg", value)} />
