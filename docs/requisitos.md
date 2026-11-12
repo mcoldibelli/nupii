@@ -109,9 +109,9 @@
 |---|---|---|---|
 | RN-05 | A exclusão de um pet é lógica: o registro fica no banco com a data da exclusão. A exclusão apaga a foto de perfil do armazenamento. | RF-09 | estável |
 | RN-06 | A foto fica no armazenamento de objetos. A API devolve uma URL temporária, válida por 15 minutos. | RF-10 | estável |
-| RN-48 | O nome e a espécie do pet são obrigatórios. A espécie é cachorro, gato ou outro. | RF-09 | estável |
+| RN-48 | O nome e a espécie do pet são obrigatórios. A API aceita cachorro, gato ou outro; o app cadastra só cachorro, porque a inferência lê só o focinho de cachorro. A raça vem de uma lista de raças de cachorro, com a opção SRD (sem raça definida). | RF-09 | estável |
 | RN-49 | O sexo é macho, fêmea ou indefinido. O porte é pequeno, médio ou grande. Os dois são opcionais. | RF-09 | estável |
-| RN-50 | A data de nascimento, quando informada, não é uma data futura. A data de hoje é a data em UTC. | RF-09 | estável |
+| RN-50 | A data de nascimento é opcional, porque o tutor pode não saber. Quando informada, não é uma data futura. A data de hoje é a data em UTC. Sem a data, as telas não mostram a idade. | RF-09 | estável |
 | RN-51 | O peso, quando informado, fica entre 0,01 kg e 999,99 kg, com no máximo 2 casas decimais. | RF-09 | estável |
 | RN-52 | Só o tutor do pet vê, altera e exclui o pet. Para outro tutor, o pet não existe. | RF-09, RF-10 | estável |
 | RN-53 | A lista mostra os pets do tutor que não foram excluídos, em ordem de nome. | RF-09 | estável |
