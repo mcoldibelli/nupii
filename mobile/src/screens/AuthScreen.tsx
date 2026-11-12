@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { createAccount, signIn } from "../auth/firebase";
 import { validateCredentials } from "../auth/validation";
@@ -17,6 +18,8 @@ export function AuthScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // The purple header goes under the status bar; its content starts below it.
+  const insets = useSafeAreaInsets();
 
   async function submit() {
     const problem = validateCredentials(email, password);
@@ -33,8 +36,8 @@ export function AuthScreen() {
 
   return (
     <ScrollView style={local.page} contentContainerStyle={local.content} keyboardShouldPersistTaps="handled">
-      <View style={local.hero}>
-        <View style={local.brand}>
+      <View style={[local.hero, { height: 224 + insets.top }]}>
+        <View style={[local.brand, { paddingTop: space.xl + insets.top }]}>
           <LogoMark size={26} color={colors.onPrimary} eyes={colors.accent} />
           <Text style={local.brandText}>nupii</Text>
         </View>
@@ -93,8 +96,8 @@ export function AuthScreen() {
 const local = StyleSheet.create({
   page: { backgroundColor: colors.background },
   content: { flexGrow: 1 },
-  hero: { height: 224, backgroundColor: colors.accent, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: "hidden" },
-  brand: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: space.xl, paddingTop: space.xl },
+  hero: { backgroundColor: colors.accent, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: "hidden" },
+  brand: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: space.xl },
   brandText: { fontFamily: fonts.title, fontSize: 22, color: colors.onPrimary },
   mascot: { position: "absolute", right: 18, bottom: -2 },
   form: { paddingHorizontal: space.xl, paddingTop: 26, gap: 18 },
