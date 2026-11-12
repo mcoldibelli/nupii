@@ -91,7 +91,7 @@
 
 | ID | Regra | RF | Estado |
 |---|---|---|---|
-| RN-01 | O sistema guarda a data e a versão dos termos de uso que o tutor aceitou. O tutor só é registrado com o aceite da versão vigente dos termos. | RF-01 | estável |
+| RN-01 | O sistema guarda a data e a versão dos termos de uso que o tutor aceitou. O tutor só é registrado com o aceite da versão vigente dos termos. O texto fica no app e na página pública `/terms`. | RF-01 | estável |
 | RN-02 | Um e-mail identifica uma conta só. O provedor de identidade aplica a regra. Para o login com Google, ver a seção "Em aberto". | RF-01, RF-03 | estável |
 | RN-03 | Excluir a conta anonimiza o tutor (nome "Conta excluída", e-mail sem dono, data da exclusão) e apaga o usuário no provedor de identidade. Um usuário que já não existe no provedor conta como apagado. | RF-08 | estável |
 | RN-04 | Uma conta excluída recebe 401, mesmo com um token ainda válido, também no registro. Os pets dela saem da identificação e do mural. | RF-08 | estável |

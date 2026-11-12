@@ -167,7 +167,7 @@ func decode[T any](t *testing.T, rec *httptest.ResponseRecorder) T {
 	return value
 }
 
-const _registerBody = `{"name": "  Ana Lima ", "acceptedTermsVersion": "2026-11-10"}`
+const _registerBody = `{"name": "  Ana Lima ", "acceptedTermsVersion": "2026-11-11"}`
 
 func TestRegisterMeThenGetMe(t *testing.T) {
 	uid := "uid-" + rand.Text()
@@ -201,7 +201,7 @@ func TestRegisterMeThenGetMe(t *testing.T) {
 
 	// A second registration changes nothing and returns the same owner.
 	again := testAPI.call(http.MethodPost, "/v1/me", "token-ana",
-		`{"name": "Other name", "acceptedTermsVersion": "2026-11-10"}`)
+		`{"name": "Other name", "acceptedTermsVersion": "2026-11-11"}`)
 	if again.Code != http.StatusOK {
 		t.Fatalf("second POST /v1/me: status = %d, want 200", again.Code)
 	}
@@ -229,9 +229,10 @@ func TestRegisterMeRejectsAnInvalidRequest(t *testing.T) {
 		body string
 	}{
 		{name: "body that is not JSON", body: `{"name": `},
-		{name: "RN-45 empty name", body: `{"name": "", "acceptedTermsVersion": "2026-11-10"}`},
-		{name: "RN-45 no name", body: `{"acceptedTermsVersion": "2026-11-10"}`},
+		{name: "RN-45 empty name", body: `{"name": "", "acceptedTermsVersion": "2026-11-11"}`},
+		{name: "RN-45 no name", body: `{"acceptedTermsVersion": "2026-11-11"}`},
 		{name: "RN-01 version that is not the current one", body: `{"name": "Ana", "acceptedTermsVersion": "another-version"}`},
+		{name: "RN-01 the previous version", body: `{"name": "Ana", "acceptedTermsVersion": "2026-11-10"}`},
 		{name: "RN-01 no terms version", body: `{"name": "Ana"}`},
 	}
 	for _, tt := range tests {

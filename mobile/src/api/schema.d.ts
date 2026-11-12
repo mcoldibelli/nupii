@@ -1129,7 +1129,7 @@ export interface components {
          *     Uma versão nova dos termos troca o valor desta lista.
          * @enum {string}
          */
-        TermsVersion: "2026-11-10";
+        TermsVersion: "2026-11-11";
         Health: {
             /** @enum {string} */
             status: "ok";

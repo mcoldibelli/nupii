@@ -15,7 +15,7 @@ import (
 
 // CurrentTermsVersion is the version of the terms of use that an owner
 // accepts today. The contract has the same value in the schema TermsVersion.
-const CurrentTermsVersion = "2026-11-10"
+const CurrentTermsVersion = "2026-11-11"
 
 // _maxNameLength is the maximum length of the name of an owner, in
 // characters. The contract has the same value.

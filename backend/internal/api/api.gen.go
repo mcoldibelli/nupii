@@ -369,13 +369,13 @@ func (e Species) Valid() bool {
 
 // Defines values for TermsVersion.
 const (
-	TermsVersionN20261110 TermsVersion = "2026-11-10"
+	TermsVersionN20261111 TermsVersion = "2026-11-11"
 )
 
 // Valid indicates whether the value is a known member of the TermsVersion enum.
 func (e TermsVersion) Valid() bool {
 	switch e {
-	case TermsVersionN20261110:
+	case TermsVersionN20261111:
 		return true
 	default:
 		return false
