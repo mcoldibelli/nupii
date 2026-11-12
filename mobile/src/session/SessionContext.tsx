@@ -1,8 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { failureMessage, SESSION_FAILURE } from "../api/http";
 import { deleteMe, getMe, registerMe, updateMe, type Owner } from "../api/owner";
-import { confirmPassword, currentIdToken, signOutAccount, subscribeToAccount } from "../auth/firebase";
+import { confirmPassword, createAccount, currentIdToken, signOutAccount, subscribeToAccount } from "../auth/firebase";
 import { apiUrl, missingConfig } from "../config";
 import { deleteAccountFlow, renameFailure } from "./account";
 
@@ -18,6 +18,12 @@ type Session = {
   state: SessionState;
   /** Reads the owner of the signed-in account again. */
   reload: () => Promise<void>;
+  /**
+   * Creates the account and registers the owner with the name and the
+   * acceptance of the terms, in one step (Cadastro-Mobile artboard).
+   * Returns null, or the message of the failure.
+   */
+  signUp: (email: string, password: string, name: string) => Promise<string | null>;
   /** Registers the owner. Returns null, or the message of the failure. */
   register: (name: string) => Promise<string | null>;
   /** Changes the name of the owner (RF-06). Returns null, or the message of the failure. */
@@ -43,6 +49,9 @@ export function useSession(): Session {
 /** Keeps the account and the owner for all the screens. */
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SessionState>({ kind: "loading" });
+  // The name of a sign-up in progress: the new account has no owner yet,
+  // and the session registers it with this name.
+  const pendingName = useRef<string | null>(null);
 
   const idToken = useCallback(async (): Promise<string | null> => {
     try {
@@ -69,6 +78,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const result = await getMe(apiUrl, token);
     if (result.ok) {
       setState({ kind: "ready", owner: result.value });
+    } else if (result.code === "owner_not_found" && pendingName.current !== null) {
+      const name = pendingName.current;
+      pendingName.current = null;
+      const registered = await registerMe(apiUrl, token, name);
+      setState(registered.ok ? { kind: "ready", owner: registered.value } : { kind: "needsProfile" });
     } else if (result.code === "owner_not_found") {
       setState({ kind: "needsProfile" });
     } else if (result.code === "unauthenticated") {
@@ -133,13 +147,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [idToken],
   );
 
+  const signUp = useCallback(async (email: string, password: string, name: string): Promise<string | null> => {
+    pendingName.current = name;
+    const failure = await createAccount(email, password);
+    if (failure !== null) {
+      pendingName.current = null;
+    }
+    return failure;
+  }, []);
+
   const signOut = useCallback(() => {
     void signOutAccount();
   }, []);
 
   const session = useMemo(
-    () => ({ state, reload, register, rename, deleteAccount, signOut, idToken }),
-    [state, reload, register, rename, deleteAccount, signOut, idToken],
+    () => ({ state, reload, signUp, register, rename, deleteAccount, signOut, idToken }),
+    [state, reload, signUp, register, rename, deleteAccount, signOut, idToken],
   );
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
 }
