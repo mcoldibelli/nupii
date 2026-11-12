@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Pressable, Switch, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 
 import { validateProfile } from "../auth/validation";
-import { TERMS_TEXT, TERMS_VERSION } from "../terms";
+import { TermsView } from "./TermsView";
 import { styles } from "./styles";
 
 type Props = {
@@ -42,8 +42,9 @@ export function ProfileScreen({ onRegister, onSignOut }: Props) {
         value={name}
         onChangeText={setName}
       />
-      <Text style={styles.label}>Termos de uso, versão {TERMS_VERSION}</Text>
-      <Text style={styles.text}>{TERMS_TEXT}</Text>
+      <ScrollView style={local.terms}>
+        <TermsView />
+      </ScrollView>
       <View style={styles.row}>
         <Switch
           testID="terms-switch"
@@ -73,3 +74,8 @@ export function ProfileScreen({ onRegister, onSignOut }: Props) {
     </View>
   );
 }
+
+const local = StyleSheet.create({
+  // The terms scroll inside the form, so the switch and the button stay on the screen.
+  terms: { borderColor: "#ccc", borderRadius: 8, borderWidth: 1, marginBottom: 12, maxHeight: 260, padding: 8 },
+});

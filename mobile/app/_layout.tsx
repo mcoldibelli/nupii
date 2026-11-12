@@ -23,6 +23,7 @@ function Screens() {
         <Stack.Screen name="reports/index" options={{ title: "Mural de perdidos e achados" }} />
         <Stack.Screen name="reports/[id]" options={{ title: "Ocorrência" }} />
         <Stack.Screen name="card" options={{ title: "Carteirinha" }} />
+        <Stack.Screen name="terms" options={{ title: "Termos de uso" }} />
       </Stack>
     );
   }
@@ -89,6 +90,7 @@ function Screens() {
       <Stack.Protected guard={Platform.OS === "web"}>
         <Stack.Screen name="found" options={{ title: "Nupii" }} />
         <Stack.Screen name="card" options={{ title: "Carteirinha" }} />
+        <Stack.Screen name="terms" options={{ title: "Termos de uso" }} />
       </Stack.Protected>
     </Stack>
   );

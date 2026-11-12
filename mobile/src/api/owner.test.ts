@@ -57,7 +57,7 @@ describe("registerMe", () => {
     expect(fetchFn).toHaveBeenCalledWith("http://api.test/v1/me", {
       method: "POST",
       headers: { Authorization: "Bearer the-token", "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Ana", acceptedTermsVersion: "2026-11-10" }),
+      body: JSON.stringify({ name: "Ana", acceptedTermsVersion: "2026-11-11" }),
     });
   });
 

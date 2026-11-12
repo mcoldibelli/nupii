@@ -1922,7 +1922,7 @@ components:
         Versão dos termos de uso. A lista tem só a versão vigente.
         Uma versão nova dos termos troca o valor desta lista.
       enum:
-        - "2026-11-10"
+        - "2026-11-11"
     Health:
       type: object
       required: [status]
