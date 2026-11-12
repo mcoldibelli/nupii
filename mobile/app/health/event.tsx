@@ -21,6 +21,7 @@ import { pickAttachment } from "../../src/health/pickFile";
 import { filePart } from "../../src/pets/pickPhoto";
 import { useSession } from "../../src/session/SessionContext";
 import { Button } from "../../src/ui/Button";
+import { DateField } from "../../src/ui/DateField";
 import { Field as Input } from "../../src/ui/Field";
 import { Icon } from "../../src/ui/Icon";
 import { ErrorText, Label } from "../../src/ui/Text";
@@ -218,15 +219,18 @@ export default function HealthEventForm() {
         </View>
       );
     }
+    if (field.kind === "date") {
+      // The next dose, the return and the end come after the date of the event.
+      return <DateField key={field.key} testID={`field-${field.key}`} label={field.label.replace(" (DD/MM/AAAA)", "")} optional min={values.date} value={String(values[field.key])} onChange={(value) => set(field.key, value)} />;
+    }
     return (
       <Input
         key={field.key}
         testID={`field-${field.key}`}
         label={field.label}
-        icon={field.kind === "date" ? "calendar" : undefined}
         multiline={field.kind === "long"}
         style={field.kind === "long" ? local.long : undefined}
-        keyboardType={field.kind === "weight" ? "decimal-pad" : field.kind === "days" ? "number-pad" : field.kind === "date" ? "numbers-and-punctuation" : "default"}
+        keyboardType={field.kind === "weight" ? "decimal-pad" : field.kind === "days" ? "number-pad" : "default"}
         value={String(values[field.key])}
         onChangeText={(value) => set(field.key, value)}
       />
@@ -249,7 +253,8 @@ export default function HealthEventForm() {
         <Text style={local.heading} accessibilityRole="header">
           {titles[category][eventId === undefined ? 0 : 1]}
         </Text>
-        <Input testID="field-date" label="Data (DD/MM/AAAA)" icon="calendar" keyboardType="numbers-and-punctuation" maxLength={10} value={values.date} onChangeText={(value) => set("date", value)} />
+        {/* RN-76: a data do evento não é futura. */}
+        <DateField testID="field-date" label="Data" noFuture value={values.date} onChange={(value) => set("date", value)} />
         {categoryFields(category).map(input)}
         <Input testID="field-notes" label="Observações" multiline style={local.long} value={values.notes} onChangeText={(value) => set("notes", value)} />
 
