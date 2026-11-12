@@ -11,6 +11,7 @@ import { askPetPhoto, filePart } from "../../src/pets/pickPhoto";
 import { savePet } from "../../src/pets/save";
 import { useSession } from "../../src/session/SessionContext";
 import { Button } from "../../src/ui/Button";
+import { DateField } from "../../src/ui/DateField";
 import { OutlinedField } from "../../src/ui/Field";
 import { Icon } from "../../src/ui/Icon";
 import { Segmented, StepHeader } from "../../src/ui/Surfaces";
@@ -120,7 +121,7 @@ export default function NewPet() {
         <BreedPicker value={form.breed} onChange={(value) => set("breed", value)} />
         <View style={{ flexDirection: "row", gap: 12 }}>
           <View style={{ flex: 1 }}>
-            <OutlinedField testID="pet-birthDate-input" label="Nascimento (opcional)" placeholder="dd/mm/aaaa" keyboardType="numbers-and-punctuation" maxLength={10} value={form.birthDate} onChangeText={(value) => set("birthDate", value)} />
+            <DateField look="outlined" testID="pet-birthDate-input" label="Nascimento (opcional)" noFuture optional value={form.birthDate} onChange={(value) => set("birthDate", value)} />
           </View>
           <View style={{ flex: 1 }}>
             <OutlinedField testID="pet-weightKg-input" label="Peso (opcional)" placeholder="0,0" suffix="kg" keyboardType="decimal-pad" maxLength={6} value={form.weightKg} onChangeText={(value) => set("weightKg", value)} />
