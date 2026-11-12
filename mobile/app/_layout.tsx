@@ -1,3 +1,6 @@
+import { BricolageGrotesque_700Bold, BricolageGrotesque_800ExtraBold } from "@expo-google-fonts/bricolage-grotesque";
+import { Figtree_400Regular, Figtree_500Medium, Figtree_600SemiBold, Figtree_700Bold } from "@expo-google-fonts/figtree";
+import { useFonts } from "expo-font";
 import { Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Platform, Pressable, Text, View } from "react-native";
@@ -97,6 +100,19 @@ function Screens() {
 }
 
 export default function RootLayout() {
+  // ADR 0030: the fonts of the design canvas. The first screen waits for them.
+  const [fontsLoaded, fontError] = useFonts({
+    BricolageGrotesque_700Bold,
+    BricolageGrotesque_800ExtraBold,
+    Figtree_400Regular,
+    Figtree_500Medium,
+    Figtree_600SemiBold,
+    Figtree_700Bold,
+  });
+  // A font that fails to load does not block the app: the system font is used.
+  if (!fontsLoaded && fontError === null) {
+    return null;
+  }
   return (
     <SessionProvider>
       <Screens />
