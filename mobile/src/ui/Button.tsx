@@ -39,7 +39,8 @@ export function Button({
   testID?: string;
   stretch?: boolean;
 }) {
-  const look = looks[variant];
+  // A disabled button is grey, as in the canvas (Cadastro-Mobile).
+  const look = disabled ? { background: colors.border, color: colors.textDisabled } : looks[variant];
   return (
     <Pressable
       testID={testID}
@@ -53,11 +54,11 @@ export function Button({
         paddingHorizontal: size === "sm" ? 14 : 18,
         borderRadius: radius.pill,
         backgroundColor: look.background,
-        borderWidth: look.border ? 1.5 : 0,
-        borderColor: look.border,
+        borderWidth: "border" in look && look.border ? 1.5 : 0,
+        borderColor: "border" in look ? look.border : undefined,
         alignSelf: stretch ? "stretch" : "flex-start",
         justifyContent: "center",
-        opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+        opacity: pressed ? 0.85 : 1,
       })}
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
