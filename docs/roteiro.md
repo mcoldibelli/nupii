@@ -25,6 +25,7 @@ A construção segue fatias verticais. Uma fatia vai do banco até a tela e term
 | 7 | Saúde | Eventos de saúde, anexos, lembretes. | Os cinco tipos de evento são criados, editados e apagados no app. |
 | 8 | Carteirinha | Link compartilhado, QR code e a página pública da carteirinha. | Um link aberto na web mostra a carteirinha. Depois de revogado, o mesmo link devolve 404. |
 | 9 | Conta e LGPD | Perfil, telas de trocar senha e esqueci a senha (pelo Firebase), excluir conta com anonimização, limpeza diária dos dados vencidos. | Uma conta excluída some da identificação e do mural, e o usuário dela não existe mais no Firebase. A tarefa de limpeza apaga um registro com data forçada para 31 dias atrás. |
+| 9b | Interface | O visual do canvas de design nas telas que já existem: tema, componentes, barra de navegação, ícone e tela de abertura ([ADR 0030](adr/0030-visual-do-app.md)). | Cada tela do app e da web pública usa os componentes do tema. Os pares de cor do tema passam no contraste AA. |
 | 10 | Publicação | Login com Google, build do app, publicação da API e da web. | O app instalado em um aparelho real usa a API publicada. |
 | 11 | Documentação final | Casos de uso, diagrama de domínio e modelo de dados (DER), escritos a partir do sistema pronto. | Cada caso de uso aponta para os RF que ele cobre. O DER tem as mesmas tabelas e relações das migrations. O README lista os três documentos. |
 
@@ -34,6 +35,7 @@ A construção segue fatias verticais. Uma fatia vai do banco até a tela e term
 - As fatias 3 e 4 vêm cedo porque a biometria é o maior risco técnico e o que diferencia o produto.
 - A fila de tarefas entra na fatia 6, que é a primeira fatia que precisa dela.
 - A saúde vem depois porque é a parte com menos risco: são cadastros.
+- A interface (9b) vem antes da publicação: a primeira versão para usuários reais já tem o visual do canvas.
 - A fatia 11 vem por último porque a fonte dos três documentos é o sistema pronto: as migrations, o contrato da API e os requisitos fechados.
 
 ## Prova técnica antes da fatia 4
