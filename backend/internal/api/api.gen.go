@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"time"
@@ -325,6 +326,27 @@ func (e Sex) Valid() bool {
 	}
 }
 
+// Defines values for ShareLinkInputValidDays.
+const (
+	ShareLinkInputValidDaysN1  ShareLinkInputValidDays = 1
+	ShareLinkInputValidDaysN30 ShareLinkInputValidDays = 30
+	ShareLinkInputValidDaysN7  ShareLinkInputValidDays = 7
+)
+
+// Valid indicates whether the value is a known member of the ShareLinkInputValidDays enum.
+func (e ShareLinkInputValidDays) Valid() bool {
+	switch e {
+	case ShareLinkInputValidDaysN1:
+		return true
+	case ShareLinkInputValidDaysN30:
+		return true
+	case ShareLinkInputValidDaysN7:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Size.
 const (
 	SizeLarge  Size = "large"
@@ -387,6 +409,9 @@ type CreatedShareLink struct {
 	CreatedAt time.Time          `json:"createdAt"`
 	ExpiresAt time.Time          `json:"expiresAt"`
 	Id        openapi_types.UUID `json:"id"`
+
+	// IncludeExams A carteirinha do link mostra os exames.
+	IncludeExams bool `json:"includeExams"`
 
 	// Opens Quantas vezes a carteirinha foi aberta pelo link.
 	Opens int `json:"opens"`
@@ -479,12 +504,23 @@ type HealthAttachmentList struct {
 
 // HealthCard A carteirinha do pet (RN-83). Sem dados do tutor, sem IDs internos e sem anexos.
 type HealthCard struct {
+	// Exams Os exames, do mais novo para o mais antigo. Só vem quando o link inclui os exames.
+	Exams *[]HealthCardExam `json:"exams,omitempty"`
+
 	// ParasiteControl As medicações antipulgas e vermífugo, da mais nova para a mais antiga.
 	ParasiteControl []HealthCardMedication `json:"parasiteControl"`
 	Pet             HealthCardPet          `json:"pet"`
 
 	// Vaccines Da mais nova para a mais antiga.
 	Vaccines []HealthCardVaccine `json:"vaccines"`
+}
+
+// HealthCardExam defines model for HealthCardExam.
+type HealthCardExam struct {
+	Date   openapi_types.Date `json:"date"`
+	Lab    *string            `json:"lab,omitempty"`
+	Name   string             `json:"name"`
+	Result *string            `json:"result,omitempty"`
 }
 
 // HealthCardMedication defines model for HealthCardMedication.
@@ -961,9 +997,24 @@ type ShareLink struct {
 	ExpiresAt time.Time          `json:"expiresAt"`
 	Id        openapi_types.UUID `json:"id"`
 
+	// IncludeExams A carteirinha do link mostra os exames.
+	IncludeExams bool `json:"includeExams"`
+
 	// Opens Quantas vezes a carteirinha foi aberta pelo link.
 	Opens int `json:"opens"`
 }
+
+// ShareLinkInput As opções do link. Sem corpo, o link vale 30 dias e não mostra os exames (RN-40).
+type ShareLinkInput struct {
+	// IncludeExams A carteirinha mostra os exames do pet, sem os anexos (RN-83).
+	IncludeExams *bool `json:"includeExams,omitempty"`
+
+	// ValidDays Dias de validade do link.
+	ValidDays *ShareLinkInputValidDays `json:"validDays,omitempty"`
+}
+
+// ShareLinkInputValidDays Dias de validade do link.
+type ShareLinkInputValidDays int
 
 // ShareLinkList defines model for ShareLinkList.
 type ShareLinkList struct {
@@ -1194,6 +1245,9 @@ type CheckNoseprintMultipartRequestBody CheckNoseprintMultipartBody
 // SetPetPhotoMultipartRequestBody defines body for SetPetPhoto for multipart/form-data ContentType.
 type SetPetPhotoMultipartRequestBody SetPetPhotoMultipartBody
 
+// CreateShareLinkJSONRequestBody defines body for CreateShareLink for application/json ContentType.
+type CreateShareLinkJSONRequestBody = ShareLinkInput
+
 // ReportFoundMultipartRequestBody defines body for ReportFound for multipart/form-data ContentType.
 type ReportFoundMultipartRequestBody ReportFoundMultipartBody
 
@@ -1304,7 +1358,7 @@ type ServerInterface interface {
 	// ListShareLinks Os links ativos da carteirinha de um pet, com as aberturas.
 	// (GET /v1/pets/{petId}/share-links)
 	ListShareLinks(w http.ResponseWriter, r *http.Request, petId PetId)
-	// CreateShareLink Cria um link da carteirinha do pet, válido por 30 dias (RN-40).
+	// CreateShareLink Cria um link da carteirinha do pet, válido por 1, 7 ou 30 dias (RN-40).
 	// (POST /v1/pets/{petId}/share-links)
 	CreateShareLink(w http.ResponseWriter, r *http.Request, petId PetId)
 	// RevokeShareLink Revoga um link da carteirinha. O link para de abrir na hora (RN-41).
@@ -4902,6 +4956,7 @@ func (response ListShareLinksdefaultJSONResponse) VisitListShareLinksResponse(w 
 
 type CreateShareLinkRequestObject struct {
 	PetId PetId `json:"petId"`
+	Body  *CreateShareLinkJSONRequestBody
 }
 
 type CreateShareLinkResponseObject interface {
@@ -5840,7 +5895,7 @@ type StrictServerInterface interface {
 	// ListShareLinks Os links ativos da carteirinha de um pet, com as aberturas.
 	// (GET /v1/pets/{petId}/share-links)
 	ListShareLinks(ctx context.Context, request ListShareLinksRequestObject) (ListShareLinksResponseObject, error)
-	// CreateShareLink Cria um link da carteirinha do pet, válido por 30 dias (RN-40).
+	// CreateShareLink Cria um link da carteirinha do pet, válido por 1, 7 ou 30 dias (RN-40).
 	// (POST /v1/pets/{petId}/share-links)
 	CreateShareLink(ctx context.Context, request CreateShareLinkRequestObject) (CreateShareLinkResponseObject, error)
 	// RevokeShareLink Revoga um link da carteirinha. O link para de abrir na hora (RN-41).
@@ -6808,6 +6863,16 @@ func (sh *strictHandler) CreateShareLink(w http.ResponseWriter, r *http.Request,
 	var request CreateShareLinkRequestObject
 
 	request.PetId = petId
+
+	var body CreateShareLinkJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		if !errors.Is(err, io.EOF) {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+			return
+		}
+	} else {
+		request.Body = &body
+	}
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.CreateShareLink(ctx, request.(CreateShareLinkRequestObject))

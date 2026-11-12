@@ -171,32 +171,42 @@ func (q *Queries) CreateHealthEvent(ctx context.Context, arg CreateHealthEventPa
 }
 
 const createShareLink = `-- name: CreateShareLink :one
-INSERT INTO share_links (pet_id, token_hash, expires_at)
-VALUES ($1, $2, now() + interval '30 days')
-RETURNING id, expires_at, opens, created_at
+INSERT INTO share_links (pet_id, token_hash, expires_at, include_exams)
+VALUES ($1, $2,
+    now() + make_interval(days => $3::integer), $4)
+RETURNING id, expires_at, opens, created_at, include_exams
 `
 
 type CreateShareLinkParams struct {
-	PetID     string
-	TokenHash []byte
+	PetID        string
+	TokenHash    []byte
+	ValidDays    int32
+	IncludeExams bool
 }
 
 type CreateShareLinkRow struct {
-	ID        string
-	ExpiresAt time.Time
-	Opens     int32
-	CreatedAt time.Time
+	ID           string
+	ExpiresAt    time.Time
+	Opens        int32
+	CreatedAt    time.Time
+	IncludeExams bool
 }
 
-// RN-40: o link vale 30 dias.
+// RN-40: o link vale 1, 7 ou 30 dias.
 func (q *Queries) CreateShareLink(ctx context.Context, arg CreateShareLinkParams) (CreateShareLinkRow, error) {
-	row := q.db.QueryRow(ctx, createShareLink, arg.PetID, arg.TokenHash)
+	row := q.db.QueryRow(ctx, createShareLink,
+		arg.PetID,
+		arg.TokenHash,
+		arg.ValidDays,
+		arg.IncludeExams,
+	)
 	var i CreateShareLinkRow
 	err := row.Scan(
 		&i.ID,
 		&i.ExpiresAt,
 		&i.Opens,
 		&i.CreatedAt,
+		&i.IncludeExams,
 	)
 	return i, err
 }
@@ -325,6 +335,45 @@ func (q *Queries) HealthEventExists(ctx context.Context, arg HealthEventExistsPa
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const listCardExams = `-- name: ListCardExams :many
+SELECT name, date, lab, result FROM health_events
+WHERE pet_id = $1 AND type = 'exam'
+ORDER BY date DESC, created_at DESC
+`
+
+type ListCardExamsRow struct {
+	Name   *string
+	Date   time.Time
+	Lab    *string
+	Result *string
+}
+
+// RN-83: os exames da carteirinha, quando o link inclui os exames.
+func (q *Queries) ListCardExams(ctx context.Context, petID string) ([]ListCardExamsRow, error) {
+	rows, err := q.db.Query(ctx, listCardExams, petID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCardExamsRow
+	for rows.Next() {
+		var i ListCardExamsRow
+		if err := rows.Scan(
+			&i.Name,
+			&i.Date,
+			&i.Lab,
+			&i.Result,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listCardParasiteControl = `-- name: ListCardParasiteControl :many
@@ -510,16 +559,17 @@ func (q *Queries) ListHealthEvents(ctx context.Context, petID string) ([]HealthE
 }
 
 const listShareLinks = `-- name: ListShareLinks :many
-SELECT id, expires_at, opens, created_at FROM share_links
+SELECT id, expires_at, opens, created_at, include_exams FROM share_links
 WHERE pet_id = $1 AND revoked_at IS NULL AND expires_at > now()
 ORDER BY created_at DESC
 `
 
 type ListShareLinksRow struct {
-	ID        string
-	ExpiresAt time.Time
-	Opens     int32
-	CreatedAt time.Time
+	ID           string
+	ExpiresAt    time.Time
+	Opens        int32
+	CreatedAt    time.Time
+	IncludeExams bool
 }
 
 // RN-40: os links ativos, com as aberturas.
@@ -537,6 +587,7 @@ func (q *Queries) ListShareLinks(ctx context.Context, petID string) ([]ListShare
 			&i.ExpiresAt,
 			&i.Opens,
 			&i.CreatedAt,
+			&i.IncludeExams,
 		); err != nil {
 			return nil, err
 		}
@@ -660,23 +711,24 @@ UPDATE share_links AS l SET opens = l.opens + 1
 FROM pets AS p
 WHERE l.token_hash = $1 AND l.revoked_at IS NULL AND l.expires_at > now()
     AND p.id = l.pet_id AND p.deleted_at IS NULL
-RETURNING l.pet_id, p.name, p.species, p.breed, p.sex, p.birth_date,
+RETURNING l.pet_id, l.include_exams, p.name, p.species, p.breed, p.sex, p.birth_date,
     p.weight_kg, p.neutered, p.photo_key, p.vet_name, p.vet_clinic, p.vet_phone
 `
 
 type OpenShareLinkRow struct {
-	PetID     string
-	Name      string
-	Species   string
-	Breed     *string
-	Sex       *string
-	BirthDate *time.Time
-	WeightKg  *float64
-	Neutered  *bool
-	PhotoKey  *string
-	VetName   *string
-	VetClinic *string
-	VetPhone  *string
+	PetID        string
+	IncludeExams bool
+	Name         string
+	Species      string
+	Breed        *string
+	Sex          *string
+	BirthDate    *time.Time
+	WeightKg     *float64
+	Neutered     *bool
+	PhotoKey     *string
+	VetName      *string
+	VetClinic    *string
+	VetPhone     *string
 }
 
 // RN-41: um link revogado, vencido ou de um pet excluído não abre. The
@@ -686,6 +738,7 @@ func (q *Queries) OpenShareLink(ctx context.Context, tokenHash []byte) (OpenShar
 	var i OpenShareLinkRow
 	err := row.Scan(
 		&i.PetID,
+		&i.IncludeExams,
 		&i.Name,
 		&i.Species,
 		&i.Breed,

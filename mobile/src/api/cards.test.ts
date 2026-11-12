@@ -1,7 +1,7 @@
 import { createShareLink, listShareLinks, openShareLink, revokeShareLink } from "./cards";
 
 const baseUrl = "http://api.test";
-const link = { id: "l1", expiresAt: "x", opens: 0, createdAt: "x" };
+const link = { id: "l1", expiresAt: "x", opens: 0, createdAt: "x", includeExams: false };
 
 function fetchThatAnswers(status: number, body: unknown = undefined): jest.Mock {
   return jest.fn().mockResolvedValue({ ok: status >= 200 && status < 300, status, json: async () => body });
@@ -10,9 +10,11 @@ function fetchThatAnswers(status: number, body: unknown = undefined): jest.Mock 
 describe("cards API", () => {
   it("creates, lists and revokes the share links of a pet", async () => {
     const create = fetchThatAnswers(201, { ...link, token: "t0" });
-    expect(await createShareLink(baseUrl, "t", "p1", create)).toEqual({ ok: true, value: { ...link, token: "t0" } });
+    expect(await createShareLink(baseUrl, "t", "p1", { validDays: 7, includeExams: true }, create)).toEqual({ ok: true, value: { ...link, token: "t0" } });
     expect(create.mock.calls[0][0]).toBe("http://api.test/v1/pets/p1/share-links");
     expect(create.mock.calls[0][1].method).toBe("POST");
+    // RN-40, RN-83: the validity and the exams go in the body.
+    expect(JSON.parse(create.mock.calls[0][1].body)).toEqual({ validDays: 7, includeExams: true });
 
     const list = fetchThatAnswers(200, { links: [link] });
     expect(await listShareLinks(baseUrl, "t", "p1", list)).toEqual({ ok: true, value: [link] });

@@ -31,3 +31,7 @@ O app é executado no Expo Go. O pacote `react-native-svg` não está instalado.
 
 - Um link de 30 dias esquecido continua aberto até vencer. O app mostra os links ativos com as aberturas, para o tutor revogar.
 - A contagem de aberturas conta cada carga da página, não cada pessoa.
+
+## Verificação posterior
+
+Data: 2026-11-12. O canvas de design (Carteirinha-Mobile-Compartilhar) pede a escolha da validade e a opção de incluir os exames. A alternativa "validade escolhida pelo tutor" foi adotada: o link vale 1, 7 ou 30 dias, e 30 dias continua o padrão sem escolha (RN-40). A opção "incluir exames" fica no link (coluna `include_exams`, migration 00016) e mostra os exames sem os anexos (RN-83).
