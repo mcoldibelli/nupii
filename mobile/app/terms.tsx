@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet } from "react-native";
 
 import { TermsView } from "../src/screens/TermsView";
+import { colors } from "../src/ui/theme";
 
 /** The public page of the terms of use and the privacy policy. */
 export default function Terms() {
@@ -12,5 +13,5 @@ export default function Terms() {
 }
 
 const local = StyleSheet.create({
-  screen: { backgroundColor: "#fff", flexGrow: 1, padding: 16 },
+  screen: { backgroundColor: colors.background, flexGrow: 1, padding: 20 },
 });
