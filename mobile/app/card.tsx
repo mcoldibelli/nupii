@@ -6,6 +6,7 @@ import { cardFailure, medicationLine, petLines, vaccineLine } from "../src/cards
 import { tokenFromHash } from "../src/cards/link";
 import { apiUrl } from "../src/config";
 import { styles } from "../src/screens/styles";
+import { colors, fonts } from "../src/ui/theme";
 
 /** The public page of the health card, opened by the link (RF-31). It needs no account. */
 export default function Card() {
@@ -64,9 +65,9 @@ export default function Card() {
 }
 
 const local = StyleSheet.create({
-  screen: { backgroundColor: "#fff", flexGrow: 1, gap: 6, padding: 16 },
+  screen: { backgroundColor: colors.background, flexGrow: 1, gap: 6, padding: 16 },
   photo: { alignSelf: "center", borderRadius: 60, height: 120, width: 120 },
-  heading: { fontSize: 22, fontWeight: "600", textAlign: "center" },
-  subheading: { fontSize: 16, fontWeight: "600", marginTop: 12 },
-  line: { color: "#333", fontSize: 15 },
+  heading: { fontSize: 22, fontFamily: fonts.titleBold, textAlign: "center" },
+  subheading: { fontSize: 16, fontFamily: fonts.bodyBold, marginTop: 12 },
+  line: { fontFamily: fonts.body, color: colors.textSecondary, fontSize: 15 },
 });

@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 
 import { TERMS_SECTIONS, TERMS_VERSION } from "../terms";
+import { colors, fonts } from "../ui/theme";
 
 /** Shows the terms of use and the privacy policy, with the version. */
 export function TermsView() {
@@ -22,8 +23,8 @@ export function TermsView() {
 }
 
 const local = StyleSheet.create({
-  version: { color: "#555", fontSize: 14, marginBottom: 8 },
+  version: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 14, marginBottom: 8 },
   section: { marginBottom: 12 },
-  title: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
-  paragraph: { color: "#333", fontSize: 14, marginBottom: 6 },
+  title: { fontSize: 16, fontFamily: fonts.bodyBold, marginBottom: 4 },
+  paragraph: { fontFamily: fonts.body, color: colors.textSecondary, fontSize: 14, marginBottom: 6 },
 });

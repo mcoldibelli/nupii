@@ -10,6 +10,7 @@ import { QrCode } from "../../src/cards/QrCode";
 import { apiUrl, webUrl } from "../../src/config";
 import { styles } from "../../src/screens/styles";
 import { useSession } from "../../src/session/SessionContext";
+import { colors, fonts } from "../../src/ui/theme";
 
 /** The owner creates a link of the health card, shows its QR code and revokes the links (RF-30). */
 export default function ShareCard() {
@@ -112,12 +113,12 @@ export default function ShareCard() {
 }
 
 const local = StyleSheet.create({
-  screen: { backgroundColor: "#fff", flexGrow: 1, gap: 12, padding: 16 },
-  heading: { fontSize: 20, fontWeight: "600" },
-  subheading: { fontSize: 16, fontWeight: "600", marginTop: 8 },
+  screen: { backgroundColor: colors.background, flexGrow: 1, gap: 12, padding: 16 },
+  heading: { fontSize: 20, fontFamily: fonts.titleBold },
+  subheading: { fontSize: 16, fontFamily: fonts.bodyBold, marginTop: 8 },
   link: { gap: 12 },
-  url: { color: "#1f5fbf", fontSize: 13 },
-  row: { alignItems: "center", borderBottomColor: "#eee", borderBottomWidth: 1, flexDirection: "row", justifyContent: "space-between", paddingVertical: 10 },
-  line: { color: "#333", flexShrink: 1, fontSize: 14 },
-  revoke: { color: "#b00020", fontSize: 14 },
+  url: { fontFamily: fonts.body, color: colors.primary, fontSize: 13 },
+  row: { alignItems: "center", borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: "row", justifyContent: "space-between", paddingVertical: 10 },
+  line: { fontFamily: fonts.body, color: colors.textSecondary, flexShrink: 1, fontSize: 14 },
+  revoke: { fontFamily: fonts.body, color: colors.dangerText, fontSize: 14 },
 });
