@@ -43,7 +43,8 @@ check_env() {
 # a "go run" of the API) gets part of the requests.
 check_port() {
   local other
-  other=$(lsof -nP -iTCP:8080 -sTCP:LISTEN 2>/dev/null | awk 'NR > 1 && $1 !~ /^com\.docke|^docker|^vpnkit/ {print $1 " (PID " $2 ")"}' | head -1)
+  # lsof ends with 1 when no program uses the port; that is the good case.
+  other=$( (lsof -nP -iTCP:8080 -sTCP:LISTEN 2>/dev/null || true) | awk 'NR > 1 && $1 !~ /^com\.docke|^docker|^vpnkit/ {print $1 " (PID " $2 ")"}' | head -1)
   [[ -z $other ]] || fail "a porta 8080 está em uso por $other. Pare esse programa (por exemplo, o go run da API) e execute de novo."
 }
 
