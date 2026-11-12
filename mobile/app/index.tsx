@@ -111,7 +111,9 @@ export default function Home() {
 
   return (
     <View style={local.page}>
-      <ScrollView contentContainerStyle={[local.content, { paddingTop: insets.top + space.lg }]}>
+      <View style={{ flex: 1 }}>
+      {/* The bottom space keeps the end of the home above the floating Anotar button. */}
+      <ScrollView contentContainerStyle={[local.content, { paddingTop: insets.top + space.lg, paddingBottom: 96 }]}>
         <View style={local.top}>
           {pet !== null ? (
             <Pressable testID="pet-switcher" accessibilityRole="button" accessibilityLabel="Trocar de pet" style={local.switcher} onPress={() => setSwitcher(true)}>
@@ -182,10 +184,7 @@ export default function Home() {
 
             <View style={local.sectionHead}>
               <Heading>Próximo cuidado</Heading>
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                <Button testID="home-anotar" label="Anotar" icon="plus" variant="soft" size="sm" stretch={false} onPress={() => setAnotar(true)} />
-                <Button testID="open-health" label="Ver agenda" icon="calendar" variant="dark" size="sm" stretch={false} onPress={() => router.push({ pathname: "/health/[petId]", params: { petId: pet.id, petName: pet.name } })} />
-              </View>
+              <Button testID="open-health" label="Ver agenda" icon="calendar" variant="dark" size="sm" stretch={false} onPress={() => router.push({ pathname: "/health/[petId]", params: { petId: pet.id, petName: pet.name } })} />
             </View>
             {next !== undefined ? (
               <Pressable testID="upcoming-care" accessibilityRole="button" style={local.careRow} onPress={() => router.push({ pathname: "/health/[petId]", params: { petId: pet.id, petName: pet.name } })}>
@@ -227,6 +226,13 @@ export default function Home() {
           </View>
         )}
       </ScrollView>
+      {/* The quick access to a new health record, above the tab bar (#227). */}
+      {pet !== null && (
+        <Pressable testID="home-anotar" accessibilityRole="button" accessibilityLabel="Anotar um cuidado" style={local.fab} onPress={() => setAnotar(true)}>
+          <Icon name="plus" size={28} color={colors.onPrimary} strokeWidth={2.6} />
+        </Pressable>
+      )}
+      </View>
       <TabBar />
       {pet !== null && (
         <AnotarSheet
@@ -266,6 +272,7 @@ export default function Home() {
 
 const local = StyleSheet.create({
   page: { backgroundColor: colors.background, flex: 1 },
+  fab: { position: "absolute", right: space.xl, bottom: space.lg, width: 60, height: 60, borderRadius: 30, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", shadowColor: colors.ink, shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
   content: { gap: space.lg, paddingBottom: space.xl, paddingHorizontal: space.xl },
   top: { alignItems: "center", flexDirection: "row", gap: 10 },
   switcher: { alignItems: "center", backgroundColor: colors.surface, borderRadius: radius.pill, flexDirection: "row", gap: 10, height: 48, paddingLeft: 4, paddingRight: 14 },
