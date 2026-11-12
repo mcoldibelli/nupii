@@ -20,6 +20,7 @@ import { pickAttachment } from "../../src/health/pickFile";
 import { filePart } from "../../src/pets/pickPhoto";
 import { styles } from "../../src/screens/styles";
 import { useSession } from "../../src/session/SessionContext";
+import { colors, fonts } from "../../src/ui/theme";
 
 /** Creates or changes a health event of one of the five types (RF-27), with its attachments (RF-28). */
 export default function HealthEventForm() {
@@ -146,7 +147,13 @@ export default function HealthEventForm() {
     if (field.kind === "switch") {
       return (
         <View key={field.key} style={styles.row}>
-          <Switch testID={`field-${field.key}`} value={values[field.key] === true} onValueChange={(value) => set(field.key, value)} />
+          <Switch
+            testID={`field-${field.key}`}
+            value={values[field.key] === true}
+            onValueChange={(value) => set(field.key, value)}
+            trackColor={{ false: colors.borderDashed, true: colors.success }}
+            thumbColor={colors.background}
+          />
           <Text style={styles.rowText}>{field.label}</Text>
         </View>
       );
@@ -249,16 +256,16 @@ export default function HealthEventForm() {
 }
 
 const local = StyleSheet.create({
-  content: { backgroundColor: "#fff", flexGrow: 1, padding: 16 },
-  heading: { fontSize: 22, fontWeight: "600", marginBottom: 12 },
+  content: { backgroundColor: colors.background, flexGrow: 1, padding: 16 },
+  heading: { fontSize: 22, fontFamily: fonts.titleBold, marginBottom: 12 },
   long: { minHeight: 80, textAlignVertical: "top" },
   choices: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  choice: { borderColor: "#888", borderRadius: 16, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },
-  choiceSelected: { backgroundColor: "#1f5fbf", borderColor: "#1f5fbf" },
-  choiceText: { fontSize: 14 },
-  choiceTextSelected: { color: "#fff", fontSize: 14 },
-  section: { fontSize: 18, fontWeight: "600", marginTop: 16 },
+  choice: { borderColor: colors.textMuted, borderRadius: 16, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },
+  choiceSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  choiceText: { fontFamily: fonts.body, fontSize: 14 },
+  choiceTextSelected: { fontFamily: fonts.body, color: colors.background, fontSize: 14 },
+  section: { fontSize: 18, fontFamily: fonts.titleBold, marginTop: 16 },
   attachment: { alignItems: "center", flexDirection: "row", paddingVertical: 6 },
   attachmentName: { flex: 1 },
-  remove: { color: "#b00020", fontSize: 15 },
+  remove: { fontFamily: fonts.body, color: colors.dangerText, fontSize: 15 },
 });
