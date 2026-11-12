@@ -2,6 +2,7 @@ import { router, usePathname, type Href } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useSession } from "../session/SessionContext";
 import { Icon, type IconName } from "./Icon";
 import { colors, fonts } from "./theme";
 
@@ -12,10 +13,16 @@ const tabs: { href: Href; path: string; label: string; icon: IconName; testID: s
   { href: "/profile", path: "/profile", label: "Conta", icon: "user", testID: "tab-account" },
 ];
 
-/** The navigation bar at the bottom of the main screens, as in the canvas. */
+/** The navigation bar at the bottom of the main screens, as in the canvas. Only an owner with a session sees it. */
 export function TabBar() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  // A visitor of the public web has no account: the tabs lead to screens
+  // that need one.
+  const { state } = useSession();
+  if (state.kind !== "ready") {
+    return null;
+  }
   return (
     <View
       accessibilityRole="tablist"

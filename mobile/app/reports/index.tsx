@@ -8,7 +8,7 @@ import { apiUrl } from "../../src/config";
 import { reportFailureMessage, reportTitle } from "../../src/reports/form";
 import { speciesLabels } from "../../src/pets/labels";
 import { styles } from "../../src/screens/styles";
-import { colors } from "../../src/ui/theme";
+import { colors, fonts } from "../../src/ui/theme";
 import { TabBar } from "../../src/ui/TabBar";
 
 /** The board: the open lost and found reports (RF-16, RN-24). */
@@ -101,12 +101,12 @@ export default function Board() {
 }
 
 const local = StyleSheet.create({
-  screen: { alignSelf: "center", backgroundColor: "#fff", flex: 1, maxWidth: 720, padding: 16, width: "100%" },
-  counts: { color: "#555", fontSize: 14, marginBottom: 8 },
-  row: { alignItems: "center", borderBottomColor: "#eee", borderBottomWidth: 1, flexDirection: "row", gap: 12, paddingVertical: 10 },
+  screen: { alignSelf: "center", backgroundColor: colors.background, flex: 1, maxWidth: 720, padding: 20, width: "100%" },
+  counts: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 14, marginBottom: 8 },
+  row: { alignItems: "center", backgroundColor: colors.surface, borderRadius: 20, flexDirection: "row", gap: 12, marginBottom: 8, minHeight: 72, padding: 10 },
   rowText: { flex: 1 },
   photo: { borderRadius: 28, height: 56, width: 56 },
-  photoEmpty: { backgroundColor: "#ddd" },
-  title: { fontSize: 17, fontWeight: "600" },
-  line: { color: "#555", fontSize: 14 },
+  photoEmpty: { backgroundColor: colors.background },
+  title: { color: colors.ink, fontSize: 17, fontFamily: fonts.titleBold },
+  line: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 14 },
 });

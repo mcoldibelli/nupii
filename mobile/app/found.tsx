@@ -9,6 +9,7 @@ import { currentLocation } from "../src/found/location";
 import { filePart, NOSE_PHOTO_QUALITY, pickPhoto } from "../src/pets/pickPhoto";
 import { PublishFound } from "../src/reports/PublishFound";
 import { styles } from "../src/screens/styles";
+import { colors, fonts } from "../src/ui/theme";
 
 /**
  * The public page "encontrei um pet": a visitor with no account sends the
@@ -207,19 +208,19 @@ export default function Found() {
 }
 
 const local = StyleSheet.create({
-  content: { alignSelf: "center", backgroundColor: "#fff", flexGrow: 1, maxWidth: 520, padding: 24, width: "100%" },
+  content: { alignSelf: "center", backgroundColor: colors.background, flexGrow: 1, maxWidth: 520, padding: 24, width: "100%" },
   photo: { alignSelf: "center", borderRadius: 12, height: 220, width: 220 },
-  checkbox: { borderColor: "#888", borderRadius: 4, borderWidth: 1, height: 24, width: 24 },
-  checkboxChecked: { backgroundColor: "#1f5fbf", borderColor: "#1f5fbf" },
-  section: { fontSize: 18, fontWeight: "600", marginBottom: 12, marginTop: 24 },
-  candidate: { alignItems: "center", borderColor: "#ddd", borderRadius: 12, borderWidth: 1, flexDirection: "row", gap: 16, marginBottom: 12, padding: 12 },
-  candidateSelected: { borderColor: "#1f5fbf", borderWidth: 2 },
+  checkbox: { borderColor: colors.textMuted, borderRadius: 4, borderWidth: 1, height: 24, width: 24 },
+  checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
+  section: { fontSize: 18, fontFamily: fonts.titleBold, marginBottom: 12, marginTop: 24 },
+  candidate: { alignItems: "center", borderColor: colors.borderStrong, borderRadius: 12, borderWidth: 1, flexDirection: "row", gap: 16, marginBottom: 12, padding: 12 },
+  candidateSelected: { borderColor: colors.primary, borderWidth: 2 },
   candidateText: { flex: 1 },
   petPhoto: { borderRadius: 32, height: 64, width: 64 },
-  petPhotoEmpty: { backgroundColor: "#ddd" },
-  petName: { fontSize: 18, fontWeight: "600" },
-  similarity: { color: "#555", fontSize: 14 },
-  strong: { color: "#1b6e2d", fontSize: 14, fontWeight: "600" },
+  petPhotoEmpty: { backgroundColor: colors.borderStrong },
+  petName: { fontSize: 18, fontFamily: fonts.titleBold },
+  similarity: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 14 },
+  strong: { color: colors.success, fontSize: 14, fontFamily: fonts.bodyBold },
   message: { minHeight: 88, textAlignVertical: "top" },
-  sent: { color: "#1b6e2d", fontSize: 16, marginTop: 24, textAlign: "center" },
+  sent: { fontFamily: fonts.body, color: colors.success, fontSize: 16, marginTop: 24, textAlign: "center" },
 });
