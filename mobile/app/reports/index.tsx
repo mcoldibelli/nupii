@@ -8,6 +8,8 @@ import { apiUrl } from "../../src/config";
 import { reportFailureMessage, reportTitle } from "../../src/reports/form";
 import { speciesLabels } from "../../src/pets/labels";
 import { styles } from "../../src/screens/styles";
+import { colors } from "../../src/ui/theme";
+import { TabBar } from "../../src/ui/TabBar";
 
 /** The board: the open lost and found reports (RF-16, RN-24). */
 export default function Board() {
@@ -37,6 +39,7 @@ export default function Board() {
   const last = pages[pages.length - 1];
   const reports = pages.flatMap((page) => page.reports);
   return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
     <View style={local.screen}>
       {last !== undefined && (
         <Text testID="board-counts" style={local.counts}>
@@ -91,6 +94,8 @@ export default function Board() {
           ) : undefined
         }
       />
+    </View>
+      <TabBar />
     </View>
   );
 }

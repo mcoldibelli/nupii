@@ -10,6 +10,7 @@ import { formatDateTime, noseprintFailureMessage, qualityLabel } from "../../src
 import { filePart, NOSE_PHOTO_QUALITY, pickPhoto, takePhoto } from "../../src/pets/pickPhoto";
 import { styles } from "../../src/screens/styles";
 import { useSession } from "../../src/session/SessionContext";
+import { colors, fonts } from "../../src/ui/theme";
 
 /** Shows the noseprint of a dog and registers a new one from a photo (RF-11). */
 export default function NoseprintScreen() {
@@ -121,8 +122,8 @@ export default function NoseprintScreen() {
 }
 
 const local = StyleSheet.create({
-  content: { backgroundColor: "#fff", flexGrow: 1, padding: 24 },
+  content: { backgroundColor: colors.background, flexGrow: 1, padding: 24 },
   photo: { alignSelf: "center", borderRadius: 12, height: 220, marginBottom: 16, width: 220 },
-  tip: { fontSize: 14, marginBottom: 4 },
-  success: { color: "#1b6e2d", fontSize: 14, marginBottom: 8, marginTop: 12 },
+  tip: { fontFamily: fonts.body, fontSize: 14, marginBottom: 4 },
+  success: { fontFamily: fonts.body, color: colors.success, fontSize: 14, marginBottom: 8, marginTop: 12 },
 });

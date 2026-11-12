@@ -77,7 +77,7 @@ function Screens() {
   return (
     <Stack screenOptions={headerOptions}>
       <Stack.Protected guard={state.kind === "ready"}>
-        <Stack.Screen name="index" options={{ title: "Meus pets" }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="pets/new" options={{ title: "Novo pet" }} />
         <Stack.Screen name="pets/[id]" options={{ title: "Editar pet" }} />
         <Stack.Screen name="noseprint/[petId]" options={{ title: "Focinho" }} />

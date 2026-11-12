@@ -9,6 +9,8 @@ import { formatDateTime } from "../src/biometrics/messages";
 import { apiUrl } from "../src/config";
 import { styles } from "../src/screens/styles";
 import { useSession } from "../src/session/SessionContext";
+import { colors } from "../src/ui/theme";
+import { TabBar } from "../src/ui/TabBar";
 
 /** The notifications of the owner: nearby alerts, sightings and found pets (RF-25). */
 export default function Notifications() {
@@ -46,6 +48,7 @@ export default function Notifications() {
   }
 
   return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
     <View style={local.screen}>
       {error !== null && (
         <Text testID="notifications-error" accessibilityRole="alert" style={styles.error}>
@@ -81,6 +84,8 @@ export default function Notifications() {
           </Pressable>
         )}
       />
+    </View>
+      <TabBar />
     </View>
   );
 }
