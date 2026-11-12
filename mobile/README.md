@@ -126,7 +126,7 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `app/noseprint/[petId].tsx` | Cadastro do focinho de um cachorro (passo 2 de 2): orientação, captura e conferência de 2 fotos (RN-85) |
 | `app/found-notices.tsx` | Avisos de encontro |
 | `app/found.tsx` | Página pública "encontrei um pet" |
-| `app/reports/index.tsx`, `app/reports/[id].tsx` | Mural (lista e mapa, filtro por tipo e raio, faixa do visitante) e ficha de uma ocorrência |
+| `app/reports/index.tsx`, `app/reports/[id].tsx` | Mural (lista e mapa, filtro por tipo e raio, faixa do visitante) e ficha de uma ocorrência (artboard Ocorrencia-Mobile), com o avistamento numa folha |
 | `src/reports/board.ts` | Distância, tempo desde a ocorrência e posição no mapa do mural, com testes |
 | `app/reports/lost.tsx` | Registro do desaparecimento de um pet |
 | `src/map/` | O mapa: a página HTML (`mapHtml.ts`, com testes), o WebView do app e o iframe da web |
