@@ -6,10 +6,12 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/mcoldibelli/nupii/backend/internal/api"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/inference"
@@ -47,18 +49,34 @@ func TestNoseprintLifecycle(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("POST noseprints: status = %d, want 201, body %s", rec.Code, rec.Body)
 	}
+	// RN-86: a foto do focinho é gravada no cadastro e nunca volta numa resposta.
+	noPhoto := func(what string, rec *httptest.ResponseRecorder) {
+		t.Helper()
+		if body := rec.Body.String(); strings.Contains(body, "imageUrl") || strings.Contains(body, "noseprints/") {
+			t.Errorf("%s has the photo of the nose: %s", what, body)
+		}
+	}
+	noPhoto("POST noseprints", rec)
 	first := decode[api.Noseprint](t, rec)
 	if first.Quality != 0.9 || first.ModelVersion != "test-model" || first.CapturedAt.IsZero() {
 		t.Errorf("noseprint = %+v, want the quality and the model version of the inference service", first)
 	}
-	if !strings.Contains(first.ImageUrl, "X-Amz-Expires=900") {
-		t.Errorf("imageUrl = %q, want a validity of 900 seconds (RN-06)", first.ImageUrl)
+	var key string
+	const read = `SELECT image_key FROM noseprints WHERE id = $1`
+	if err := testAPI.pool.QueryRow(t.Context(), read, first.Id).Scan(&key); err != nil {
+		t.Fatalf("read the key of the photo: %v", err)
 	}
-	if status, body := readURL(t, first.ImageUrl); status != http.StatusOK || string(body) != string(photo) {
-		t.Errorf("read of imageUrl: status %d and %d bytes, want 200 and the photo sent", status, len(body))
+	stored, err := testAPI.photos.SignedURL(key, time.Minute)
+	if err != nil {
+		t.Fatalf("sign the stored photo: %v", err)
+	}
+	if status, body := readURL(t, stored); status != http.StatusOK || string(body) != string(photo) {
+		t.Errorf("stored photo: status %d and %d bytes, want 200 and the photo sent", status, len(body))
 	}
 
-	got := decode[api.Noseprint](t, testAPI.call(http.MethodGet, base+"/noseprint", "token-ana", ""))
+	rec = testAPI.call(http.MethodGet, base+"/noseprint", "token-ana", "")
+	noPhoto("GET noseprint", rec)
+	got := decode[api.Noseprint](t, rec)
 	if got.Id != first.Id {
 		t.Errorf("GET noseprint gives %s, want the noseprint created %s", got.Id, first.Id)
 	}
@@ -76,9 +94,6 @@ func TestNoseprintLifecycle(t *testing.T) {
 	}
 	if total, primary := testAPI.noseprintCounts(pet.Id.String()); total != 2 || primary != 1 {
 		t.Errorf("the pet has %d noseprints and %d primary, want 2 and 1", total, primary)
-	}
-	if status, _ := readURL(t, first.ImageUrl); status != http.StatusOK {
-		t.Errorf("read of the photo of the first noseprint: status %d, want 200", status)
 	}
 
 	// RN-52: o pet de outro tutor não existe para quem chama.

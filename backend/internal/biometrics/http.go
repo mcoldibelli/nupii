@@ -228,7 +228,6 @@ func noseprintToAPI(noseprint Noseprint) (api.Noseprint, error) {
 	}
 	return api.Noseprint{
 		Id:           id,
-		ImageUrl:     noseprint.ImageURL,
 		Quality:      noseprint.Quality,
 		ModelVersion: noseprint.ModelVersion,
 		CapturedAt:   noseprint.CapturedAt,

@@ -33,7 +33,7 @@ export default function Found() {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
 
-  async function choosePhoto(next: "scan" | "publish" = mode === "publish" ? "publish" : "scan", gallery = false) {
+  async function choosePhoto(next: "scan" = "scan", gallery = false) {
     // In the app the camera opens with a square crop; the web and a refused camera use the gallery.
     const taken = gallery || Platform.OS === "web" ? "denied" : await takePhoto(true);
     const picked = taken === "denied" ? await pickPhoto(NOSE_PHOTO_QUALITY) : taken;
@@ -125,7 +125,7 @@ export default function Found() {
           {(
             [
               { testID: "found-board", icon: "pin", color: colors.danger, title: "Ver perdidos perto daqui", line: "compare com os cachorros que sumiram no bairro", go: () => router.push("/reports") },
-              { testID: "found-publish", icon: "camera", color: colors.success, title: "Publicar como achado no mural", line: "foto do focinho, local e como ele está · o tutor pode te achar", go: () => void choosePhoto("publish") },
+              { testID: "found-publish", icon: "camera", color: colors.success, title: "Publicar como achado no mural", line: "foto do cachorro, local e como ele está · o tutor pode te achar", go: () => setMode("publish") },
             ] as { testID: string; icon: IconName; color: string; title: string; line: string; go: () => void }[]
           ).map((option) => (
             <Pressable key={option.testID} testID={option.testID} accessibilityRole="button" style={local.option} onPress={option.go}>
@@ -148,13 +148,13 @@ export default function Found() {
         </>
       )}
 
-      {mode !== "start" && photo !== null && <Image testID="found-photo" accessibilityLabel="Foto enviada" source={{ uri: photo.uri }} style={local.photo} />}
-      {mode !== "start" && (
+      {mode === "scan" && photo !== null && <Image testID="found-photo" accessibilityLabel="Foto enviada" source={{ uri: photo.uri }} style={local.photo} />}
+      {mode === "scan" && (
         <Pressable testID="found-change-photo" accessibilityRole="button" style={styles.link} disabled={busy} onPress={() => void choosePhoto()}>
           <Text style={local.link}>Trocar a foto</Text>
         </Pressable>
       )}
-      {mode === "publish" && photo !== null && <PublishFound photo={() => filePart(photo)} />}
+      {mode === "publish" && <PublishFound />}
 
       {mode === "scan" && photo !== null && identification === null && (
         <>
@@ -259,7 +259,7 @@ export default function Found() {
 
       {/* RF-19: with no candidate, or after the contact, the dog can go to the board. */}
       {mode === "scan" && photo !== null && identification !== null && (identification.candidates.length === 0 || sent) && (
-        <PublishFound photo={() => filePart(photo)} />
+        <PublishFound />
       )}
 
       {sent && chosen !== undefined && (

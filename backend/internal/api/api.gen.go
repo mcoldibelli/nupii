@@ -801,13 +801,10 @@ type LostReportInput struct {
 // MedicationCategory Medicação. Obrigatório na medicação.
 type MedicationCategory string
 
-// Noseprint Cadastro biométrico de um pet, a foto do focinho com o vetor dela.
+// Noseprint Cadastro biométrico de um pet. A foto do focinho fica gravada e nunca vem numa resposta (RN-86).
 type Noseprint struct {
 	CapturedAt time.Time          `json:"capturedAt"`
 	Id         openapi_types.UUID `json:"id"`
-
-	// ImageUrl URL temporária da foto do focinho. Vale por 900 segundos.
-	ImageUrl string `json:"imageUrl"`
 
 	// ModelVersion Versão do modelo que gerou o vetor.
 	ModelVersion string `json:"modelVersion"`
@@ -978,7 +975,7 @@ type Report struct {
 	// PetSpecies Espécie do pet.
 	PetSpecies *Species `json:"petSpecies,omitempty"`
 
-	// PhotoUrl URL temporária da foto de perfil do pet, ou da foto do focinho de um achado. Vale por 900 segundos.
+	// PhotoUrl URL temporária da foto de perfil do pet, ou da foto ampla do cachorro de um achado. Nunca é a foto do focinho (RN-86). Vale por 900 segundos.
 	PhotoUrl *string `json:"photoUrl,omitempty"`
 	Place    *string `json:"place,omitempty"`
 
@@ -1220,7 +1217,7 @@ type ReportFoundMultipartBody struct {
 	// Description Recado, com no máximo 1.000 caracteres.
 	Description *string `json:"description,omitempty"`
 
-	// File A foto do focinho usada na identificação. JPEG, PNG ou WebP, com no máximo 8 MB.
+	// File Uma foto ampla do cachorro achado, não a do focinho (RN-27, RN-86). JPEG, PNG ou WebP, com no máximo 8 MB.
 	File      openapi_types.File `json:"file"`
 	Latitude  float64            `json:"latitude"`
 	Longitude float64            `json:"longitude"`
@@ -1409,7 +1406,7 @@ type ServerInterface interface {
 	// ListReports O mural, as ocorrências abertas dos tipos perdido e achado.
 	// (GET /v1/reports)
 	ListReports(w http.ResponseWriter, r *http.Request, params ListReportsParams)
-	// ReportFound Publica um achado, com a foto do focinho.
+	// ReportFound Publica um achado, com uma foto ampla do cachorro.
 	// (POST /v1/reports/found)
 	ReportFound(w http.ResponseWriter, r *http.Request)
 	// ReportLost Registra o desaparecimento de um pet do tutor.
@@ -6062,7 +6059,7 @@ type StrictServerInterface interface {
 	// ListReports O mural, as ocorrências abertas dos tipos perdido e achado.
 	// (GET /v1/reports)
 	ListReports(ctx context.Context, request ListReportsRequestObject) (ListReportsResponseObject, error)
-	// ReportFound Publica um achado, com a foto do focinho.
+	// ReportFound Publica um achado, com uma foto ampla do cachorro.
 	// (POST /v1/reports/found)
 	ReportFound(ctx context.Context, request ReportFoundRequestObject) (ReportFoundResponseObject, error)
 	// ReportLost Registra o desaparecimento de um pet do tutor.

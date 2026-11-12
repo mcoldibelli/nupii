@@ -52,9 +52,7 @@ func (e *ValidationError) Error() string {
 
 // Noseprint is the photo of the nose of a pet, with data of its vector.
 type Noseprint struct {
-	ID string
-	// ImageURL is a temporary URL of the photo of the nose.
-	ImageURL     string
+	ID           string
 	Quality      float64
 	ModelVersion string
 	CapturedAt   time.Time
@@ -159,7 +157,7 @@ func (s *Service) Register(ctx context.Context, petID string, photo io.Reader) (
 		}
 		return Noseprint{}, err
 	}
-	return s.noseprint(row.ID, row.ImageKey, row.ModelVersion, row.Quality, row.CapturedAt)
+	return noseprint(row.ID, row.ModelVersion, row.Quality, row.CapturedAt), nil
 }
 
 // nosePhoto is a photo of a nose that the inference service accepted.
@@ -252,25 +250,12 @@ func (s *Service) Primary(ctx context.Context, petID string) (Noseprint, error) 
 	if err != nil {
 		return Noseprint{}, fmt.Errorf("get the primary noseprint: %w", err)
 	}
-	return s.noseprint(row.ID, row.ImageKey, row.ModelVersion, row.Quality, row.CapturedAt)
+	return noseprint(row.ID, row.ModelVersion, row.Quality, row.CapturedAt), nil
 }
 
-func (s *Service) noseprint(
-	id, imageKey, modelVersion string,
-	quality float64,
-	capturedAt time.Time,
-) (Noseprint, error) {
-	imageURL, err := s.photos.SignedURL(imageKey, _photoURLExpiry)
-	if err != nil {
-		return Noseprint{}, fmt.Errorf("sign the URL of the photo of the nose: %w", err)
-	}
-	return Noseprint{
-		ID:           id,
-		ImageURL:     imageURL,
-		Quality:      quality,
-		ModelVersion: modelVersion,
-		CapturedAt:   capturedAt,
-	}, nil
+func noseprint(id, modelVersion string, quality float64, capturedAt time.Time) Noseprint {
+	// RN-86: the photo of the nose is stored, and no answer has it.
+	return Noseprint{ID: id, Quality: quality, ModelVersion: modelVersion, CapturedAt: capturedAt}
 }
 
 // readPhoto reads the photo of a nose and applies RN-59. It returns the
