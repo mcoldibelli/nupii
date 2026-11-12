@@ -40,11 +40,16 @@ check_env() {
 }
 
 # The API of the compose uses port 8080. Another program there (for example
-# a "go run" of the API) gets part of the requests.
+# a "go run" of the API) gets part of the requests. The forward of the
+# container itself is fine; its process name changes with the Docker runtime
+# (com.docker, vpnkit, or ssh with Colima), so the check asks Docker.
 check_port() {
+  if [[ -n $(docker ps -q --filter "name=^nupii-local-api-1$" --filter status=running) ]]; then
+    return
+  fi
   local other
   # lsof ends with 1 when no program uses the port; that is the good case.
-  other=$( (lsof -nP -iTCP:8080 -sTCP:LISTEN 2>/dev/null || true) | awk 'NR > 1 && $1 !~ /^com\.docke|^docker|^vpnkit/ {print $1 " (PID " $2 ")"}' | head -1)
+  other=$( (lsof -nP -iTCP:8080 -sTCP:LISTEN 2>/dev/null || true) | awk 'NR > 1 {print $1 " (PID " $2 ")"}' | head -1)
   [[ -z $other ]] || fail "a porta 8080 está em uso por $other. Pare esse programa (por exemplo, o go run da API) e execute de novo."
 }
 
