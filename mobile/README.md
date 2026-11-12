@@ -149,5 +149,6 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `src/pets/PetFormView.tsx` | O formulário do pet |
 | `src/pets/pickPhoto.ts` | O único arquivo que importa a galeria e o sistema de arquivos do aparelho |
 | `src/screens/` | Telas de entrada e de primeiro acesso, e os estilos comuns |
+| `src/home/` | O início (RF-34): subtítulo do pet, pet escolhido, série do peso, notificações não lidas, com testes; a folha do seletor de pets |
 | `src/welcome/` | A apresentação da primeira abertura (RF-33): os quatro passos e a marca de já vista, com testes |
 | `src/ui/` | O visual do canvas de design ([ADR 0030](../docs/adr/0030-visual-do-app.md)): tema (cores, fontes, cantos, espaços) com o teste de contraste, ícones, logo e mascote em SVG, textos, botão, campo, cartão, abas e barra de navegação. O único lugar que importa `react-native-svg` |

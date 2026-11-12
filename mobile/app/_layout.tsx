@@ -11,6 +11,7 @@ import { isPublicPath } from "../src/reports/publicPaths";
 import { styles } from "../src/screens/styles";
 import { SessionProvider, useSession } from "../src/session/SessionContext";
 import { useWelcome, WelcomeProvider } from "../src/welcome/WelcomeContext";
+import { SelectedPetProvider } from "../src/pets/SelectedPetContext";
 import { colors, fonts } from "../src/ui/theme";
 
 /** The header of the screens: the title font of the canvas, with no line under it (ADR 0030). */
@@ -180,7 +181,9 @@ export default function RootLayout() {
   return (
     <SessionProvider>
       <WelcomeProvider>
-        <Screens />
+        <SelectedPetProvider>
+          <Screens />
+        </SelectedPetProvider>
       </WelcomeProvider>
       <StatusBar style="auto" />
     </SessionProvider>
