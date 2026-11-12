@@ -13,8 +13,14 @@ describe("reports API", () => {
     const page = { reports: [report], page: 2, hasNext: false, openLost: 1, openFound: 0 };
     const fetchFn = fetchThatAnswers(200, page);
 
-    expect(await listBoard(baseUrl, 2, fetchFn)).toEqual({ ok: true, value: page });
+    expect(await listBoard(baseUrl, 2, {}, fetchFn)).toEqual({ ok: true, value: page });
     expect(fetchFn).toHaveBeenCalledWith("http://api.test/v1/reports?page=2", { method: "GET", headers: {} });
+  });
+
+  it("RN-24: sends the type and the radius around a point", async () => {
+    const fetchFn = fetchThatAnswers(200, { reports: [], page: 1, hasNext: false, openLost: 0, openFound: 0 });
+    await listBoard(baseUrl, 1, { type: "lost", center: { latitude: -22.3, longitude: -49.06 }, radiusKm: 3 }, fetchFn);
+    expect(fetchFn.mock.calls[0][0]).toBe("http://api.test/v1/reports?page=1&type=lost&latitude=-22.3&longitude=-49.06&radiusKm=3");
   });
 
   it("reads the detail with no token", async () => {

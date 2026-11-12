@@ -70,7 +70,29 @@ func (h *Handlers) ListReports(
 	if request.Params.Page != nil {
 		page = *request.Params.Page
 	}
-	board, err := h.service.Board(ctx, page)
+	params := request.Params
+	invalid := func(message string) api.ListReports400JSONResponse {
+		return api.ListReports400JSONResponse{InvalidRequestJSONResponse: api.InvalidRequestJSONResponse{
+			Error: api.ErrorCodeInvalidRequest, Message: message,
+		}}
+	}
+	var filter BoardFilter
+	if params.Type != nil {
+		if !params.Type.Valid() {
+			return invalid("type must be lost or found"), nil
+		}
+		filter.Type = string(*params.Type)
+	}
+	if params.Latitude != nil || params.Longitude != nil {
+		if params.Latitude == nil || params.Longitude == nil {
+			return invalid("latitude and longitude come together"), nil
+		}
+		filter.Center = &Point{Latitude: *params.Latitude, Longitude: *params.Longitude}
+	}
+	if params.RadiusKm != nil {
+		filter.RadiusKm = int(*params.RadiusKm)
+	}
+	board, err := h.service.Board(ctx, page, filter)
 	if err != nil {
 		if status, body := classify(err); status == http.StatusBadRequest {
 			return api.ListReports400JSONResponse{

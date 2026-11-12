@@ -114,6 +114,7 @@ const icons = {
     </>
   ),
   close: <Path d="M6 6l12 12M18 6 6 18" />,
+  menu: <Path d="M5 7h14M5 12h14M5 17h14" />,
   link: <Path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />,
   chat: <Path d="M4 20l1.4-4A8 8 0 1 1 9 19.5z" />,
   share: (
@@ -334,3 +335,4 @@ export function ProfileArt({ width, height }: { width: number; height: number })
     </Svg>
   );
 }
+

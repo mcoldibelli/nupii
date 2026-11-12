@@ -18,18 +18,29 @@ RETURNING id, occurred_at, created_at;
 SELECT * FROM report_views WHERE id = sqlc.arg(id);
 
 -- name: ListBoard :many
--- RN-24: 20 ocorrências abertas por página, da mais nova para a mais antiga.
+-- RN-24: 20 ocorrências abertas por página, da mais nova para a mais antiga,
+-- do tipo e dentro do raio quando o filtro vem.
 SELECT * FROM report_views
 WHERE status = 'open'
+    AND (sqlc.narg(type)::text IS NULL OR type = sqlc.narg(type)::text)
+    AND (sqlc.narg(radius_m)::float8 IS NULL OR ST_DWithin(
+        ST_MakePoint(longitude, latitude)::geography,
+        ST_MakePoint(sqlc.narg(longitude)::float8, sqlc.narg(latitude)::float8)::geography,
+        sqlc.narg(radius_m)::float8))
 ORDER BY created_at DESC, id DESC
 LIMIT sqlc.arg(page_size) OFFSET sqlc.arg(skip);
 
 -- name: CountBoard :one
+-- The counts follow the radius, not the type.
 SELECT
     count(*) FILTER (WHERE type = 'lost') AS open_lost,
     count(*) FILTER (WHERE type = 'found') AS open_found
 FROM report_views
-WHERE status = 'open';
+WHERE status = 'open'
+    AND (sqlc.narg(radius_m)::float8 IS NULL OR ST_DWithin(
+        ST_MakePoint(longitude, latitude)::geography,
+        ST_MakePoint(sqlc.narg(longitude)::float8, sqlc.narg(latitude)::float8)::geography,
+        sqlc.narg(radius_m)::float8));
 
 -- name: ListOwnerReports :many
 SELECT * FROM report_views

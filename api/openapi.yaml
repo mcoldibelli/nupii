@@ -540,7 +540,7 @@ paths:
       operationId: listReports
       tags: [reports]
       summary: O mural, as ocorrências abertas dos tipos perdido e achado.
-      description: Operação pública. 20 ocorrências por página, da mais nova para a mais antiga.
+      description: Operação pública. 20 ocorrências por página, da mais nova para a mais antiga. Filtra pelo tipo e pelo raio em volta de um ponto (RN-24).
       parameters:
         - name: page
           in: query
@@ -551,6 +551,37 @@ paths:
             minimum: 1
             maximum: 100000
             default: 1
+        - name: type
+          in: query
+          required: false
+          description: Só as ocorrências deste tipo. As contagens não mudam com o tipo.
+          schema:
+            $ref: "#/components/schemas/ReportType"
+        - name: latitude
+          in: query
+          required: false
+          description: Latitude do centro do raio. Vem com a longitude e o raio (RN-61).
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+        - name: longitude
+          in: query
+          required: false
+          description: Longitude do centro do raio. Vem com a latitude e o raio (RN-61).
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+        - name: radiusKm
+          in: query
+          required: false
+          description: Raio em quilômetros em volta do ponto. As ocorrências e as contagens ficam só dentro do raio.
+          schema:
+            type: integer
+            enum: [1, 3, 5, 10]
       responses:
         "200":
           description: Uma página do mural, com as contagens.

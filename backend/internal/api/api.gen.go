@@ -404,6 +404,30 @@ func (e TermsVersion) Valid() bool {
 	}
 }
 
+// Defines values for ListReportsParamsRadiusKm.
+const (
+	ListReportsParamsRadiusKmN1  ListReportsParamsRadiusKm = 1
+	ListReportsParamsRadiusKmN10 ListReportsParamsRadiusKm = 10
+	ListReportsParamsRadiusKmN3  ListReportsParamsRadiusKm = 3
+	ListReportsParamsRadiusKmN5  ListReportsParamsRadiusKm = 5
+)
+
+// Valid indicates whether the value is a known member of the ListReportsParamsRadiusKm enum.
+func (e ListReportsParamsRadiusKm) Valid() bool {
+	switch e {
+	case ListReportsParamsRadiusKmN1:
+		return true
+	case ListReportsParamsRadiusKmN10:
+		return true
+	case ListReportsParamsRadiusKmN3:
+		return true
+	case ListReportsParamsRadiusKmN5:
+		return true
+	default:
+		return false
+	}
+}
+
 // CreatedShareLink O link criado, com o token. O app monta o endereço `<web>/card#token=<token>`.
 type CreatedShareLink struct {
 	CreatedAt time.Time          `json:"createdAt"`
@@ -1174,7 +1198,22 @@ type SetPetPhotoMultipartBody struct {
 type ListReportsParams struct {
 	// Page Número da página, a partir de 1.
 	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// Type Só as ocorrências deste tipo. As contagens não mudam com o tipo.
+	Type *ReportType `form:"type,omitempty" json:"type,omitempty"`
+
+	// Latitude Latitude do centro do raio. Vem com a longitude e o raio (RN-61).
+	Latitude *float64 `form:"latitude,omitempty" json:"latitude,omitempty"`
+
+	// Longitude Longitude do centro do raio. Vem com a latitude e o raio (RN-61).
+	Longitude *float64 `form:"longitude,omitempty" json:"longitude,omitempty"`
+
+	// RadiusKm Raio em quilômetros em volta do ponto. As ocorrências e as contagens ficam só dentro do raio.
+	RadiusKm *ListReportsParamsRadiusKm `form:"radiusKm,omitempty" json:"radiusKm,omitempty"`
 }
+
+// ListReportsParamsRadiusKm defines parameters for ListReports.
+type ListReportsParamsRadiusKm int
 
 // ReportFoundMultipartBody defines parameters for ReportFound.
 type ReportFoundMultipartBody struct {
@@ -2173,6 +2212,58 @@ func (siw *ServerInterfaceWrapper) ListReports(w http.ResponseWriter, r *http.Re
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "type", r.URL.Query(), &params.Type, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "latitude" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "latitude", r.URL.Query(), &params.Latitude, runtime.BindQueryParameterOptions{Type: "number", Format: "double"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "latitude"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "latitude", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "longitude" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "longitude", r.URL.Query(), &params.Longitude, runtime.BindQueryParameterOptions{Type: "number", Format: "double"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "longitude"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "longitude", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "radiusKm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "radiusKm", r.URL.Query(), &params.RadiusKm, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "radiusKm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "radiusKm", Err: err})
 		}
 		return
 	}
