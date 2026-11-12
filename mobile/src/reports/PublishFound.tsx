@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { reportFound } from "../api/reports";
-import { apiUrl } from "../config";
+import { apiUrl, webUrl } from "../config";
 import type { MapPoint } from "../map/mapHtml";
 import { MapView } from "../map/MapView";
 import { foundReportLink } from "./foundLink";
 import { REPORT_LIMITS, reportFailureMessage, toDetails } from "./form";
 import { styles } from "../screens/styles";
+import { colors, fonts } from "../ui/theme";
 
 /**
  * Publishes a found dog on the board, with the photo of the nose of the
@@ -41,7 +42,9 @@ export function PublishFound({ photo }: { photo: () => Blob }) {
       return;
     }
     const { report, resolveCode } = result.value;
-    setLink({ url: foundReportLink(window.location.origin, report.id, resolveCode), reportId: report.id, code: resolveCode });
+    // In the app the link points to the public web (EXPO_PUBLIC_WEB_URL).
+    const origin = Platform.OS === "web" ? window.location.origin : webUrl;
+    setLink({ url: foundReportLink(origin, report.id, resolveCode), reportId: report.id, code: resolveCode });
   }
 
   if (link !== null) {
@@ -58,7 +61,11 @@ export function PublishFound({ photo }: { photo: () => Blob }) {
           style={styles.link}
           onPress={() => {
             // The code goes in the fragment, as in the link that the person keeps.
-            window.location.assign(link.url);
+            if (Platform.OS === "web") {
+              window.location.assign(link.url);
+            } else {
+              void Linking.openURL(link.url);
+            }
           }}
         >
           <Text style={styles.linkText}>Abrir o achado</Text>
@@ -112,9 +119,9 @@ export function PublishFound({ photo }: { photo: () => Blob }) {
 }
 
 const local = StyleSheet.create({
-  section: { fontSize: 18, fontWeight: "600", marginBottom: 8, marginTop: 24 },
+  section: { fontSize: 18, fontFamily: fonts.titleBold, marginBottom: 8, marginTop: 24 },
   map: { height: 260, marginVertical: 8, width: "100%" },
-  point: { color: "#555", fontSize: 14, marginBottom: 12 },
+  point: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 14, marginBottom: 12 },
   message: { minHeight: 80, textAlignVertical: "top" },
-  link: { color: "#1f5fbf", fontSize: 14, marginVertical: 8 },
+  link: { fontFamily: fonts.body, color: colors.primary, fontSize: 14, marginVertical: 8 },
 });

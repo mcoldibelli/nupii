@@ -326,7 +326,7 @@ O código usa o termo em inglês. A documentação e as telas usam o termo em po
 | carteirinha | health card | Resumo de saúde do pet |
 | próximo cuidado | upcoming care | Data da próxima dose de uma vacina ou de uma medicação |
 | anexo | attachment | Arquivo de um evento de saúde: foto ou PDF |
-| compartilhamento, link da carteirinha | share link | Link público da carteirinha, com validade de 30 dias |
+| compartilhamento, link da carteirinha | share link | Link público da carteirinha, com validade de 1, 7 ou 30 dias |
 | abertura | opening | Uma carga da carteirinha pelo link |
 
 ## Fora da v1

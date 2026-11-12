@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"time"
@@ -325,6 +326,27 @@ func (e Sex) Valid() bool {
 	}
 }
 
+// Defines values for ShareLinkInputValidDays.
+const (
+	ShareLinkInputValidDaysN1  ShareLinkInputValidDays = 1
+	ShareLinkInputValidDaysN30 ShareLinkInputValidDays = 30
+	ShareLinkInputValidDaysN7  ShareLinkInputValidDays = 7
+)
+
+// Valid indicates whether the value is a known member of the ShareLinkInputValidDays enum.
+func (e ShareLinkInputValidDays) Valid() bool {
+	switch e {
+	case ShareLinkInputValidDaysN1:
+		return true
+	case ShareLinkInputValidDaysN30:
+		return true
+	case ShareLinkInputValidDaysN7:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Size.
 const (
 	SizeLarge  Size = "large"
@@ -369,13 +391,37 @@ func (e Species) Valid() bool {
 
 // Defines values for TermsVersion.
 const (
-	TermsVersionN20261110 TermsVersion = "2026-11-10"
+	TermsVersionN20261111 TermsVersion = "2026-11-11"
 )
 
 // Valid indicates whether the value is a known member of the TermsVersion enum.
 func (e TermsVersion) Valid() bool {
 	switch e {
-	case TermsVersionN20261110:
+	case TermsVersionN20261111:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListReportsParamsRadiusKm.
+const (
+	ListReportsParamsRadiusKmN1  ListReportsParamsRadiusKm = 1
+	ListReportsParamsRadiusKmN10 ListReportsParamsRadiusKm = 10
+	ListReportsParamsRadiusKmN3  ListReportsParamsRadiusKm = 3
+	ListReportsParamsRadiusKmN5  ListReportsParamsRadiusKm = 5
+)
+
+// Valid indicates whether the value is a known member of the ListReportsParamsRadiusKm enum.
+func (e ListReportsParamsRadiusKm) Valid() bool {
+	switch e {
+	case ListReportsParamsRadiusKmN1:
+		return true
+	case ListReportsParamsRadiusKmN10:
+		return true
+	case ListReportsParamsRadiusKmN3:
+		return true
+	case ListReportsParamsRadiusKmN5:
 		return true
 	default:
 		return false
@@ -387,6 +433,9 @@ type CreatedShareLink struct {
 	CreatedAt time.Time          `json:"createdAt"`
 	ExpiresAt time.Time          `json:"expiresAt"`
 	Id        openapi_types.UUID `json:"id"`
+
+	// IncludeExams A carteirinha do link mostra os exames.
+	IncludeExams bool `json:"includeExams"`
 
 	// Opens Quantas vezes a carteirinha foi aberta pelo link.
 	Opens int `json:"opens"`
@@ -479,12 +528,23 @@ type HealthAttachmentList struct {
 
 // HealthCard A carteirinha do pet (RN-83). Sem dados do tutor, sem IDs internos e sem anexos.
 type HealthCard struct {
+	// Exams Os exames, do mais novo para o mais antigo. Só vem quando o link inclui os exames.
+	Exams *[]HealthCardExam `json:"exams,omitempty"`
+
 	// ParasiteControl As medicações antipulgas e vermífugo, da mais nova para a mais antiga.
 	ParasiteControl []HealthCardMedication `json:"parasiteControl"`
 	Pet             HealthCardPet          `json:"pet"`
 
 	// Vaccines Da mais nova para a mais antiga.
 	Vaccines []HealthCardVaccine `json:"vaccines"`
+}
+
+// HealthCardExam defines model for HealthCardExam.
+type HealthCardExam struct {
+	Date   openapi_types.Date `json:"date"`
+	Lab    *string            `json:"lab,omitempty"`
+	Name   string             `json:"name"`
+	Result *string            `json:"result,omitempty"`
 }
 
 // HealthCardMedication defines model for HealthCardMedication.
@@ -756,6 +816,12 @@ type Noseprint struct {
 	Quality float64 `json:"quality"`
 }
 
+// NoseprintCheck O resultado da conferência de uma foto do focinho.
+type NoseprintCheck struct {
+	// Quality Nitidez da foto, de 0 a 1.
+	Quality float64 `json:"quality"`
+}
+
 // NoteCategory Anotação. Obrigatório na anotação.
 type NoteCategory string
 
@@ -955,9 +1021,24 @@ type ShareLink struct {
 	ExpiresAt time.Time          `json:"expiresAt"`
 	Id        openapi_types.UUID `json:"id"`
 
+	// IncludeExams A carteirinha do link mostra os exames.
+	IncludeExams bool `json:"includeExams"`
+
 	// Opens Quantas vezes a carteirinha foi aberta pelo link.
 	Opens int `json:"opens"`
 }
+
+// ShareLinkInput As opções do link. Sem corpo, o link vale 30 dias e não mostra os exames (RN-40).
+type ShareLinkInput struct {
+	// IncludeExams A carteirinha mostra os exames do pet, sem os anexos (RN-83).
+	IncludeExams *bool `json:"includeExams,omitempty"`
+
+	// ValidDays Dias de validade do link.
+	ValidDays *ShareLinkInputValidDays `json:"validDays,omitempty"`
+}
+
+// ShareLinkInputValidDays Dias de validade do link.
+type ShareLinkInputValidDays int
 
 // ShareLinkList defines model for ShareLinkList.
 type ShareLinkList struct {
@@ -1101,6 +1182,12 @@ type RegisterNoseprintMultipartBody struct {
 	File openapi_types.File `json:"file"`
 }
 
+// CheckNoseprintMultipartBody defines parameters for CheckNoseprint.
+type CheckNoseprintMultipartBody struct {
+	// File Foto do focinho. Imagem JPEG, PNG ou WebP, com no máximo 8 MB.
+	File openapi_types.File `json:"file"`
+}
+
 // SetPetPhotoMultipartBody defines parameters for SetPetPhoto.
 type SetPetPhotoMultipartBody struct {
 	// File Imagem JPEG, PNG ou WebP, com no máximo 5 MB.
@@ -1111,7 +1198,22 @@ type SetPetPhotoMultipartBody struct {
 type ListReportsParams struct {
 	// Page Número da página, a partir de 1.
 	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// Type Só as ocorrências deste tipo. As contagens não mudam com o tipo.
+	Type *ReportType `form:"type,omitempty" json:"type,omitempty"`
+
+	// Latitude Latitude do centro do raio. Vem com a longitude e o raio (RN-61).
+	Latitude *float64 `form:"latitude,omitempty" json:"latitude,omitempty"`
+
+	// Longitude Longitude do centro do raio. Vem com a latitude e o raio (RN-61).
+	Longitude *float64 `form:"longitude,omitempty" json:"longitude,omitempty"`
+
+	// RadiusKm Raio em quilômetros em volta do ponto. As ocorrências e as contagens ficam só dentro do raio.
+	RadiusKm *ListReportsParamsRadiusKm `form:"radiusKm,omitempty" json:"radiusKm,omitempty"`
 }
+
+// ListReportsParamsRadiusKm defines parameters for ListReports.
+type ListReportsParamsRadiusKm int
 
 // ReportFoundMultipartBody defines parameters for ReportFound.
 type ReportFoundMultipartBody struct {
@@ -1176,8 +1278,14 @@ type CreateHealthAttachmentMultipartRequestBody CreateHealthAttachmentMultipartB
 // RegisterNoseprintMultipartRequestBody defines body for RegisterNoseprint for multipart/form-data ContentType.
 type RegisterNoseprintMultipartRequestBody RegisterNoseprintMultipartBody
 
+// CheckNoseprintMultipartRequestBody defines body for CheckNoseprint for multipart/form-data ContentType.
+type CheckNoseprintMultipartRequestBody CheckNoseprintMultipartBody
+
 // SetPetPhotoMultipartRequestBody defines body for SetPetPhoto for multipart/form-data ContentType.
 type SetPetPhotoMultipartRequestBody SetPetPhotoMultipartBody
+
+// CreateShareLinkJSONRequestBody defines body for CreateShareLink for application/json ContentType.
+type CreateShareLinkJSONRequestBody = ShareLinkInput
 
 // ReportFoundMultipartRequestBody defines body for ReportFound for multipart/form-data ContentType.
 type ReportFoundMultipartRequestBody ReportFoundMultipartBody
@@ -1235,6 +1343,9 @@ type ServerInterface interface {
 	// ListNotifications As 50 notificações mais recentes do tutor.
 	// (GET /v1/notifications)
 	ListNotifications(w http.ResponseWriter, r *http.Request)
+	// MarkAllNotificationsRead Marca todas as notificações do tutor como lidas (RN-74).
+	// (POST /v1/notifications/read)
+	MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request)
 	// MarkNotificationRead Marca uma notificação do tutor como lida.
 	// (POST /v1/notifications/{notificationId}/read)
 	MarkNotificationRead(w http.ResponseWriter, r *http.Request, notificationId openapi_types.UUID)
@@ -1280,13 +1391,16 @@ type ServerInterface interface {
 	// RegisterNoseprint Cadastra o focinho de um pet do tutor com uma foto.
 	// (POST /v1/pets/{petId}/noseprints)
 	RegisterNoseprint(w http.ResponseWriter, r *http.Request, petId PetId)
+	// CheckNoseprint Confere a qualidade de uma foto do focinho, sem gravar nada (RN-85).
+	// (POST /v1/pets/{petId}/noseprints/check)
+	CheckNoseprint(w http.ResponseWriter, r *http.Request, petId PetId)
 	// SetPetPhoto Envia a foto de perfil de um pet do tutor.
 	// (PUT /v1/pets/{petId}/photo)
 	SetPetPhoto(w http.ResponseWriter, r *http.Request, petId PetId)
 	// ListShareLinks Os links ativos da carteirinha de um pet, com as aberturas.
 	// (GET /v1/pets/{petId}/share-links)
 	ListShareLinks(w http.ResponseWriter, r *http.Request, petId PetId)
-	// CreateShareLink Cria um link da carteirinha do pet, válido por 30 dias (RN-40).
+	// CreateShareLink Cria um link da carteirinha do pet, válido por 1, 7 ou 30 dias (RN-40).
 	// (POST /v1/pets/{petId}/share-links)
 	CreateShareLink(w http.ResponseWriter, r *http.Request, petId PetId)
 	// RevokeShareLink Revoga um link da carteirinha. O link para de abrir na hora (RN-41).
@@ -1515,6 +1629,20 @@ func (siw *ServerInterfaceWrapper) ListNotifications(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListNotifications(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MarkAllNotificationsRead operation middleware
+func (siw *ServerInterfaceWrapper) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkAllNotificationsRead(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1944,6 +2072,32 @@ func (siw *ServerInterfaceWrapper) RegisterNoseprint(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r)
 }
 
+// CheckNoseprint operation middleware
+func (siw *ServerInterfaceWrapper) CheckNoseprint(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CheckNoseprint(w, r, petId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SetPetPhoto operation middleware
 func (siw *ServerInterfaceWrapper) SetPetPhoto(w http.ResponseWriter, r *http.Request) {
 
@@ -2075,6 +2229,58 @@ func (siw *ServerInterfaceWrapper) ListReports(w http.ResponseWriter, r *http.Re
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "type", r.URL.Query(), &params.Type, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "latitude" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "latitude", r.URL.Query(), &params.Latitude, runtime.BindQueryParameterOptions{Type: "number", Format: "double"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "latitude"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "latitude", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "longitude" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "longitude", r.URL.Query(), &params.Longitude, runtime.BindQueryParameterOptions{Type: "number", Format: "double"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "longitude"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "longitude", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "radiusKm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "radiusKm", r.URL.Query(), &params.RadiusKm, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "radiusKm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "radiusKm", Err: err})
 		}
 		return
 	}
@@ -2382,6 +2588,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/pets/{petId}", wrapper.UpdatePet)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/pets/{petId}/photo", wrapper.SetPetPhoto)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/pets/{petId}/noseprints", wrapper.RegisterNoseprint)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/pets/{petId}/noseprints/check", wrapper.CheckNoseprint)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/pets/{petId}/noseprint", wrapper.GetNoseprint)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/identifications", wrapper.IdentifyNose)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/identifications/{identificationId}/confirmation", wrapper.ConfirmIdentification)
@@ -2398,6 +2605,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/me/devices", wrapper.RegisterDevice)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/me/devices/removal", wrapper.RemoveDevice)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/notifications", wrapper.ListNotifications)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/notifications/read", wrapper.MarkAllNotificationsRead)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/notifications/{notificationId}/read", wrapper.MarkNotificationRead)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/pets/{petId}/health-events", wrapper.ListHealthEvents)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/pets/{petId}/health-events", wrapper.CreateHealthEvent)
@@ -3346,6 +3554,52 @@ type ListNotificationsdefaultJSONResponse struct {
 }
 
 func (response ListNotificationsdefaultJSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkAllNotificationsReadRequestObject struct {
+}
+
+type MarkAllNotificationsReadResponseObject interface {
+	VisitMarkAllNotificationsReadResponse(w http.ResponseWriter) error
+}
+
+type MarkAllNotificationsRead204Response struct {
+}
+
+func (response MarkAllNotificationsRead204Response) VisitMarkAllNotificationsReadResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type MarkAllNotificationsRead401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response MarkAllNotificationsRead401JSONResponse) VisitMarkAllNotificationsReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkAllNotificationsReaddefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response MarkAllNotificationsReaddefaultJSONResponse) VisitMarkAllNotificationsReadResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -4582,6 +4836,116 @@ func (response RegisterNoseprintdefaultJSONResponse) VisitRegisterNoseprintRespo
 	return err
 }
 
+type CheckNoseprintRequestObject struct {
+	PetId PetId `json:"petId"`
+	Body  *multipart.Reader
+}
+
+type CheckNoseprintResponseObject interface {
+	VisitCheckNoseprintResponse(w http.ResponseWriter) error
+}
+
+type CheckNoseprint200JSONResponse NoseprintCheck
+
+func (response CheckNoseprint200JSONResponse) VisitCheckNoseprintResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckNoseprint400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response CheckNoseprint400JSONResponse) VisitCheckNoseprintResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckNoseprint401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response CheckNoseprint401JSONResponse) VisitCheckNoseprintResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckNoseprint404JSONResponse struct{ PetNotFoundJSONResponse }
+
+func (response CheckNoseprint404JSONResponse) VisitCheckNoseprintResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckNoseprint422JSONResponse struct{ NosePhotoRefusedJSONResponse }
+
+func (response CheckNoseprint422JSONResponse) VisitCheckNoseprintResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckNoseprint503JSONResponse struct{ UnavailableJSONResponse }
+
+func (response CheckNoseprint503JSONResponse) VisitCheckNoseprintResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckNoseprintdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response CheckNoseprintdefaultJSONResponse) VisitCheckNoseprintResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SetPetPhotoRequestObject struct {
 	PetId PetId `json:"petId"`
 	Body  *multipart.Reader
@@ -4747,6 +5111,7 @@ func (response ListShareLinksdefaultJSONResponse) VisitListShareLinksResponse(w 
 
 type CreateShareLinkRequestObject struct {
 	PetId PetId `json:"petId"`
+	Body  *CreateShareLinkJSONRequestBody
 }
 
 type CreateShareLinkResponseObject interface {
@@ -5631,6 +5996,9 @@ type StrictServerInterface interface {
 	// ListNotifications As 50 notificações mais recentes do tutor.
 	// (GET /v1/notifications)
 	ListNotifications(ctx context.Context, request ListNotificationsRequestObject) (ListNotificationsResponseObject, error)
+	// MarkAllNotificationsRead Marca todas as notificações do tutor como lidas (RN-74).
+	// (POST /v1/notifications/read)
+	MarkAllNotificationsRead(ctx context.Context, request MarkAllNotificationsReadRequestObject) (MarkAllNotificationsReadResponseObject, error)
 	// MarkNotificationRead Marca uma notificação do tutor como lida.
 	// (POST /v1/notifications/{notificationId}/read)
 	MarkNotificationRead(ctx context.Context, request MarkNotificationReadRequestObject) (MarkNotificationReadResponseObject, error)
@@ -5676,13 +6044,16 @@ type StrictServerInterface interface {
 	// RegisterNoseprint Cadastra o focinho de um pet do tutor com uma foto.
 	// (POST /v1/pets/{petId}/noseprints)
 	RegisterNoseprint(ctx context.Context, request RegisterNoseprintRequestObject) (RegisterNoseprintResponseObject, error)
+	// CheckNoseprint Confere a qualidade de uma foto do focinho, sem gravar nada (RN-85).
+	// (POST /v1/pets/{petId}/noseprints/check)
+	CheckNoseprint(ctx context.Context, request CheckNoseprintRequestObject) (CheckNoseprintResponseObject, error)
 	// SetPetPhoto Envia a foto de perfil de um pet do tutor.
 	// (PUT /v1/pets/{petId}/photo)
 	SetPetPhoto(ctx context.Context, request SetPetPhotoRequestObject) (SetPetPhotoResponseObject, error)
 	// ListShareLinks Os links ativos da carteirinha de um pet, com as aberturas.
 	// (GET /v1/pets/{petId}/share-links)
 	ListShareLinks(ctx context.Context, request ListShareLinksRequestObject) (ListShareLinksResponseObject, error)
-	// CreateShareLink Cria um link da carteirinha do pet, válido por 30 dias (RN-40).
+	// CreateShareLink Cria um link da carteirinha do pet, válido por 1, 7 ou 30 dias (RN-40).
 	// (POST /v1/pets/{petId}/share-links)
 	CreateShareLink(ctx context.Context, request CreateShareLinkRequestObject) (CreateShareLinkResponseObject, error)
 	// RevokeShareLink Revoga um link da carteirinha. O link para de abrir na hora (RN-41).
@@ -6112,6 +6483,30 @@ func (sh *strictHandler) ListNotifications(w http.ResponseWriter, r *http.Reques
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListNotificationsResponseObject); ok {
 		if err := validResponse.VisitListNotificationsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// MarkAllNotificationsRead operation middleware
+func (sh *strictHandler) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
+	var request MarkAllNotificationsReadRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.MarkAllNotificationsRead(ctx, request.(MarkAllNotificationsReadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MarkAllNotificationsRead")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(MarkAllNotificationsReadResponseObject); ok {
+		if err := validResponse.VisitMarkAllNotificationsReadResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -6553,6 +6948,39 @@ func (sh *strictHandler) RegisterNoseprint(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// CheckNoseprint operation middleware
+func (sh *strictHandler) CheckNoseprint(w http.ResponseWriter, r *http.Request, petId PetId) {
+	var request CheckNoseprintRequestObject
+
+	request.PetId = petId
+
+	if reader, err := r.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CheckNoseprint(ctx, request.(CheckNoseprintRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CheckNoseprint")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CheckNoseprintResponseObject); ok {
+		if err := validResponse.VisitCheckNoseprintResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // SetPetPhoto operation middleware
 func (sh *strictHandler) SetPetPhoto(w http.ResponseWriter, r *http.Request, petId PetId) {
 	var request SetPetPhotoRequestObject
@@ -6617,6 +7045,16 @@ func (sh *strictHandler) CreateShareLink(w http.ResponseWriter, r *http.Request,
 	var request CreateShareLinkRequestObject
 
 	request.PetId = petId
+
+	var body CreateShareLinkJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		if !errors.Is(err, io.EOF) {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+			return
+		}
+	} else {
+		request.Body = &body
+	}
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.CreateShareLink(ctx, request.(CreateShareLinkRequestObject))

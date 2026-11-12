@@ -138,6 +138,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/pets/{petId}/noseprints/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confere a qualidade de uma foto do focinho, sem gravar nada (RN-85).
+         * @description Usa a mesma checagem do cadastro. O app confere cada foto antes de cadastrar o focinho.
+         *     A foto não é gravada e não gera vetor guardado.
+         */
+        post: operations["checkNoseprint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/pets/{petId}/noseprint": {
         parameters: {
             query?: never;
@@ -232,7 +256,7 @@ export interface paths {
         };
         /**
          * O mural, as ocorrências abertas dos tipos perdido e achado.
-         * @description Operação pública. 20 ocorrências por página, da mais nova para a mais antiga.
+         * @description Operação pública. 20 ocorrências por página, da mais nova para a mais antiga. Filtra pelo tipo e pelo raio em volta de um ponto (RN-24).
          */
         get: operations["listReports"];
         put?: never;
@@ -464,6 +488,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marca todas as notificações do tutor como lidas (RN-74). */
+        post: operations["markAllNotificationsRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/notifications/{notificationId}/read": {
         parameters: {
             query?: never;
@@ -612,7 +653,7 @@ export interface paths {
         get: operations["listShareLinks"];
         put?: never;
         /**
-         * Cria um link da carteirinha do pet, válido por 30 dias (RN-40).
+         * Cria um link da carteirinha do pet, válido por 1, 7 ou 30 dias (RN-40).
          * @description O token só vem nesta resposta. O banco guarda só o SHA-256 dele (RN-39).
          */
         post: operations["createShareLink"];
@@ -747,6 +788,14 @@ export interface components {
             modelVersion: string;
             /** Format: date-time */
             capturedAt: string;
+        };
+        /** @description O resultado da conferência de uma foto do focinho. */
+        NoseprintCheck: {
+            /**
+             * Format: double
+             * @description Nitidez da foto, de 0 a 1.
+             */
+            quality: number;
         };
         /** @description Resultado da busca de um focinho no acervo. */
         Identification: {
@@ -1129,13 +1178,29 @@ export interface components {
          *     Uma versão nova dos termos troca o valor desta lista.
          * @enum {string}
          */
-        TermsVersion: "2026-11-10";
+        TermsVersion: "2026-11-11";
         Health: {
             /** @enum {string} */
             status: "ok";
         };
+        /** @description As opções do link. Sem corpo, o link vale 30 dias e não mostra os exames (RN-40). */
+        ShareLinkInput: {
+            /**
+             * @description Dias de validade do link.
+             * @default 30
+             * @enum {integer}
+             */
+            validDays: 1 | 7 | 30;
+            /**
+             * @description A carteirinha mostra os exames do pet, sem os anexos (RN-83).
+             * @default false
+             */
+            includeExams: boolean;
+        };
         /** @description Um link da carteirinha, sem o token. */
         ShareLink: {
+            /** @description A carteirinha do link mostra os exames. */
+            includeExams: boolean;
             /** Format: uuid */
             id: string;
             /** Format: date-time */
@@ -1160,6 +1225,15 @@ export interface components {
             vaccines: components["schemas"]["HealthCardVaccine"][];
             /** @description As medicações antipulgas e vermífugo, da mais nova para a mais antiga. */
             parasiteControl: components["schemas"]["HealthCardMedication"][];
+            /** @description Os exames, do mais novo para o mais antigo. Só vem quando o link inclui os exames. */
+            exams?: components["schemas"]["HealthCardExam"][];
+        };
+        HealthCardExam: {
+            name: string;
+            /** Format: date */
+            date: string;
+            lab?: string;
+            result?: string;
         };
         HealthCardPet: {
             name: string;
@@ -1704,6 +1778,45 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    checkNoseprint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description Foto do focinho. Imagem JPEG, PNG ou WebP, com no máximo 8 MB.
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description A foto passou na checagem. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoseprintCheck"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["PetNotFound"];
+            422: components["responses"]["NosePhotoRefused"];
+            503: components["responses"]["Unavailable"];
+            default: components["responses"]["Error"];
+        };
+    };
     getNoseprint: {
         parameters: {
             query?: never;
@@ -1869,6 +1982,14 @@ export interface operations {
             query?: {
                 /** @description Número da página, a partir de 1. */
                 page?: number;
+                /** @description Só as ocorrências deste tipo. As contagens não mudam com o tipo. */
+                type?: components["schemas"]["ReportType"];
+                /** @description Latitude do centro do raio. Vem com a longitude e o raio (RN-61). */
+                latitude?: number;
+                /** @description Longitude do centro do raio. Vem com a latitude e o raio (RN-61). */
+                longitude?: number;
+                /** @description Raio em quilômetros em volta do ponto. As ocorrências e as contagens ficam só dentro do raio. */
+                radiusKm?: 1 | 3 | 5 | 10;
             };
             header?: never;
             path?: never;
@@ -2218,6 +2339,26 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    markAllNotificationsRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description As notificações do tutor estão lidas. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            default: components["responses"]["Error"];
+        };
+    };
     markNotificationRead: {
         parameters: {
             query?: never;
@@ -2537,7 +2678,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ShareLinkInput"];
+            };
+        };
         responses: {
             /** @description O link criado, com o token. */
             201: {

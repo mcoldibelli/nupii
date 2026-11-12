@@ -11,6 +11,7 @@ import { codeFromHash } from "../../src/reports/foundLink";
 import { REPORT_LIMITS, reportFailureMessage, reportTitle, toDetails } from "../../src/reports/form";
 import { speciesLabels } from "../../src/pets/labels";
 import { styles } from "../../src/screens/styles";
+import { colors, fonts } from "../../src/ui/theme";
 
 /** The markers of the detail: the point of the report and the sightings. */
 function markersOf(report: Report): MapMarker[] {
@@ -192,13 +193,13 @@ export default function ReportDetail() {
 }
 
 const local = StyleSheet.create({
-  content: { alignSelf: "center", backgroundColor: "#fff", flexGrow: 1, maxWidth: 720, padding: 16, width: "100%" },
+  content: { alignSelf: "center", backgroundColor: colors.background, flexGrow: 1, maxWidth: 720, padding: 16, width: "100%" },
   photo: { alignSelf: "center", borderRadius: 12, height: 200, marginBottom: 12, width: 200 },
-  line: { fontSize: 15, marginBottom: 4 },
-  tip: { color: "#1b6e2d", fontSize: 14, marginVertical: 8 },
+  line: { fontFamily: fonts.body, fontSize: 15, marginBottom: 4 },
+  tip: { fontFamily: fonts.body, color: colors.success, fontSize: 14, marginVertical: 8 },
   map: { height: 260, marginVertical: 12, width: "100%" },
-  section: { fontSize: 18, fontWeight: "600", marginTop: 16 },
-  sighting: { borderBottomColor: "#eee", borderBottomWidth: 1, paddingVertical: 8 },
+  section: { fontSize: 18, fontFamily: fonts.titleBold, marginTop: 16 },
+  sighting: { borderBottomColor: colors.border, borderBottomWidth: 1, paddingVertical: 8 },
   message: { minHeight: 80, textAlignVertical: "top" },
-  success: { color: "#1b6e2d", fontSize: 15, marginTop: 12 },
+  success: { fontFamily: fonts.body, color: colors.success, fontSize: 15, marginTop: 12 },
 });

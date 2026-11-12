@@ -12,8 +12,20 @@ export type FoundReportCreated = components["schemas"]["FoundReportCreated"];
 export type ReportDetails = { place?: string; description?: string };
 
 /** Calls GET /v1/reports, a public operation: one page of the board, from 1. */
-export function listBoard(baseUrl: string, page: number, fetchFn: typeof fetch = fetch): Promise<ApiResult<ReportPage>> {
-  return request<ReportPage>(fetchFn, `${baseUrl}/v1/reports?page=${page}`, null, { method: "GET" });
+/** The filter of the board (RN-24): the type, and the radius around a point. */
+export type BoardFilter = { type?: Report["type"]; center?: { latitude: number; longitude: number }; radiusKm?: 1 | 3 | 5 | 10 };
+
+export function listBoard(baseUrl: string, page: number, filter: BoardFilter = {}, fetchFn: typeof fetch = fetch): Promise<ApiResult<ReportPage>> {
+  const query = new URLSearchParams({ page: String(page) });
+  if (filter.type) {
+    query.set("type", filter.type);
+  }
+  if (filter.center && filter.radiusKm) {
+    query.set("latitude", String(filter.center.latitude));
+    query.set("longitude", String(filter.center.longitude));
+    query.set("radiusKm", String(filter.radiusKm));
+  }
+  return request<ReportPage>(fetchFn, `${baseUrl}/v1/reports?${query.toString()}`, null, { method: "GET" });
 }
 
 /** Calls GET /v1/reports/{reportId}, a public operation. */

@@ -7,6 +7,11 @@ export function validateEmail(email: string): string | null {
   return trimmed === "" || !trimmed.includes("@") ? "Informe um e-mail válido." : null;
 }
 
+/** RN-44: tells if the password has at least 8 characters, for the rule on the sign-up screen. */
+export function passwordLongEnough(password: string): boolean {
+  return password.length >= MIN_PASSWORD_LENGTH;
+}
+
 /** RN-44: returns the message of a password with less than 8 characters, or null. */
 function validatePassword(password: string): string | null {
   return password.length < MIN_PASSWORD_LENGTH ? `A senha precisa ter no mínimo ${MIN_PASSWORD_LENGTH} caracteres.` : null;

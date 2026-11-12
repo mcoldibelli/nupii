@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { Image, Platform, ScrollView, StyleSheet, Text } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text } from "react-native";
 
 import { openShareLink, type HealthCard } from "../src/api/cards";
-import { cardFailure, medicationLine, petLines, vaccineLine } from "../src/cards/card";
+import { cardFailure } from "../src/cards/card";
+import { HealthCardView } from "../src/cards/HealthCardView";
 import { tokenFromHash } from "../src/cards/link";
 import { apiUrl } from "../src/config";
 import { styles } from "../src/screens/styles";
+import { colors, fonts } from "../src/ui/theme";
 
 /** The public page of the health card, opened by the link (RF-31). It needs no account. */
 export default function Card() {
@@ -36,37 +38,15 @@ export default function Card() {
   }
   return (
     <ScrollView contentContainerStyle={local.screen}>
-      {card.pet.photoUrl !== undefined && <Image source={{ uri: card.pet.photoUrl }} style={local.photo} accessibilityLabel={`Foto de ${card.pet.name}`} />}
-      <Text testID="card-name" style={local.heading}>
-        {card.pet.name}
+      <Text style={local.heading} accessibilityRole="header">
+        Carteirinha
       </Text>
-      {petLines(card.pet).map((line) => (
-        <Text key={line} style={local.line}>
-          {line}
-        </Text>
-      ))}
-      <Text style={local.subheading}>Vacinas</Text>
-      {card.vaccines.length === 0 && <Text style={local.line}>Nenhuma vacina registrada.</Text>}
-      {card.vaccines.map((vaccine, index) => (
-        <Text key={index} testID="card-vaccine" style={local.line}>
-          {vaccineLine(vaccine)}
-        </Text>
-      ))}
-      <Text style={local.subheading}>Antipulgas e vermífugos</Text>
-      {card.parasiteControl.length === 0 && <Text style={local.line}>Nenhum registro.</Text>}
-      {card.parasiteControl.map((medication, index) => (
-        <Text key={index} style={local.line}>
-          {medicationLine(medication)}
-        </Text>
-      ))}
+      <HealthCardView card={card} />
     </ScrollView>
   );
 }
 
 const local = StyleSheet.create({
-  screen: { backgroundColor: "#fff", flexGrow: 1, gap: 6, padding: 16 },
-  photo: { alignSelf: "center", borderRadius: 60, height: 120, width: 120 },
-  heading: { fontSize: 22, fontWeight: "600", textAlign: "center" },
-  subheading: { fontSize: 16, fontWeight: "600", marginTop: 12 },
-  line: { color: "#333", fontSize: 15 },
+  screen: { backgroundColor: colors.background, flexGrow: 1, gap: 16, padding: 20, width: "100%", maxWidth: 560, alignSelf: "center" },
+  heading: { fontSize: 30, fontFamily: fonts.title, letterSpacing: -0.8, color: colors.ink },
 });

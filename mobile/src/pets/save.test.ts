@@ -21,7 +21,7 @@ describe("savePet", () => {
   it("creates the pet when there is no pet id", async () => {
     const fetchFn = fetchThatAnswers({ status: 201, body: pet });
 
-    expect(await savePet({ baseUrl, idToken, fetchFn }, null, input, null)).toEqual({ kind: "saved" });
+    expect(await savePet({ baseUrl, idToken, fetchFn }, null, input, null)).toEqual({ kind: "saved", petId });
     expect(fetchFn).toHaveBeenCalledTimes(1);
     expect(fetchFn.mock.calls[0][0]).toBe("http://api.test/v1/pets");
     expect(fetchFn.mock.calls[0][1].method).toBe("POST");
@@ -30,7 +30,7 @@ describe("savePet", () => {
   it("changes the pet and then sends the photo", async () => {
     const fetchFn = fetchThatAnswers({ status: 200, body: pet }, { status: 200, body: pet });
 
-    expect(await savePet({ baseUrl, idToken, fetchFn }, petId, input, photo)).toEqual({ kind: "saved" });
+    expect(await savePet({ baseUrl, idToken, fetchFn }, petId, input, photo)).toEqual({ kind: "saved", petId });
     expect(fetchFn.mock.calls.map((call) => [call[1].method, call[0]])).toEqual([
       ["PUT", `http://api.test/v1/pets/${petId}`],
       ["PUT", `http://api.test/v1/pets/${petId}/photo`],

@@ -132,6 +132,47 @@ func TestShareLinkLifecycle(t *testing.T) {
 	}
 }
 
+// RN-40, RN-83: o tutor escolhe a validade do link (1, 7 ou 30 dias) e se a
+// carteirinha mostra os exames.
+func TestShareLinkOptions(t *testing.T) {
+	testAPI := petsAPI(t)
+	pet := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
+	testAPI.createEvent("token-ana", pet, `{"type": "exam", "date": "`+dateText(-2)+`", "name": "Hemograma", "lab": "Lab Vida", "result": "Normal"}`)
+	path := "/v1/pets/" + pet.Id.String() + "/share-links"
+
+	rec := testAPI.call(http.MethodPost, path, "token-ana", `{"validDays": 1, "includeExams": true}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("POST share-links with options: status = %d, body %s", rec.Code, rec.Body)
+	}
+	link := decode[api.CreatedShareLink](t, rec)
+	if want := time.Now().Add(24 * time.Hour); link.ExpiresAt.Sub(want).Abs() > time.Minute {
+		t.Errorf("expiresAt = %s, want 1 day from now", link.ExpiresAt)
+	}
+	if !link.IncludeExams {
+		t.Error("includeExams = false, want true")
+	}
+	status, body := testAPI.openCard(link.Token)
+	var card api.HealthCard
+	if err := json.Unmarshal(body, &card); status != http.StatusOK || err != nil {
+		t.Fatalf("open the card: status = %d, body %s (%v)", status, body, err)
+	}
+	if card.Exams == nil || len(*card.Exams) != 1 || (*card.Exams)[0].Name != "Hemograma" ||
+		(*card.Exams)[0].Result == nil || *(*card.Exams)[0].Result != "Normal" {
+		t.Errorf("exams = %+v, want Hemograma with its result", card.Exams)
+	}
+
+	// A link without options shows no exams.
+	plain := decode[api.CreatedShareLink](t, testAPI.call(http.MethodPost, path, "token-ana", ""))
+	if _, body := testAPI.openCard(plain.Token); strings.Contains(string(body), "Hemograma") {
+		t.Errorf("the card of a link without exams has the exam: %s", body)
+	}
+
+	// Another validity is refused.
+	if rec := testAPI.call(http.MethodPost, path, "token-ana", `{"validDays": 3}`); rec.Code != http.StatusBadRequest {
+		t.Errorf("POST share-links with validDays 3: status = %d, want 400", rec.Code)
+	}
+}
+
 // RN-41: um link desconhecido, vencido ou de um pet excluído devolve 404.
 func TestShareLinkNotFound(t *testing.T) {
 	testAPI := petsAPI(t)

@@ -5,7 +5,9 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math"
+	"math/rand/v2"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -395,6 +397,54 @@ func TestBoardPages(t *testing.T) {
 	}
 	if rec := testAPI.publicJSON(http.MethodGet, "/v1/reports?page=0", ""); rec.Code != http.StatusBadRequest {
 		t.Errorf("page 0: status = %d, want 400", rec.Code)
+	}
+}
+
+// RN-24: o mural filtra pelo tipo e pelo raio em volta de um ponto.
+func TestBoardFilters(t *testing.T) {
+	testAPI := petsAPI(t)
+	// The tests share the database, so each run uses a new point far from
+	// the points of the other tests.
+	lat, lng := -40-rand.Float64()*10, -100-rand.Float64()*10
+	point := func(dLat float64) map[string]string {
+		return map[string]string{"latitude": fmt.Sprint(lat + dLat), "longitude": fmt.Sprint(lng)}
+	}
+	near := testAPI.reportFound(point(-0.01), nosePhoto())
+	far := testAPI.reportFound(point(-0.1), nosePhoto())
+	if near.Code != http.StatusCreated || far.Code != http.StatusCreated {
+		t.Fatalf("POST /v1/reports/found: status = %d and %d", near.Code, far.Code)
+	}
+	nearID := decode[api.FoundReportCreated](t, near).Report.Id.String()
+	farID := decode[api.FoundReportCreated](t, far).Report.Id.String()
+	around := fmt.Sprintf("/v1/reports?latitude=%v&longitude=%v", lat, lng)
+
+	// About 1.1 km and 11 km from the point: a radius of 3 km keeps only the near one.
+	rec := testAPI.publicJSON(http.MethodGet, around+"&radiusKm=3", "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("board with a radius: status = %d, body %s", rec.Code, rec.Body)
+	}
+	page := decode[api.ReportPage](t, rec)
+	if !onBoard(page, nearID) || onBoard(page, farID) || page.OpenFound != 1 || page.OpenLost != 0 {
+		t.Errorf("board in 3 km = %d reports, %d found, %d lost; want only the near report",
+			len(page.Reports), page.OpenFound, page.OpenLost)
+	}
+	rec = testAPI.publicJSON(http.MethodGet, around+"&radiusKm=10&type=lost", "")
+	if page := decode[api.ReportPage](t, rec); len(page.Reports) != 0 {
+		t.Errorf("lost reports in 10 km = %d, want 0", len(page.Reports))
+	}
+	if page := testAPI.board("1"); !onBoard(page, nearID) {
+		t.Error("the board without filters does not have the new report")
+	}
+	// The point and the radius come together.
+	queries := []string{
+		"latitude=1&longitude=1", "radiusKm=3", "latitude=1&radiusKm=3",
+		"latitude=1&longitude=1&radiusKm=7", "latitude=91&longitude=1&radiusKm=3", "type=sighting",
+	}
+	for _, query := range queries {
+		rec := testAPI.publicJSON(http.MethodGet, "/v1/reports?"+query, "")
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("GET /v1/reports?%s: status = %d, want 400", query, rec.Code)
+		}
 	}
 }
 

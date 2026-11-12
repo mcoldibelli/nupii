@@ -25,6 +25,7 @@
 | RF-06 | O tutor vê e altera o próprio perfil: o nome. O e-mail aparece, mas não muda ([ADR 0028](adr/0028-exclusao-da-conta-e-limpeza.md)). | 9 | estável |
 | RF-07 | O tutor troca a senha. | 9 | estável |
 | RF-08 | O tutor exclui a própria conta. O app pede a senha de novo antes. | 9 | estável |
+| RF-33 | Na primeira abertura, o app mostra uma apresentação em quatro passos, com os caminhos para entrar, criar conta, achei um cachorro e o mural ([ADR 0030](adr/0030-visual-do-app.md)). | 9c | estável |
 
 ### Pets
 
@@ -71,6 +72,7 @@
 | RF-27 | O tutor cria, lista, altera e apaga os eventos de saúde de um pet: vacina, consulta, medicação, exame e anotação. | 7 | estável |
 | RF-28 | O tutor envia, lista e apaga os anexos de um evento de saúde. | 7 | estável |
 | RF-29 | O tutor vê os próximos cuidados de vacina e de medicação dos pets dele. O lembrete por push entra na fatia 10 ([ADR 0026](adr/0026-eventos-de-saude.md)). | 7 e 10 | estável |
+| RF-34 | O início mostra um pet por vez, escolhido num seletor: a foto, o próximo cuidado dele e o peso ao longo do tempo, a partir dos eventos de saúde com peso (RN-51). O seletor mostra se o focinho de cada cachorro está cadastrado. | 9c | estável |
 
 ### Carteirinha
 
@@ -91,7 +93,7 @@
 
 | ID | Regra | RF | Estado |
 |---|---|---|---|
-| RN-01 | O sistema guarda a data e a versão dos termos de uso que o tutor aceitou. O tutor só é registrado com o aceite da versão vigente dos termos. | RF-01 | estável |
+| RN-01 | O sistema guarda a data e a versão dos termos de uso que o tutor aceitou. O tutor só é registrado com o aceite da versão vigente dos termos. O texto fica no app e na página pública `/terms`. | RF-01 | estável |
 | RN-02 | Um e-mail identifica uma conta só. O provedor de identidade aplica a regra. Para o login com Google, ver a seção "Em aberto". | RF-01, RF-03 | estável |
 | RN-03 | Excluir a conta anonimiza o tutor (nome "Conta excluída", e-mail sem dono, data da exclusão) e apaga o usuário no provedor de identidade. Um usuário que já não existe no provedor conta como apagado. | RF-08 | estável |
 | RN-04 | Uma conta excluída recebe 401, mesmo com um token ainda válido, também no registro. Os pets dela saem da identificação e do mural. | RF-08 | estável |
@@ -133,6 +135,7 @@
 | RN-16 | A foto da consulta só é gravada quando há confirmação. O tutor do pet confirmado recebe uma notificação. A notificação vem da tarefa `notify_found` (RN-73). | RF-13 | estável |
 | RN-59 | A foto do focinho, no cadastro e na identificação, é uma imagem JPEG, PNG ou WebP de até 8 MB (RN-17). | RF-11, RF-12 | estável |
 | RN-60 | O cadastro que a API devolve para um pet é o principal (RN-09). | RF-11 | estável |
+| RN-85 | O app confere cada foto do focinho antes do cadastro, com a mesma inferência do cadastro (RN-07, RN-21, RN-59). A conferência devolve só a qualidade e não grava a foto nem o vetor. O app cadastra 2 fotos do focinho, e só as fotos que passaram na conferência. | RF-11 | estável |
 | RN-61 | A identificação aceita a latitude e a longitude de quem encontrou. As duas são opcionais e vêm juntas. A latitude vai de -90 a 90 e a longitude vai de -180 a 180. Um valor que não é um número é recusado. | RF-12 | estável |
 | RN-62 | O resultado da identificação não tem dado do tutor. Cada candidato tem o nome e a foto de perfil do pet, a similaridade e a marca de correspondência forte. | RF-12 | estável |
 | RN-63 | A confirmação tem o candidato, o nome (obrigatório, até 120 caracteres), o telefone (obrigatório, de 8 a 30 caracteres: dígitos, espaço, `+`, `-`, `(` e `)`) e a mensagem (opcional, até 500 caracteres). Os espaços do começo e do fim são removidos. | RF-13 | estável |
@@ -171,7 +174,7 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 
 | ID | Regra | RF | Estado |
 |---|---|---|---|
-| RN-24 | O mural mostra 20 ocorrências abertas por página, da mais nova para a mais antiga, com as contagens de perdidos e de achados abertos. Um desaparecimento de um pet excluído sai do mural. | RF-16 | estável |
+| RN-24 | O mural mostra 20 ocorrências abertas por página, da mais nova para a mais antiga, com as contagens de perdidos e de achados abertos. Um desaparecimento de um pet excluído sai do mural. O mural filtra pelo tipo (perdido ou achado) e pelo raio de 1, 3, 5 ou 10 km em volta de um ponto (RN-61). O ponto e o raio vêm juntos. O raio vale também para as contagens; o tipo não muda as contagens. | RF-16 | estável |
 | RN-25 | A ficha de uma ocorrência do tipo perdido mostra os avistamentos dela, do mais antigo para o mais novo. | RF-17 | estável |
 | RN-26 | Só o tutor do pet registra o desaparecimento dele. | RF-18 | estável |
 | RN-27 | Um achado não pede conta e não pede pet cadastrado. A foto do achado é a foto do focinho usada na identificação: uma imagem JPEG, PNG ou WebP de até 8 MB (RN-59). A página pública envia a foto da identificação. A API não liga o achado à identificação. | RF-19 | estável |
@@ -195,7 +198,7 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 | RN-35 | A lista mostra as 50 notificações mais recentes. A notificação existe na lista mesmo quando o push não sai. | RF-25 | estável |
 | RN-36 | O push só é enviado com a credencial configurada. Sem a credencial, a notificação fica como não enviada. Um token que o Cloud Messaging diz que não está mais registrado é desativado. | RF-26 | estável |
 | RN-73 | Um avistamento cria uma notificação para o tutor do pet. Uma confirmação de encontro também (RN-16). | RF-20, RF-13, RF-25 | estável |
-| RN-74 | Uma notificação de outro tutor não existe para quem chama. Marcar de novo como lida não muda a data. | RF-25 | estável |
+| RN-74 | Uma notificação de outro tutor não existe para quem chama. Marcar de novo como lida não muda a data. O tutor marca todas as notificações dele como lidas de uma vez. | RF-25 | estável |
 | RN-75 | A localização do tutor tem latitude e longitude de um ponto da Terra (RN-61). | RF-22 | estável |
 
 ### Saúde
@@ -217,9 +220,9 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 | ID | Regra | RF | Estado |
 |---|---|---|---|
 | RN-39 | O link usa um token de 256 bits. Só o SHA-256 do token vai para o banco. O token aparece só na resposta da criação. | RF-30 | estável |
-| RN-40 | O link vale 30 dias. O tutor revoga o link a qualquer hora. O link conta as aberturas, e o tutor vê os links ativos com as aberturas. | RF-30 | estável |
+| RN-40 | O link vale 1, 7 ou 30 dias, à escolha do tutor. Sem escolha, vale 30 dias. O tutor revoga o link a qualquer hora. O link conta as aberturas, e o tutor vê os links ativos com as aberturas. | RF-30 | estável |
 | RN-41 | Um link desconhecido, revogado, vencido ou de um pet excluído devolve 404. | RF-31 | estável |
-| RN-83 | A carteirinha mostra o pet (nome, espécie, raça, sexo, data de nascimento, peso, castração e foto), o veterinário do pet (nome, clínica e telefone), as vacinas (nome, data, próxima dose, fabricante, lote, dose e veterinário) e as medicações antipulgas e vermífugo (nome, categoria, data e intervalo), da mais nova para a mais antiga. Ela não mostra dados do tutor, IDs internos nem anexos. A URL temporária da foto tem a chave do arquivo no armazenamento. | RF-31 | estável |
+| RN-83 | A carteirinha mostra o pet (nome, espécie, raça, sexo, data de nascimento, peso, castração e foto), o veterinário do pet (nome, clínica e telefone), as vacinas (nome, data, próxima dose, fabricante, lote, dose e veterinário) e as medicações antipulgas e vermífugo (nome, categoria, data e intervalo), da mais nova para a mais antiga. Quando o tutor inclui os exames no link, ela mostra também os exames (nome, data, laboratório e resultado). Ela não mostra dados do tutor, IDs internos nem anexos. A URL temporária da foto tem a chave do arquivo no armazenamento. | RF-31 | estável |
 
 ### Privacidade e endpoints públicos
 
@@ -235,7 +238,7 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 | RNF-01 | Um alerta de desaparecimento não se perde quando o processo para. | A tarefa é gravada na mesma transação da ocorrência ([ADR 0003](adr/0003-estado-postgres-fila-no-banco.md)). |
 | RNF-02 | Uma tarefa em segundo plano que falha é tentada de novo, com espera crescente: 10 s, 20 s, 40 s e 80 s. Depois de 5 tentativas, a tarefa fica marcada como falha. Toda tarefa é segura para executar duas vezes. | Fila de tarefas ([ADR 0003](adr/0003-estado-postgres-fila-no-banco.md)). |
 | RNF-03 | A API não guarda senha. O token da carteirinha fica no banco só como hash. A política de privacidade diz onde ficam o e-mail e a senha do tutor. | [ADR 0008](adr/0008-autenticacao-firebase.md), RN-39. |
-| RNF-04 | O visitante usa os fluxos públicos sem conta e sem instalar nada. | Web pública ([ADR 0006](adr/0006-mobile-expo-web-publica.md)). |
+| RNF-04 | O visitante usa os fluxos públicos sem conta e sem instalar nada. No app, o mural, a ocorrência, o achei um cachorro e os termos também abrem sem conta. | Web pública ([ADR 0006](adr/0006-mobile-expo-web-publica.md)). |
 | RNF-05 | O app funciona em Android e iOS. A web pública funciona em um navegador de celular. | [ADR 0006](adr/0006-mobile-expo-web-publica.md). |
 | RNF-06 | Um processo não sobe com configuração inválida ou com um arquivo de pesos diferente do esperado. | Validação na subida, RN-22. |
 | RNF-07 | Toda requisição tem um identificador que aparece em todas as linhas de log dela. | `log/slog` com saída JSON ([arquitetura.md](arquitetura.md)). |

@@ -4,17 +4,19 @@ import type { components } from "./schema";
 export type ShareLink = components["schemas"]["ShareLink"];
 export type CreatedShareLink = components["schemas"]["CreatedShareLink"];
 export type HealthCard = components["schemas"]["HealthCard"];
+export type ShareLinkInput = components["schemas"]["ShareLinkInput"];
 
 const links = (baseUrl: string, petId: string) => `${baseUrl}/v1/pets/${petId}/share-links`;
 
-/** Calls POST /v1/pets/{petId}/share-links. Only this answer has the token (RN-39). */
+/** Calls POST /v1/pets/{petId}/share-links with the validity and the exams (RN-40). Only this answer has the token (RN-39). */
 export function createShareLink(
   baseUrl: string,
   idToken: string,
   petId: string,
+  options: ShareLinkInput,
   fetchFn: typeof fetch = fetch,
 ): Promise<ApiResult<CreatedShareLink>> {
-  return request<CreatedShareLink>(fetchFn, links(baseUrl, petId), idToken, { method: "POST" });
+  return request<CreatedShareLink>(fetchFn, links(baseUrl, petId), idToken, json("POST", options));
 }
 
 /** Calls GET /v1/pets/{petId}/share-links: the active links, with the opens (RN-40). */

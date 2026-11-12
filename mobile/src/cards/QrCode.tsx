@@ -2,7 +2,7 @@ import { View } from "react-native";
 
 import { qrRuns } from "./qr";
 
-/** Draws the QR code of text, with a light margin of 2 modules (RF-30). */
+/** Draws the QR code of text, with a light margin of 2 modules (RF-30). Pure black and white on purpose: a reader needs the most contrast. */
 export function QrCode({ text, module = 6 }: { text: string; module?: number }) {
   const rows = qrRuns(text);
   return (

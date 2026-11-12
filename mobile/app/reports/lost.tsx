@@ -10,6 +10,7 @@ import { MapView } from "../../src/map/MapView";
 import { REPORT_LIMITS, reportFailureMessage, toDetails, toOccurredAt } from "../../src/reports/form";
 import { styles } from "../../src/screens/styles";
 import { useSession } from "../../src/session/SessionContext";
+import { colors, fonts } from "../../src/ui/theme";
 
 /** The owner registers that a pet is lost (RF-18), with the point on the map. */
 export default function NewLostReport() {
@@ -106,8 +107,8 @@ export default function NewLostReport() {
 }
 
 const local = StyleSheet.create({
-  content: { backgroundColor: "#fff", flexGrow: 1, padding: 16 },
+  content: { backgroundColor: colors.background, flexGrow: 1, padding: 16 },
   map: { height: 300, marginVertical: 8, width: "100%" },
-  point: { color: "#555", fontSize: 14, marginBottom: 12 },
+  point: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 14, marginBottom: 12 },
   message: { minHeight: 80, textAlignVertical: "top" },
 });

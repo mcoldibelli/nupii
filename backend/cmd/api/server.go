@@ -53,6 +53,7 @@ func bodyLimit(r *http.Request) int64 {
 	case "POST /v1/pets/{petId}/health-events/{eventId}/attachments":
 		return _maxAttachmentBodyBytes
 	case "POST /v1/pets/{petId}/noseprints",
+		"POST /v1/pets/{petId}/noseprints/check",
 		"POST /v1/reports/found",
 		"POST /v1/identifications",
 		"POST /v1/identifications/{identificationId}/confirmation":

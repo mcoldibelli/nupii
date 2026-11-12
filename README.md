@@ -112,6 +112,7 @@ O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app n
 | [0026](docs/adr/0026-eventos-de-saude.md) | Eventos de saúde em uma tabela, e próximos cuidados calculados pela API | aceito |
 | [0027](docs/adr/0027-link-da-carteirinha.md) | Link da carteirinha com validade de 30 dias, token no fragmento e QR code no app | aceito |
 | [0028](docs/adr/0028-exclusao-da-conta-e-limpeza.md) | Exclusão da conta com um apagador por módulo, e limpeza diária às 3h de Brasília | aceito |
+| [0030](docs/adr/0030-visual-do-app.md) | Visual do app a partir do canvas de design, com Bricolage Grotesque, Figtree e ícones em SVG | aceito |
 
 ## Regras do projeto
 

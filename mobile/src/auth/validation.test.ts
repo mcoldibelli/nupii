@@ -1,4 +1,4 @@
-import { validateCredentials, validateEmail, validateNewPassword, validateProfile } from "./validation";
+import { passwordLongEnough, validateCredentials, validateEmail, validateNewPassword, validateProfile } from "./validation";
 
 describe("validateCredentials", () => {
   it("accepts an e-mail and a password with 8 characters", () => {
@@ -49,5 +49,12 @@ describe("validateNewPassword", () => {
     expect(validateNewPassword(current, "n".repeat(8))).toBeNull();
     expect(validateNewPassword("", "n".repeat(8))).toBe("Informe a senha atual.");
     expect(validateNewPassword(current, "n".repeat(7))).toBe("A senha precisa ter no mínimo 8 caracteres.");
+  });
+});
+
+describe("passwordLongEnough", () => {
+  it("RN-44: lights the rule of the sign-up screen at 8 characters", () => {
+    expect(passwordLongEnough("c".repeat(7))).toBe(false);
+    expect(passwordLongEnough("c".repeat(8))).toBe(true);
   });
 });
