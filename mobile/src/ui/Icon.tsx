@@ -114,6 +114,20 @@ const icons = {
     </>
   ),
   close: <Path d="M6 6l12 12M18 6 6 18" />,
+  sex: (
+    <>
+      <Circle cx="10" cy="14" r="5" />
+      <Path d="M14 10l6-6M15 4h5v5" />
+    </>
+  ),
+  weight: (
+    <>
+      <Path d="M6 8h12l2 12H4z" />
+      <Path d="M9 8a3 3 0 0 1 6 0" />
+    </>
+  ),
+  size: <Path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
+  more: <Path d="M12 5h.01M12 12h.01M12 19h.01" strokeWidth={3.6} />,
   refresh: (
     <>
       <Path d="M4 12a8 8 0 1 0 2.4-5.7" />
@@ -282,6 +296,32 @@ export function NoseExample({ good, size }: { good: boolean; size: number }) {
         <Circle cx="144" cy="98" r="7" fill="#1E1B18" />
         <Path d="M105 121 C105 113 135 113 135 121 C135 129 127 134 120 134 C113 134 105 129 105 121 Z" fill="#1E1B18" />
         <Path d="M44 260 C44 188 82 156 120 156 C158 156 196 188 196 260 Z" fill="#D88B3F" />
+      </G>
+    </Svg>
+  );
+}
+
+const paw = (
+  <>
+    <Ellipse cx="0" cy="8" rx="9" ry="7.5" />
+    <Ellipse cx="-9" cy="-4" rx="3.6" ry="4.6" />
+    <Ellipse cx="-3" cy="-10" rx="3.6" ry="4.6" />
+    <Ellipse cx="4" cy="-10" rx="3.6" ry="4.6" />
+    <Ellipse cx="10" cy="-4" rx="3.6" ry="4.6" />
+  </>
+);
+
+/** The art behind the photo of the pet profile (Pet artboard): a circle, a line and two paw prints. */
+export function ProfileArt({ width, height }: { width: number; height: number }) {
+  return (
+    <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden>
+      <Circle cx={width - 70} cy={height - 90} r="120" fill="#FFFFFF" fillOpacity={0.45} />
+      <Path d="M-20 90 C 60 30, 110 140, 190 80" stroke={colors.surface} strokeOpacity={0.7} strokeWidth={2.5} fill="none" />
+      <G fill={colors.surface} fillOpacity={0.6} transform={`translate(48 ${height - 90}) rotate(-18) scale(1.2)`}>
+        {paw}
+      </G>
+      <G fill={colors.surface} fillOpacity={0.6} transform={`translate(${width - 60} 70) rotate(20) scale(0.9)`}>
+        {paw}
       </G>
     </Svg>
   );

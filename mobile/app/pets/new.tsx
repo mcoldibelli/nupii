@@ -83,7 +83,7 @@ export default function NewPet() {
       case "photoFailed":
         // The pet exists, so this form must not create it again. The edit
         // screen says that the photo was not sent.
-        router.replace({ pathname: "/pets/[id]", params: { id: outcome.petId, photoFailed: "1" } });
+        router.replace({ pathname: "/pets/edit/[id]", params: { id: outcome.petId, photoFailed: "1" } });
         return;
       case "failed":
         setError(outcome.message);

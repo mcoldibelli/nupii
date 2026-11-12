@@ -120,7 +120,9 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `app/` | As telas. Cada arquivo é uma rota do Expo Router |
 | `app/_layout.tsx` | Layout raiz: cria a sessão e libera as telas pelo estado dela (sem conta, primeiro acesso, pronto) |
 | `app/index.tsx` | Lista de pets |
-| `app/pets/new.tsx`, `app/pets/[id].tsx` | Novo pet (passo 1 de 2) e editar pet. O início abre o novo pet como "primeiro pet" uma vez por execução do app, quando o tutor não tem pet |
+| `app/pets/new.tsx` | Novo pet (passo 1 de 2). O início abre o novo pet como "primeiro pet" uma vez por execução do app, quando o tutor não tem pet |
+| `app/pets/[id].tsx` | Perfil do pet: dados, saúde, focinho e desaparecimento |
+| `app/pets/edit/[id].tsx` | Editar e excluir o pet |
 | `app/noseprint/[petId].tsx` | Cadastro do focinho de um cachorro (passo 2 de 2): orientação, captura e conferência de 2 fotos (RN-85) |
 | `app/found-notices.tsx` | Avisos de encontro |
 | `app/found.tsx` | Página pública "encontrei um pet" |
@@ -148,6 +150,7 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `src/pets/form.ts` | Regras do formulário do pet (RN-48, RN-50, RN-51, RN-56), com testes |
 | `src/pets/save.ts` | Salva os dados do pet e depois envia a foto, com testes |
 | `src/pets/PetFormView.tsx` | O formulário do pet |
+| `src/pets/profile.ts` | Os cuidados e os dados do perfil do pet, com testes |
 | `src/pets/pickPhoto.ts` | O único arquivo que importa a galeria e o sistema de arquivos do aparelho |
 | `src/screens/` | Telas de entrada e de primeiro acesso, e os estilos comuns |
 | `src/home/` | O início (RF-34): subtítulo do pet, pet escolhido, série do peso, notificações não lidas, com testes; a folha do seletor de pets |
