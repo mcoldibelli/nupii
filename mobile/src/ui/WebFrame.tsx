@@ -9,9 +9,9 @@ import { colors, fonts, radius, space } from "./theme";
 import { useWide } from "./useWide";
 
 /** The logo and the name, as the header of the web artboards. */
-function Brand() {
+function Brand({ href = "/" }: { href?: Href }) {
   return (
-    <Pressable accessibilityRole="link" accessibilityLabel="Nupii, início" style={local.brand} onPress={() => router.push("/")}>
+    <Pressable accessibilityRole="link" accessibilityLabel="Nupii, início" style={local.brand} onPress={() => router.push(href)}>
       <LogoMark size={28} />
       <Text style={local.brandText}>nupii</Text>
     </Pressable>
@@ -96,7 +96,7 @@ function VisitorHeader() {
   return (
     <View style={local.header}>
       <View style={local.headerInner}>
-        <Brand />
+        <Brand href="/landing" />
         <View style={{ flexDirection: "row", gap: 6, flex: 1 }}>
           {links.map((link) => (
             <Pressable key={link.label} accessibilityRole="link" style={local.headerLink} onPress={() => router.push(link.href)}>
