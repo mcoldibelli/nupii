@@ -22,6 +22,9 @@ import { TabBar } from "../src/ui/TabBar";
 import { Body, ErrorText, Heading, Muted, Title } from "../src/ui/Text";
 import { colors, fonts, radius, space } from "../src/ui/theme";
 
+// The first-pet screen (AddPet-Primeiro) opens one time per run of the app.
+let firstPetOffered = false;
+
 /** The home of the owner (Inicio-Mobile artboard): the chosen pet, its next care (RF-29) and its weight. */
 export default function Home() {
   const { state, idToken } = useSession();
@@ -56,6 +59,10 @@ export default function Home() {
     }
     setPets(result.value);
     setError(null);
+    if (result.value.length === 0 && !firstPetOffered) {
+      firstPetOffered = true;
+      router.push({ pathname: "/pets/new", params: { first: "1" } });
+    }
     // The noseprint badge of each dog, for the home and the pet switcher.
     const dogs = result.value.filter((item) => item.species === "dog");
     const found = await Promise.all(dogs.map((item) => getNoseprint(apiUrl, token, item.id)));

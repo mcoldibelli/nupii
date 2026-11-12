@@ -138,6 +138,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/pets/{petId}/noseprints/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confere a qualidade de uma foto do focinho, sem gravar nada (RN-85).
+         * @description Usa a mesma checagem do cadastro. O app confere cada foto antes de cadastrar o focinho.
+         *     A foto não é gravada e não gera vetor guardado.
+         */
+        post: operations["checkNoseprint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/pets/{petId}/noseprint": {
         parameters: {
             query?: never;
@@ -747,6 +771,14 @@ export interface components {
             modelVersion: string;
             /** Format: date-time */
             capturedAt: string;
+        };
+        /** @description O resultado da conferência de uma foto do focinho. */
+        NoseprintCheck: {
+            /**
+             * Format: double
+             * @description Nitidez da foto, de 0 a 1.
+             */
+            quality: number;
         };
         /** @description Resultado da busca de um focinho no acervo. */
         Identification: {
@@ -1694,6 +1726,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Noseprint"];
+                };
+            };
+            400: components["responses"]["InvalidRequest"];
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["PetNotFound"];
+            422: components["responses"]["NosePhotoRefused"];
+            503: components["responses"]["Unavailable"];
+            default: components["responses"]["Error"];
+        };
+    };
+    checkNoseprint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador do pet. */
+                petId: components["parameters"]["PetId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description Foto do focinho. Imagem JPEG, PNG ou WebP, com no máximo 8 MB.
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description A foto passou na checagem. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoseprintCheck"];
                 };
             };
             400: components["responses"]["InvalidRequest"];

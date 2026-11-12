@@ -1,4 +1,4 @@
-import { getNoseprint, listFoundNotices, registerNoseprint } from "./biometrics";
+import { checkNoseprint, getNoseprint, listFoundNotices, registerNoseprint } from "./biometrics";
 
 const baseUrl = "http://api.test";
 const petId = "0195f3c8-7a55-7c1e-9d2a-0d1c2b3a4f5e";
@@ -72,5 +72,14 @@ describe("biometrics API", () => {
 
     expect(await listFoundNotices(baseUrl, "the-token", fetchFn)).toEqual({ ok: true, value: [notice] });
     expect(fetchFn.mock.calls[0][0]).toBe("http://api.test/v1/found-notices");
+  });
+});
+
+describe("checkNoseprint", () => {
+  it("RN-85: sends the photo to the check and gives the quality", async () => {
+    const fetchFn = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ quality: 0.9 }) });
+    expect(await checkNoseprint("http://api.test", "t", "p1", new Blob(["x"]), fetchFn)).toEqual({ ok: true, value: { quality: 0.9 } });
+    expect(fetchFn.mock.calls[0][0]).toBe("http://api.test/v1/pets/p1/noseprints/check");
+    expect(fetchFn.mock.calls[0][1].method).toBe("POST");
   });
 });

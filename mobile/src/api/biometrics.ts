@@ -48,3 +48,16 @@ export async function listFoundNotices(
   });
   return result.ok ? { ok: true, value: result.value.notices } : result;
 }
+
+/** Calls POST /v1/pets/{petId}/noseprints/check: the quality of a photo of the nose, stored nowhere (RN-85). */
+export function checkNoseprint(
+  baseUrl: string,
+  idToken: string,
+  petId: string,
+  photo: Blob,
+  fetchFn: typeof fetch = fetch,
+): Promise<ApiResult<components["schemas"]["NoseprintCheck"]>> {
+  const body = new FormData();
+  body.append("file", photo);
+  return request(fetchFn, `${baseUrl}/v1/pets/${petId}/noseprints/check`, idToken, { method: "POST", body });
+}

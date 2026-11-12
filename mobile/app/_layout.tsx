@@ -119,9 +119,9 @@ function Screens() {
     <Stack screenOptions={headerOptions}>
       <Stack.Protected guard={state.kind === "ready"}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="pets/new" options={{ title: "Novo pet" }} />
+        <Stack.Screen name="pets/new" options={{ headerShown: false }} />
         <Stack.Screen name="pets/[id]" options={{ title: "Editar pet" }} />
-        <Stack.Screen name="noseprint/[petId]" options={{ title: "Focinho" }} />
+        <Stack.Screen name="noseprint/[petId]" options={{ headerShown: false }} />
         <Stack.Screen name="found-notices" options={{ title: "Avisos de encontro" }} />
         <Stack.Screen name="share/[petId]" options={{ title: "Carteirinha" }} />
         <Stack.Screen name="profile" options={{ title: "Meu perfil" }} />

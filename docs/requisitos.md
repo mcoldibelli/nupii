@@ -135,6 +135,7 @@
 | RN-16 | A foto da consulta só é gravada quando há confirmação. O tutor do pet confirmado recebe uma notificação. A notificação vem da tarefa `notify_found` (RN-73). | RF-13 | estável |
 | RN-59 | A foto do focinho, no cadastro e na identificação, é uma imagem JPEG, PNG ou WebP de até 8 MB (RN-17). | RF-11, RF-12 | estável |
 | RN-60 | O cadastro que a API devolve para um pet é o principal (RN-09). | RF-11 | estável |
+| RN-85 | O app confere cada foto do focinho antes do cadastro, com a mesma inferência do cadastro (RN-07, RN-21, RN-59). A conferência devolve só a qualidade e não grava a foto nem o vetor. O app cadastra 2 fotos do focinho, e só as fotos que passaram na conferência. | RF-11 | estável |
 | RN-61 | A identificação aceita a latitude e a longitude de quem encontrou. As duas são opcionais e vêm juntas. A latitude vai de -90 a 90 e a longitude vai de -180 a 180. Um valor que não é um número é recusado. | RF-12 | estável |
 | RN-62 | O resultado da identificação não tem dado do tutor. Cada candidato tem o nome e a foto de perfil do pet, a similaridade e a marca de correspondência forte. | RF-12 | estável |
 | RN-63 | A confirmação tem o candidato, o nome (obrigatório, até 120 caracteres), o telefone (obrigatório, de 8 a 30 caracteres: dígitos, espaço, `+`, `-`, `(` e `)`) e a mensagem (opcional, até 500 caracteres). Os espaços do começo e do fim são removidos. | RF-13 | estável |

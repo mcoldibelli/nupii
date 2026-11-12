@@ -120,8 +120,8 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `app/` | As telas. Cada arquivo é uma rota do Expo Router |
 | `app/_layout.tsx` | Layout raiz: cria a sessão e libera as telas pelo estado dela (sem conta, primeiro acesso, pronto) |
 | `app/index.tsx` | Lista de pets |
-| `app/pets/new.tsx`, `app/pets/[id].tsx` | Novo pet e editar pet |
-| `app/noseprint/[petId].tsx` | Cadastro do focinho de um cachorro |
+| `app/pets/new.tsx`, `app/pets/[id].tsx` | Novo pet (passo 1 de 2) e editar pet. O início abre o novo pet como "primeiro pet" uma vez por execução do app, quando o tutor não tem pet |
+| `app/noseprint/[petId].tsx` | Cadastro do focinho de um cachorro (passo 2 de 2): orientação, captura e conferência de 2 fotos (RN-85) |
 | `app/found-notices.tsx` | Avisos de encontro |
 | `app/found.tsx` | Página pública "encontrei um pet" |
 | `app/reports/index.tsx`, `app/reports/[id].tsx` | Mural e ficha de uma ocorrência |
@@ -142,6 +142,7 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `src/api/http.ts` | Envio de uma requisição, com o token ou sem token, e leitura da resposta |
 | `src/api/owner.ts`, `src/api/pets.ts`, `src/api/biometrics.ts`, `src/api/found.ts` | Chamadas da API, com testes |
 | `src/biometrics/messages.ts` | Mensagens das recusas da foto do focinho, com testes |
+| `src/biometrics/shots.ts` | As 2 fotos do cadastro do focinho e o estado da conferência de cada uma, com testes |
 | `src/found/contact.ts` | Regras do contato de quem encontrou um cão (RN-63), com testes |
 | `src/found/location.ts` | Posição do aparelho no navegador (RN-61), com testes |
 | `src/pets/form.ts` | Regras do formulário do pet (RN-48, RN-50, RN-51, RN-56), com testes |

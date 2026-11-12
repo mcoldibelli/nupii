@@ -222,3 +222,37 @@ func TestNoseprintWithTheInferenceService(t *testing.T) {
 		t.Errorf("RN-21: status = %d, body %s, want 422 image_framing", rec.Code, rec.Body)
 	}
 }
+
+// RN-85: a conferência da foto do focinho usa a inferência e não grava nada.
+func TestNoseprintCheck(t *testing.T) {
+	testAPI := petsAPI(t)
+	dog := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
+	path := "/v1/pets/" + dog.Id.String() + "/noseprints/check"
+
+	rec := testAPI.upload(http.MethodPost, "token-ana", path, nosePhoto())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("POST check: status = %d, want 200, body %s", rec.Code, rec.Body)
+	}
+	if check := decode[api.NoseprintCheck](t, rec); check.Quality != 0.9 {
+		t.Errorf("check = %+v, want the quality of the inference service", check)
+	}
+	if total, _ := testAPI.noseprintCounts(dog.Id.String()); total != 0 {
+		t.Errorf("%d noseprints after a check, want 0", total)
+	}
+
+	// The same refusals as the registration.
+	testAPI.embedder.embed = func([]byte) (inference.Embedding, error) {
+		return inference.Embedding{}, inference.ErrFraming
+	}
+	if rec := testAPI.upload(http.MethodPost, "token-ana", path, nosePhoto()); rec.Code != http.StatusUnprocessableEntity ||
+		decode[api.Error](t, rec).Error != api.ErrorCodeImageFraming {
+		t.Errorf("check of a photo with no nose: status = %d, want 422 image_framing", rec.Code)
+	}
+	cat := testAPI.createPet("token-ana", `{"name": "Mel", "species": "cat"}`)
+	if rec := testAPI.upload(http.MethodPost, "token-ana", "/v1/pets/"+cat.Id.String()+"/noseprints/check", nosePhoto()); rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("check for a cat: status = %d, want 422", rec.Code)
+	}
+	if rec := testAPI.upload(http.MethodPost, "token-bia", path, nosePhoto()); rec.Code != http.StatusNotFound {
+		t.Errorf("check by Bia: status = %d, want 404 (RN-52)", rec.Code)
+	}
+}
