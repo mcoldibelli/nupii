@@ -6,6 +6,7 @@ import { styles } from "../screens/styles";
 import { toPetInput, type PetForm } from "./form";
 import { neuteredLabels, sexLabels, sizeLabels, speciesLabels } from "./labels";
 import { pickPhoto } from "./pickPhoto";
+import { colors, fonts } from "../ui/theme";
 
 type Props = {
   initial: PetForm;
@@ -143,14 +144,14 @@ export function PetFormView({ initial, photoUrl, onSubmit, onDelete }: Props) {
 }
 
 const local = StyleSheet.create({
-  content: { backgroundColor: "#fff", padding: 24 },
+  content: { backgroundColor: colors.background, padding: 24 },
   photoRow: { alignItems: "center", marginBottom: 16 },
   photo: { borderRadius: 48, height: 96, width: 96 },
-  photoEmpty: { backgroundColor: "#ddd" },
+  photoEmpty: { backgroundColor: colors.borderStrong },
   choices: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  choice: { borderColor: "#888", borderRadius: 16, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8 },
-  choiceSelected: { backgroundColor: "#1f5fbf", borderColor: "#1f5fbf" },
-  choiceText: { fontSize: 14 },
-  choiceTextSelected: { color: "#fff", fontSize: 14 },
-  deleteText: { color: "#b00020", fontSize: 16 },
+  choice: { borderColor: colors.textMuted, borderRadius: 16, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8 },
+  choiceSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  choiceText: { fontFamily: fonts.body, fontSize: 14 },
+  choiceTextSelected: { fontFamily: fonts.body, color: colors.background, fontSize: 14 },
+  deleteText: { fontFamily: fonts.body, color: colors.dangerText, fontSize: 16 },
 });

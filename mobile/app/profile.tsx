@@ -1,14 +1,16 @@
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { changePassword } from "../src/auth/firebase";
 import { validateNewPassword } from "../src/auth/validation";
 import { styles } from "../src/screens/styles";
 import { useSession } from "../src/session/SessionContext";
+import { colors } from "../src/ui/theme";
+import { TabBar } from "../src/ui/TabBar";
 
 /** The profile of the owner (RF-06), the change of the password (RF-07) and the delete of the account (RF-08). */
 export default function Profile() {
-  const { state, rename, deleteAccount } = useSession();
+  const { state, rename, deleteAccount, signOut } = useSession();
   const owner = state.kind === "ready" ? state.owner : null;
   const [name, setName] = useState(owner?.name ?? "");
   const [current, setCurrent] = useState("");
@@ -53,6 +55,7 @@ export default function Profile() {
   }
 
   return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
     <ScrollView contentContainerStyle={local.screen} keyboardShouldPersistTaps="handled">
       <Text style={local.label}>E-mail</Text>
       <Text testID="profile-email" style={local.value}>
@@ -70,6 +73,10 @@ export default function Profile() {
       )}
       {message !== null && <Text testID="profile-message">{message}</Text>}
 
+      <Pressable testID="sign-out-button" accessibilityRole="button" style={styles.link} onPress={signOut}>
+        <Text style={styles.linkText}>Sair</Text>
+      </Pressable>
+
       <Text style={local.heading}>Trocar a senha</Text>
       <TextInput testID="current-password-input" accessibilityLabel="Senha atual" placeholder="Senha atual" secureTextEntry style={styles.input} value={current} onChangeText={setCurrent} />
       <TextInput testID="new-password-input" accessibilityLabel="Senha nova" placeholder="Senha nova" secureTextEntry style={styles.input} value={next} onChangeText={setNext} />
@@ -83,6 +90,8 @@ export default function Profile() {
         <Text style={styles.buttonText}>Excluir a conta</Text>
       </Pressable>
     </ScrollView>
+      <TabBar />
+    </View>
   );
 }
 
