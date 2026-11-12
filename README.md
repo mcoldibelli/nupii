@@ -22,6 +22,8 @@ Um comando sobe o ambiente local e outro abre o app no emulador Android:
 
 O comando para com uma mensagem quando falta um arquivo, um valor, os pesos do modelo, ou quando outro programa usa a porta 8080 (por exemplo, um `go run` da API). Ele avisa quando o app e a API usam modos diferentes do Firebase.
 
+Para abrir no navegador os links que o app cria (carteirinha, mural, achado), suba a web pública com `./dev.sh web`: ela responde em `http://localhost:8081`, o endereço desses links no ambiente local.
+
 Outros comandos: `./dev.sh status`, `./dev.sh logs [serviço]` e `./dev.sh stop`. O `./dev.sh app` usa o primeiro emulador Android criado (ou o da variável `AVD`) e o Expo na porta 8099 (ou a da variável `EXPO_PORT`).
 
 Os passos detalhados de cada parte estão abaixo e nos READMEs do [backend](backend/README.md) e do [mobile](mobile/README.md).
@@ -133,6 +135,7 @@ O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app n
 | [0027](docs/adr/0027-link-da-carteirinha.md) | Link da carteirinha com validade de 30 dias, token no fragmento e QR code no app | aceito |
 | [0028](docs/adr/0028-exclusao-da-conta-e-limpeza.md) | Exclusão da conta com um apagador por módulo, e limpeza diária às 3h de Brasília | aceito |
 | [0030](docs/adr/0030-visual-do-app.md) | Visual do app a partir do canvas de design, com Bricolage Grotesque, Figtree e ícones em SVG | aceito |
+| [0031](docs/adr/0031-copiar-para-a-area-de-transferencia.md) | Copiar o link da carteirinha com o expo-clipboard | aceito |
 
 ## Regras do projeto
 

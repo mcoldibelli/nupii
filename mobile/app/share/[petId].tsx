@@ -1,3 +1,4 @@
+import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Linking, Modal, Pressable, ScrollView, Share, StyleSheet, Switch, Text, View } from "react-native";
@@ -46,6 +47,8 @@ export default function OwnerCard() {
   const [includeExams, setIncludeExams] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // "Copiado" shows for 2 seconds after the copy of the link (ADR 0031).
+  const [copied, setCopied] = useState(false);
 
   /** Calls the API with the ID token, and shows the failure. */
   const withToken = useCallback(
@@ -94,6 +97,12 @@ export default function OwnerCard() {
       setCreated({ id: link.id, url: cardLink(webUrl, link.token) });
       await loadLinks();
     }
+  }
+
+  async function copy(url: string) {
+    await Clipboard.setStringAsync(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   async function revoke(link: ShareLink) {
@@ -175,6 +184,9 @@ export default function OwnerCard() {
                 <Text testID="share-url" selectable style={local.url} numberOfLines={1}>
                   {created.url}
                 </Text>
+                <Pressable testID="share-copy" accessibilityRole="button" accessibilityLabel="Copiar o link" style={local.copy} onPress={() => void copy(created.url)}>
+                  <Text style={local.copyText}>{copied ? "Copiado" : "Copiar"}</Text>
+                </Pressable>
               </View>
               <QrCode text={created.url} />
               <View style={{ flexDirection: "row", gap: 10 }}>
@@ -226,7 +238,9 @@ const local = StyleSheet.create({
   segment: { flex: 1, flexDirection: "row", padding: 4, borderRadius: radius.pill, backgroundColor: colors.surface },
   segmentItem: { flex: 1, minHeight: 36, borderRadius: radius.pill, alignItems: "center", justifyContent: "center" },
   segmentText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.textSecondary },
-  linkRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, paddingHorizontal: 16, borderRadius: 20, backgroundColor: colors.surface },
+  linkRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, paddingLeft: 16, paddingRight: 8, borderRadius: 20, backgroundColor: colors.surface },
+  copy: { minHeight: 40, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: colors.dark, justifyContent: "center" },
+  copyText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.onDark },
   url: { flex: 1, fontFamily: fonts.bodySemibold, fontSize: 15, color: colors.ink },
   target: { flex: 1, alignItems: "center", gap: 6, paddingVertical: 14, borderRadius: 20, backgroundColor: colors.surface },
   activeRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44, borderBottomWidth: 1, borderBottomColor: colors.border },
