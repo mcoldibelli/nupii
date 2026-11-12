@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"slices"
 	"strings"
 	"time"
 
@@ -158,21 +159,55 @@ func NewService(
 	}
 }
 
-// Board returns the page page of the board, from 1 (RF-16, RN-24).
-func (s *Service) Board(ctx context.Context, page int) (Board, error) {
+// BoardFilter narrows the board (RN-24). Type is "lost", "found" or empty.
+// Center and RadiusKm come together; RadiusKm 0 means no radius.
+type BoardFilter struct {
+	Type     string
+	Center   *Point
+	RadiusKm int
+}
+
+// _boardRadiiKm are the radii that the board accepts, in kilometers.
+var _boardRadiiKm = []int{1, 3, 5, 10}
+
+// Board returns the page page of the board, from 1 (RF-16, RN-24), with the
+// filter.
+func (s *Service) Board(ctx context.Context, page int, filter BoardFilter) (Board, error) {
 	if page < 1 || page > _maxPage {
 		return Board{}, &ValidationError{Message: "page must be from 1 to 100000"}
 	}
-	// One row more than the page tells if there is a next page.
-	rows, err := s.queries.ListBoard(ctx, reportsdb.ListBoardParams{
+	if (filter.Center == nil) != (filter.RadiusKm == 0) {
+		return Board{}, &ValidationError{
+			Message: "latitude, longitude and radiusKm come together",
+		}
+	}
+	params := reportsdb.ListBoardParams{
 		PageSize: _pageSize + 1,
 		// The check of page keeps the value in the range of an int32.
 		Skip: int32((page - 1) * _pageSize),
-	})
+	}
+	if filter.Type != "" {
+		params.Type = &filter.Type
+	}
+	if filter.Center != nil {
+		if !filter.Center.valid() {
+			return Board{}, invalidPoint()
+		}
+		if !slices.Contains(_boardRadiiKm, filter.RadiusKm) {
+			return Board{}, &ValidationError{Message: "radiusKm must be 1, 3, 5 or 10"}
+		}
+		radiusM := float64(filter.RadiusKm) * 1000
+		params.RadiusM = &radiusM
+		params.Latitude, params.Longitude = &filter.Center.Latitude, &filter.Center.Longitude
+	}
+	// One row more than the page tells if there is a next page.
+	rows, err := s.queries.ListBoard(ctx, params)
 	if err != nil {
 		return Board{}, fmt.Errorf("list the board: %w", err)
 	}
-	counts, err := s.queries.CountBoard(ctx)
+	counts, err := s.queries.CountBoard(ctx, reportsdb.CountBoardParams{
+		RadiusM: params.RadiusM, Latitude: params.Latitude, Longitude: params.Longitude,
+	})
 	if err != nil {
 		return Board{}, fmt.Errorf("count the board: %w", err)
 	}

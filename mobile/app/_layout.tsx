@@ -72,8 +72,8 @@ function Screens() {
   if (isPublicPage) {
     return (
       <Stack screenOptions={headerOptions}>
-        <Stack.Screen name="found" options={{ title: "Nupii" }} />
-        <Stack.Screen name="reports/index" options={{ title: "Mural de perdidos e achados" }} />
+        <Stack.Screen name="found" options={{ headerShown: false }} />
+        <Stack.Screen name="reports/index" options={{ headerShown: false }} />
         <Stack.Screen name="reports/[id]" options={{ title: "Ocorrência" }} />
         <Stack.Screen name="card" options={{ headerShown: false }} />
         <Stack.Screen name="terms" options={{ title: "Termos de uso" }} />
@@ -146,11 +146,11 @@ function Screens() {
           (RNF-04): in the app they open with or without a session. They come
           after the groups above, so they are never the fallback screen. */}
       <Stack.Protected guard={state.kind === "ready" || state.kind === "signedOut"}>
-        <Stack.Screen name="reports/index" options={{ title: "Mural" }} />
+        <Stack.Screen name="reports/index" options={{ headerShown: false }} />
         <Stack.Screen name="reports/[id]" options={{ title: "Ocorrência" }} />
       </Stack.Protected>
       <Stack.Protected guard={Platform.OS !== "web" && (state.kind === "ready" || state.kind === "signedOut")}>
-        <Stack.Screen name="found" options={{ title: "Achei um cachorro" }} />
+        <Stack.Screen name="found" options={{ headerShown: false }} />
         <Stack.Screen name="terms" options={{ title: "Termos de uso" }} />
       </Stack.Protected>
       {/* The public pages have their own stack above. They are listed here

@@ -256,7 +256,7 @@ export interface paths {
         };
         /**
          * O mural, as ocorrências abertas dos tipos perdido e achado.
-         * @description Operação pública. 20 ocorrências por página, da mais nova para a mais antiga.
+         * @description Operação pública. 20 ocorrências por página, da mais nova para a mais antiga. Filtra pelo tipo e pelo raio em volta de um ponto (RN-24).
          */
         get: operations["listReports"];
         put?: never;
@@ -1965,6 +1965,14 @@ export interface operations {
             query?: {
                 /** @description Número da página, a partir de 1. */
                 page?: number;
+                /** @description Só as ocorrências deste tipo. As contagens não mudam com o tipo. */
+                type?: components["schemas"]["ReportType"];
+                /** @description Latitude do centro do raio. Vem com a longitude e o raio (RN-61). */
+                latitude?: number;
+                /** @description Longitude do centro do raio. Vem com a latitude e o raio (RN-61). */
+                longitude?: number;
+                /** @description Raio em quilômetros em volta do ponto. As ocorrências e as contagens ficam só dentro do raio. */
+                radiusKm?: 1 | 3 | 5 | 10;
             };
             header?: never;
             path?: never;

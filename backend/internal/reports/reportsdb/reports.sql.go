@@ -16,15 +16,26 @@ SELECT
     count(*) FILTER (WHERE type = 'found') AS open_found
 FROM report_views
 WHERE status = 'open'
+    AND ($1::float8 IS NULL OR ST_DWithin(
+        ST_MakePoint(longitude, latitude)::geography,
+        ST_MakePoint($2::float8, $3::float8)::geography,
+        $1::float8))
 `
+
+type CountBoardParams struct {
+	RadiusM   *float64
+	Longitude *float64
+	Latitude  *float64
+}
 
 type CountBoardRow struct {
 	OpenLost  int64
 	OpenFound int64
 }
 
-func (q *Queries) CountBoard(ctx context.Context) (CountBoardRow, error) {
-	row := q.db.QueryRow(ctx, countBoard)
+// The counts follow the radius, not the type.
+func (q *Queries) CountBoard(ctx context.Context, arg CountBoardParams) (CountBoardRow, error) {
+	row := q.db.QueryRow(ctx, countBoard, arg.RadiusM, arg.Longitude, arg.Latitude)
 	var i CountBoardRow
 	err := row.Scan(&i.OpenLost, &i.OpenFound)
 	return i, err
@@ -188,18 +199,35 @@ func (q *Queries) GetReport(ctx context.Context, id string) (ReportView, error) 
 const listBoard = `-- name: ListBoard :many
 SELECT id, type, status, owner_id, pet_id, pet_name, pet_species, pet_has_noseprint, photo_key, latitude, longitude, place, description, occurred_at, created_at FROM report_views
 WHERE status = 'open'
+    AND ($1::text IS NULL OR type = $1::text)
+    AND ($2::float8 IS NULL OR ST_DWithin(
+        ST_MakePoint(longitude, latitude)::geography,
+        ST_MakePoint($3::float8, $4::float8)::geography,
+        $2::float8))
 ORDER BY created_at DESC, id DESC
-LIMIT $2 OFFSET $1
+LIMIT $6 OFFSET $5
 `
 
 type ListBoardParams struct {
-	Skip     int32
-	PageSize int32
+	Type      *string
+	RadiusM   *float64
+	Longitude *float64
+	Latitude  *float64
+	Skip      int32
+	PageSize  int32
 }
 
-// RN-24: 20 ocorrências abertas por página, da mais nova para a mais antiga.
+// RN-24: 20 ocorrências abertas por página, da mais nova para a mais antiga,
+// do tipo e dentro do raio quando o filtro vem.
 func (q *Queries) ListBoard(ctx context.Context, arg ListBoardParams) ([]ReportView, error) {
-	rows, err := q.db.Query(ctx, listBoard, arg.Skip, arg.PageSize)
+	rows, err := q.db.Query(ctx, listBoard,
+		arg.Type,
+		arg.RadiusM,
+		arg.Longitude,
+		arg.Latitude,
+		arg.Skip,
+		arg.PageSize,
+	)
 	if err != nil {
 		return nil, err
 	}
