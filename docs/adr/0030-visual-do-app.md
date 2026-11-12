@@ -27,3 +27,12 @@ O canvas usa duas fontes do Google Fonts e ícones de traço em SVG. O React Nat
 
 - O app espera as fontes carregarem antes de mostrar a primeira tela.
 - Um teste confere o contraste dos pares de cor do tema.
+
+## Verificação posterior
+
+Data: 2026-11-12. A fatia 9b trocou cores, fontes e componentes, mas não refez o layout das telas. O responsável pelo produto recusou o resultado: as telas seguem os layouts do canvas, e não só o tema. A decisão continua, com estes ajustes:
+
+1. A fatia 9c refaz cada tela a partir do artboard dela e constrói os comportamentos do canvas que a API já permite, com o backend que faltar. Uma tela só fica pronta depois da comparação lado a lado com o artboard.
+2. A apresentação de boas-vindas (RF-33) aparece só na primeira abertura do app.
+3. O app vai para a primeira tela de cada estado da sessão quando o estado muda (`app/_layout.tsx`): a apresentação ou entrar sem sessão, completar o cadastro, ou o início. Antes, o roteador escolhia uma tela qualquer entre as permitidas, e isso causou três bugs.
+4. No app, o mural, a ocorrência, o achei um cachorro e os termos abrem sem conta (RNF-04).

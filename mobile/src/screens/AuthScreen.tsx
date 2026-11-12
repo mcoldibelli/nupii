@@ -12,8 +12,8 @@ import { Body, ErrorText, Title } from "../ui/Text";
 import { colors, fonts, space } from "../ui/theme";
 
 /** Sign-in and account creation with e-mail and password (RF-01, RF-02). The look is the Login-Mobile artboard. */
-export function AuthScreen() {
-  const [creating, setCreating] = useState(false);
+export function AuthScreen({ startCreating = false }: { startCreating?: boolean }) {
+  const [creating, setCreating] = useState(startCreating);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);

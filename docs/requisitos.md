@@ -25,6 +25,7 @@
 | RF-06 | O tutor vê e altera o próprio perfil: o nome. O e-mail aparece, mas não muda ([ADR 0028](adr/0028-exclusao-da-conta-e-limpeza.md)). | 9 | estável |
 | RF-07 | O tutor troca a senha. | 9 | estável |
 | RF-08 | O tutor exclui a própria conta. O app pede a senha de novo antes. | 9 | estável |
+| RF-33 | Na primeira abertura, o app mostra uma apresentação em quatro passos, com os caminhos para entrar, criar conta, achei um cachorro e o mural ([ADR 0030](adr/0030-visual-do-app.md)). | 9c | estável |
 
 ### Pets
 
@@ -235,7 +236,7 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 | RNF-01 | Um alerta de desaparecimento não se perde quando o processo para. | A tarefa é gravada na mesma transação da ocorrência ([ADR 0003](adr/0003-estado-postgres-fila-no-banco.md)). |
 | RNF-02 | Uma tarefa em segundo plano que falha é tentada de novo, com espera crescente: 10 s, 20 s, 40 s e 80 s. Depois de 5 tentativas, a tarefa fica marcada como falha. Toda tarefa é segura para executar duas vezes. | Fila de tarefas ([ADR 0003](adr/0003-estado-postgres-fila-no-banco.md)). |
 | RNF-03 | A API não guarda senha. O token da carteirinha fica no banco só como hash. A política de privacidade diz onde ficam o e-mail e a senha do tutor. | [ADR 0008](adr/0008-autenticacao-firebase.md), RN-39. |
-| RNF-04 | O visitante usa os fluxos públicos sem conta e sem instalar nada. | Web pública ([ADR 0006](adr/0006-mobile-expo-web-publica.md)). |
+| RNF-04 | O visitante usa os fluxos públicos sem conta e sem instalar nada. No app, o mural, a ocorrência, o achei um cachorro e os termos também abrem sem conta. | Web pública ([ADR 0006](adr/0006-mobile-expo-web-publica.md)). |
 | RNF-05 | O app funciona em Android e iOS. A web pública funciona em um navegador de celular. | [ADR 0006](adr/0006-mobile-expo-web-publica.md). |
 | RNF-06 | Um processo não sobe com configuração inválida ou com um arquivo de pesos diferente do esperado. | Validação na subida, RN-22. |
 | RNF-07 | Toda requisição tem um identificador que aparece em todas as linhas de log dela. | `log/slog` com saída JSON ([arquitetura.md](arquitetura.md)). |
