@@ -82,13 +82,13 @@ const fields: Record<HealthEventType, Field[]> = {
   medication: [
     { key: "name", label: "Nome da medicação", kind: "text", required: true },
     { key: "medicationCategory", label: "Categoria", kind: "choice", required: true, options: medicationCategories },
-    { key: "activeIngredient", label: "Princípio ativo", kind: "text" },
+    { key: "intervalDays", label: "Repetir a cada (dias)", kind: "days" },
+    { key: "remind", label: "Mostrar nos próximos cuidados", kind: "switch" },
     { key: "dosage", label: "Dosagem", kind: "text" },
     { key: "frequency", label: "Frequência", kind: "text" },
+    { key: "activeIngredient", label: "Princípio ativo", kind: "text" },
     { key: "endDate", label: "Fim (DD/MM/AAAA)", kind: "date" },
     { key: "inUse", label: "Em uso", kind: "switch" },
-    { key: "intervalDays", label: "Intervalo entre as doses, em dias", kind: "days" },
-    { key: "remind", label: "Mostrar nos próximos cuidados", kind: "switch" },
   ],
   exam: [
     { key: "name", label: "Nome do exame", kind: "text", required: true },
@@ -262,8 +262,36 @@ export function valuesFromEvent(event: HealthEvent): Values {
   return values;
 }
 
-/** The title of an event in the list. */
+/** The title of an event in the list. The tab of the list already gives the type (Saude-Mobile artboard). */
 export function eventTitle(event: HealthEvent): string {
-  const name = event.name ?? event.reason ?? event.title ?? "";
-  return name === "" ? typeLabels[event.type] : `${typeLabels[event.type]}: ${name}`;
+  return event.name ?? event.reason ?? event.title ?? typeLabels[event.type];
+}
+
+/** The options of the Anotar sheet that fill the form, and "again" for "Já dei". */
+export type Preset = "flea" | "deworm" | "medication" | "symptom" | "weight" | "again";
+
+/** The type of event of each preset; "again" keeps the type of its source. */
+export const presetTypes: Record<Exclude<Preset, "again">, HealthEventType> = { flea: "medication", deworm: "medication", medication: "medication", symptom: "note", weight: "note" };
+
+/**
+ * The first values of the form for a preset: the date of today and the
+ * category. "Já dei" copies the event of the late care, without its notes,
+ * so the new dose starts the next interval (RN-81).
+ */
+export function presetValues(preset: Preset, source: HealthEvent | undefined, today: Date = new Date()): Values {
+  const values = preset === "again" && source ? valuesFromEvent(source) : emptyValues();
+  const two = (value: number) => String(value).padStart(2, "0");
+  values.date = `${two(today.getDate())}/${two(today.getMonth() + 1)}/${today.getFullYear()}`;
+  values.notes = "";
+  if (preset === "again") {
+    values.inUse = true;
+    values.remind = true;
+    values.nextDoseDate = "";
+  } else if (presetTypes[preset] === "medication") {
+    values.medicationCategory = preset;
+    values.remind = true;
+  } else {
+    values.noteCategory = preset;
+  }
+  return values;
 }

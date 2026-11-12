@@ -205,7 +205,7 @@ export default function Home() {
                 <Text style={local.weightValue}>{trend?.latest ?? (pet.weightKg !== undefined ? `${String(pet.weightKg).replace(".", ",")} kg` : "—")}</Text>
                 {trend?.change && <Text style={local.weightChange}>{trend.change}</Text>}
                 <View style={{ flex: 1 }} />
-                <Pressable testID="add-weight" accessibilityRole="button" accessibilityLabel="Registrar peso" style={local.plus} onPress={() => router.push({ pathname: "/health/event", params: { petId: pet.id, type: "note" } })}>
+                <Pressable testID="add-weight" accessibilityRole="button" accessibilityLabel="Registrar peso" style={local.plus} onPress={() => router.push({ pathname: "/health/event", params: { petId: pet.id, petName: pet.name, type: "note", preset: "weight" } })}>
                   <Icon name="plus" size={18} strokeWidth={2.2} />
                 </Pressable>
               </View>

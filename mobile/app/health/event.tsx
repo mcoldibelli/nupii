@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   createHealthEvent,
@@ -15,18 +16,52 @@ import {
 } from "../../src/api/health";
 import { failureMessage, SESSION_FAILURE } from "../../src/api/http";
 import { apiUrl } from "../../src/config";
-import { attachmentFailure, emptyValues, fieldsOf, toEventInput, typeLabels, valuesFromEvent, type Field, type Values } from "../../src/health/form";
+import { attachmentFailure, emptyValues, fieldsOf, presetValues, toEventInput, typeLabels, valuesFromEvent, type Field, type Preset, type Values } from "../../src/health/form";
 import { pickAttachment } from "../../src/health/pickFile";
 import { filePart } from "../../src/pets/pickPhoto";
-import { styles } from "../../src/screens/styles";
 import { useSession } from "../../src/session/SessionContext";
-import { colors, fonts } from "../../src/ui/theme";
+import { Button } from "../../src/ui/Button";
+import { Field as Input } from "../../src/ui/Field";
+import { Icon } from "../../src/ui/Icon";
+import { ErrorText, Label } from "../../src/ui/Text";
+import { colors, fonts, radius, space } from "../../src/ui/theme";
+
+/** The type chips of the Saude-Mobile-Form artboard. A medication chip also sets the category. */
+const chips: { label: string; type: HealthEventType; category?: string }[] = [
+  { label: "Vacina", type: "vaccine" },
+  { label: "Vermífugo", type: "medication", category: "deworm" },
+  { label: "Antipulgas", type: "medication", category: "flea" },
+  { label: "Medicação", type: "medication", category: "medication" },
+  { label: "Consulta", type: "consultation" },
+  { label: "Exame", type: "exam" },
+  { label: "Anotação", type: "note" },
+];
+
+/** The title of the form, as "Nova vacina" and "Dose de antipulgas" in the canvas. */
+function formTitle(type: HealthEventType, values: Values, editing: boolean): string {
+  if (editing) {
+    return typeLabels[type];
+  }
+  if (type === "medication" && values.medicationCategory === "flea") {
+    return "Dose de antipulgas";
+  }
+  if (type === "medication" && values.medicationCategory === "deworm") {
+    return "Dose de vermífugo";
+  }
+  if (type === "note" && values.noteCategory === "weight") {
+    return "Peso de hoje";
+  }
+  return { vaccine: "Nova vacina", consultation: "Nova consulta", medication: "Nova medicação", exam: "Novo exame", note: "Nova anotação" }[type];
+}
 
 /** Creates or changes a health event of one of the five types (RF-27), with its attachments (RF-28). */
 export default function HealthEventForm() {
-  const { petId, type, eventId } = useLocalSearchParams<{ petId: string; type: HealthEventType; eventId?: string }>();
+  const params = useLocalSearchParams<{ petId: string; petName?: string; type: HealthEventType; eventId?: string; preset?: Preset; from?: string }>();
+  const { petId, petName, eventId, preset, from } = params;
   const { idToken } = useSession();
-  const [values, setValues] = useState<Values>(emptyValues);
+  const insets = useSafeAreaInsets();
+  const [type, setType] = useState<HealthEventType>(params.type);
+  const [values, setValues] = useState<Values>(() => (preset && preset !== "again" ? presetValues(preset, undefined) : emptyValues()));
   const [attachments, setAttachments] = useState<HealthAttachment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -39,6 +74,19 @@ export default function HealthEventForm() {
     }
     return work(token);
   }
+
+  // "Já dei": the new dose copies the event of the late care (RN-81).
+  useEffect(() => {
+    if (preset !== "again" || from === undefined) {
+      return;
+    }
+    void withToken(async (token) => {
+      const list = await listHealthEvents(apiUrl, token, petId);
+      const source = list.ok ? list.value.find((item) => item.id === from) : undefined;
+      setValues(presetValues("again", source));
+    });
+    // The screen reads the source one time, when it opens.
+  }, [from, petId, preset]);
 
   useEffect(() => {
     if (eventId === undefined) {
@@ -86,7 +134,7 @@ export default function HealthEventForm() {
       setError(failureMessage(saved));
     } else if (eventId === undefined) {
       // A new event opens in the edit mode, where the attachments are.
-      router.replace({ pathname: "/health/event", params: { petId, type, eventId: saved.value.id } });
+      router.replace({ pathname: "/health/event", params: { petId, petName, type, eventId: saved.value.id } });
     } else {
       router.back();
     }
@@ -144,128 +192,161 @@ export default function HealthEventForm() {
   }
 
   const input = (field: Field) => {
+    // A new event takes the category of the medication from the chips.
+    if (field.key === "medicationCategory" && eventId === undefined) {
+      return null;
+    }
     if (field.kind === "switch") {
       return (
-        <View key={field.key} style={styles.row}>
+        <View key={field.key} style={local.switchRow}>
+          <Text style={local.switchLabel}>{field.key === "remind" ? "Lembrar antes" : field.label}</Text>
           <Switch
             testID={`field-${field.key}`}
+            accessibilityLabel={field.label}
             value={values[field.key] === true}
             onValueChange={(value) => set(field.key, value)}
             trackColor={{ false: colors.borderDashed, true: colors.success }}
             thumbColor={colors.background}
           />
-          <Text style={styles.rowText}>{field.label}</Text>
         </View>
       );
     }
     if (field.kind === "choice") {
       return (
-        <View key={field.key}>
-          <Text style={styles.label}>{field.label}</Text>
+        <View key={field.key} style={{ gap: 6 }}>
+          <Label>{field.label}</Label>
           <View style={local.choices}>
-            {Object.entries(field.options ?? {}).map(([option, label]) => (
-              <Pressable
-                key={option}
-                testID={`field-${field.key}-${option}`}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: values[field.key] === option }}
-                style={[local.choice, values[field.key] === option && local.choiceSelected]}
-                onPress={() => set(field.key, option)}
-              >
-                <Text style={values[field.key] === option ? local.choiceTextSelected : local.choiceText}>{label}</Text>
-              </Pressable>
-            ))}
+            {Object.entries(field.options ?? {}).map(([option, label]) => {
+              const selected = values[field.key] === option;
+              return (
+                <Pressable
+                  key={option}
+                  testID={`field-${field.key}-${option}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  style={[local.chip, selected && local.chipSelected]}
+                  onPress={() => set(field.key, option)}
+                >
+                  <Text style={[local.chipText, selected && { color: colors.onDark }]}>{label}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
       );
     }
     return (
-      <View key={field.key}>
-        <Text style={styles.label}>{field.label}</Text>
-        <TextInput
-          testID={`field-${field.key}`}
-          accessibilityLabel={field.label}
-          style={[styles.input, field.kind === "long" && local.long]}
-          multiline={field.kind === "long"}
-          keyboardType={field.kind === "weight" ? "decimal-pad" : field.kind === "days" ? "number-pad" : field.kind === "date" ? "numbers-and-punctuation" : "default"}
-          value={String(values[field.key])}
-          onChangeText={(value) => set(field.key, value)}
-        />
-      </View>
+      <Input
+        key={field.key}
+        testID={`field-${field.key}`}
+        label={field.label}
+        icon={field.kind === "date" ? "calendar" : undefined}
+        multiline={field.kind === "long"}
+        style={field.kind === "long" ? local.long : undefined}
+        keyboardType={field.kind === "weight" ? "decimal-pad" : field.kind === "days" ? "number-pad" : field.kind === "date" ? "numbers-and-punctuation" : "default"}
+        value={String(values[field.key])}
+        onChangeText={(value) => set(field.key, value)}
+      />
     );
   };
 
   return (
-    <ScrollView contentContainerStyle={local.content} keyboardShouldPersistTaps="handled">
-      <Text style={local.heading}>{typeLabels[type]}</Text>
-      <Text style={styles.label}>Data (DD/MM/AAAA)</Text>
-      <TextInput
-        testID="field-date"
-        accessibilityLabel="Data"
-        style={styles.input}
-        keyboardType="numbers-and-punctuation"
-        maxLength={10}
-        value={values.date}
-        onChangeText={(value) => set("date", value)}
-      />
-      {fieldsOf(type).map(input)}
-      <Text style={styles.label}>Observações</Text>
-      <TextInput
-        testID="field-notes"
-        accessibilityLabel="Observações"
-        style={[styles.input, local.long]}
-        multiline
-        value={values.notes}
-        onChangeText={(value) => set("notes", value)}
-      />
-
-      {eventId !== undefined && (
-        <>
-          <Text style={local.section}>Anexos</Text>
-          {attachments.map((attachment) => (
-            <View key={attachment.id} style={local.attachment}>
-              <Pressable accessibilityRole="link" style={local.attachmentName} onPress={() => void Linking.openURL(attachment.url)}>
-                <Text style={styles.linkText}>{attachment.fileName}</Text>
-              </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => removeAttachment(attachment)}>
-                <Text style={local.remove}>Remover</Text>
-              </Pressable>
-            </View>
-          ))}
-          <Pressable testID="add-attachment" accessibilityRole="button" style={styles.link} disabled={busy} onPress={addAttachment}>
-            <Text style={styles.linkText}>Adicionar anexo (foto ou PDF)</Text>
+    <View style={local.page}>
+      <ScrollView contentContainerStyle={[local.content, { paddingTop: insets.top + space.md }]} keyboardShouldPersistTaps="handled">
+        <View style={local.top}>
+          <Pressable testID="close-event" accessibilityRole="button" accessibilityLabel="Fechar" style={local.close} onPress={() => router.back()}>
+            <Icon name="close" size={18} strokeWidth={2.4} />
           </Pressable>
-        </>
-      )}
-
-      {error !== null && (
-        <Text testID="event-error" accessibilityRole="alert" style={styles.error}>
-          {error}
+          {petName ? (
+            <View style={local.petChip}>
+              <Text style={local.petName}>{petName}</Text>
+            </View>
+          ) : null}
+        </View>
+        <Text style={local.heading} accessibilityRole="header">
+          {formTitle(type, values, eventId !== undefined)}
         </Text>
-      )}
-      <Pressable testID="save-event" accessibilityRole="button" style={[styles.button, busy && styles.buttonDisabled]} disabled={busy} onPress={save}>
-        <Text style={styles.buttonText}>Salvar</Text>
-      </Pressable>
-      {eventId !== undefined && (
-        <Pressable testID="delete-event" accessibilityRole="button" style={styles.link} onPress={confirmDelete}>
-          <Text style={local.remove}>Apagar evento</Text>
-        </Pressable>
-      )}
-    </ScrollView>
+        {eventId === undefined && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ marginHorizontal: -space.xl }} accessibilityRole="radiogroup">
+            <View style={{ width: space.xl - 8 }} />
+            {chips.map((chip) => {
+              const selected = chip.type === type && (chip.category === undefined || chip.category === values.medicationCategory);
+              return (
+                <Pressable
+                  key={chip.label}
+                  testID={`type-${chip.label}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  style={[local.chip, selected && local.chipSelected]}
+                  onPress={() => {
+                    setType(chip.type);
+                    if (chip.category) {
+                      set("medicationCategory", chip.category);
+                    }
+                  }}
+                >
+                  <Text style={[local.chipText, selected && { color: colors.onDark }]}>{chip.label}</Text>
+                </Pressable>
+              );
+            })}
+            <View style={{ width: space.xl - 8 }} />
+          </ScrollView>
+        )}
+        <Input testID="field-date" label="Data (DD/MM/AAAA)" icon="calendar" keyboardType="numbers-and-punctuation" maxLength={10} value={values.date} onChangeText={(value) => set("date", value)} />
+        {fieldsOf(type).map(input)}
+        <Input testID="field-notes" label="Observações" multiline style={local.long} value={values.notes} onChangeText={(value) => set("notes", value)} />
+
+        {eventId !== undefined && (
+          <View style={local.attachments}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={local.switchLabel}>Anexos</Text>
+                <Text style={local.muted}>opcional · foto ou PDF</Text>
+              </View>
+              <Button testID="add-attachment" label="Adicionar" icon="camera" variant="dark" size="sm" stretch={false} disabled={busy} onPress={() => void addAttachment()} />
+            </View>
+            {attachments.map((attachment) => (
+              <View key={attachment.id} style={local.attachment}>
+                <Pressable accessibilityRole="link" style={{ flex: 1 }} onPress={() => void Linking.openURL(attachment.url)}>
+                  <Text style={local.link}>{attachment.fileName}</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" hitSlop={10} onPress={() => removeAttachment(attachment)}>
+                  <Text style={local.remove}>Remover</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {error !== null && <ErrorText testID="event-error">{error}</ErrorText>}
+        {eventId !== undefined && <Button testID="delete-event" label="Apagar evento" variant="soft" size="md" onPress={confirmDelete} />}
+      </ScrollView>
+      <View style={[local.footer, { paddingBottom: insets.bottom + space.lg }]}>
+        <Button testID="save-event" label="Salvar" busy={busy} onPress={() => void save()} />
+      </View>
+    </View>
   );
 }
 
 const local = StyleSheet.create({
-  content: { backgroundColor: colors.background, flexGrow: 1, padding: 16 },
-  heading: { fontSize: 22, fontFamily: fonts.titleBold, marginBottom: 12 },
-  long: { minHeight: 80, textAlignVertical: "top" },
-  choices: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  choice: { borderColor: colors.textMuted, borderRadius: 16, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },
-  choiceSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-  choiceText: { fontFamily: fonts.body, fontSize: 14 },
-  choiceTextSelected: { fontFamily: fonts.body, color: colors.background, fontSize: 14 },
-  section: { fontSize: 18, fontFamily: fonts.titleBold, marginTop: 16 },
-  attachment: { alignItems: "center", flexDirection: "row", paddingVertical: 6 },
-  attachmentName: { flex: 1 },
-  remove: { fontFamily: fonts.body, color: colors.dangerText, fontSize: 15 },
+  page: { flex: 1, backgroundColor: colors.background },
+  content: { paddingHorizontal: space.xl, paddingBottom: space.xl, gap: 14 },
+  top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  close: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },
+  petChip: { minHeight: 40, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.surface, justifyContent: "center" },
+  petName: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.ink },
+  heading: { fontFamily: fonts.title, fontSize: 28, letterSpacing: -0.8, color: colors.ink },
+  chip: { minHeight: 40, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.surface, justifyContent: "center" },
+  chipSelected: { backgroundColor: colors.dark },
+  chipText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.ink },
+  choices: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  long: { minHeight: 80, textAlignVertical: "top", paddingTop: 12 },
+  switchRow: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 44 },
+  switchLabel: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
+  muted: { fontFamily: fonts.body, fontSize: 13, color: colors.textMuted },
+  attachments: { gap: 8, padding: 14, borderRadius: 18, borderWidth: 2, borderStyle: "dashed", borderColor: colors.borderDashed },
+  attachment: { flexDirection: "row", alignItems: "center", minHeight: 44 },
+  link: { fontFamily: fonts.bodySemibold, fontSize: 15, color: colors.link },
+  remove: { fontFamily: fonts.bodySemibold, fontSize: 15, color: colors.dangerText },
+  footer: { paddingHorizontal: space.xl, paddingTop: space.md, backgroundColor: colors.background },
 });
