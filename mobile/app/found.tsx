@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -9,6 +9,8 @@ import { apiUrl } from "../src/config";
 import { CONTACT_LIMITS, foundFailureMessage, similarityLabel, toContact } from "../src/found/contact";
 import { currentLocation } from "../src/found/location";
 import { filePart, NOSE_PHOTO_QUALITY, pickPhoto, takePhoto } from "../src/pets/pickPhoto";
+import { listBoard, type Report } from "../src/api/reports";
+import { timeAgo } from "../src/reports/board";
 import { PublishFound } from "../src/reports/PublishFound";
 import { styles } from "../src/screens/styles";
 import { Button } from "../src/ui/Button";
@@ -16,6 +18,7 @@ import { Field } from "../src/ui/Field";
 import { BackButton, Checkbox } from "../src/ui/Surfaces";
 import { Icon, LogoMark, type IconName } from "../src/ui/Icon";
 import { colors, fonts, radius, space } from "../src/ui/theme";
+import { useWide } from "../src/ui/useWide";
 
 /**
  * The public page "encontrei um pet": a visitor with no account sends the
@@ -26,6 +29,15 @@ export default function Found() {
   const insets = useSafeAreaInsets();
   // "start" is the Achei-Mobile artboard; "scan" sends the photo to the search; "publish" goes to the board.
   const [mode, setMode] = useState<"start" | "scan" | "publish">("start");
+  const wide = useWide();
+  // The lost dogs of the board, for the column of the wide layout.
+  const [lost, setLost] = useState<Report[]>([]);
+  useEffect(() => {
+    if (!wide) {
+      return;
+    }
+    void listBoard(apiUrl, 1, { type: "lost" }).then((result) => result.ok && setLost(result.value.reports.slice(0, 4)));
+  }, [wide]);
   const [photo, setPhoto] = useState<LocalFile | null>(null);
   const [shareLocation, setShareLocation] = useState(false);
   const [identification, setIdentification] = useState<Identification | null>(null);
@@ -95,12 +107,117 @@ export default function Found() {
   const candidate = noneIsTheDog ? undefined : candidates[current];
   const chosen = candidates.find((item) => item.id === candidateId);
 
+  if (wide && mode === "start") {
+    // Achei-Web: the scan and the help on the left, the lost dogs on the right (#231).
+    return (
+      <ScrollView contentContainerStyle={local.wide}>
+        <View style={{ flex: 1.5, minWidth: 0, gap: 24 }}>
+          <View style={{ gap: 10 }}>
+            <Text style={[local.title, { fontSize: 52, letterSpacing: -1.6 }]} accessibilityRole="header">
+              Achou um cachorro?
+            </Text>
+            <Text style={[local.lead, { fontSize: 18 }]}>Obrigado por ajudar. Vamos tentar encontrar o tutor dele.</Text>
+          </View>
+          <View style={[local.scanCard, { padding: 28 }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+              <View style={[local.scanArt, { width: 140, height: 140 }]}>
+                <Icon name="scan" size={64} color={colors.brand} strokeWidth={2.2} />
+              </View>
+              <View style={{ flex: 1, gap: 6 }}>
+                <Text style={[local.scanTitle, { fontSize: 28 }]}>Escaneie o focinho</Text>
+                <Text style={local.scanText}>Se ele tiver cadastro, o tutor é avisado na hora. Leva menos de 1 minuto.</Text>
+              </View>
+            </View>
+            <Pressable testID="found-pick-photo-button" accessibilityRole="button" style={local.scanButton} disabled={busy} onPress={() => void choosePhoto("scan")}>
+              <Icon name="scan" size={22} color={colors.onPrimary} strokeWidth={2.1} />
+              <Text style={local.scanButtonText}>Escanear focinho</Text>
+            </Pressable>
+          </View>
+          <View style={{ gap: 12 }}>
+            <Text style={local.section2}>Como funciona</Text>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              {[
+                { n: "1", color: colors.brand, title: "Foto do focinho", text: "Bem de perto, com o focinho no centro da foto." },
+                { n: "2", color: colors.accent, title: "Veja os parecidos", text: "Os cachorros cadastrados mais parecidos, com foto. Nunca dados do tutor." },
+                { n: "3", color: colors.success, title: "Avise o tutor", text: "Se for ele, o tutor recebe o seu contato na hora." },
+              ].map((step) => (
+                <View key={step.n} style={local.step}>
+                  <View style={[local.stepNumber, { backgroundColor: step.color }]}>
+                    <Text style={local.stepNumberText}>{step.n}</Text>
+                  </View>
+                  <Text style={local.stepTitle}>{step.title}</Text>
+                  <Text style={local.optionLine}>{step.text}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+          <View style={{ gap: 12 }}>
+            <Text style={local.section2}>Enquanto isso</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+              {[
+                { title: "Olhe a coleira", text: "Plaquinha ou telefone resolvem na hora." },
+                { title: "Microchip", text: "Uma clínica veterinária consegue ler, se ele tiver." },
+                { title: "Lugar seguro e água", text: "Evite dar comida diferente da que ele está acostumado." },
+                { title: "Não entregue sem confirmar", text: "Peça uma foto antiga ou o cadastro no Nupii antes." },
+              ].map((tip) => (
+                <View key={tip.title} style={local.tipCard}>
+                  <View style={local.tipCheck}>
+                    <Icon name="check" size={13} color={colors.onPrimary} strokeWidth={3.2} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={local.stepTitle}>{tip.title}</Text>
+                    <Text style={local.optionLine}>{tip.text}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+        <View style={local.aside} accessibilityLabel="Perdidos">
+          <View style={{ gap: 2 }}>
+            <Text style={local.section2}>Pode ser um destes?</Text>
+            <Text style={local.optionLine}>Os cachorros perdidos mais recentes do mural</Text>
+          </View>
+          {lost.map((report) => (
+            <View key={report.id} style={local.lostRow}>
+              <View style={local.lostPhoto}>{report.photoUrl ? <Image source={{ uri: report.photoUrl }} style={StyleSheet.absoluteFill} /> : <Icon name="pin" size={22} color={colors.onPrimary} />}</View>
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <Text style={local.stepTitle} numberOfLines={1}>
+                  {report.petName ?? "Pet perdido"}
+                </Text>
+                <Text style={local.optionLine} numberOfLines={1}>
+                  {[report.place, timeAgo(report.occurredAt)].filter(Boolean).join(" · ")}
+                </Text>
+              </View>
+              <Pressable accessibilityRole="button" style={local.mayBe} onPress={() => router.push({ pathname: "/reports/[id]", params: { id: report.id } })}>
+                <Text style={local.mayBeText}>Pode ser</Text>
+              </Pressable>
+            </View>
+          ))}
+          {lost.length === 0 && <Text style={local.optionLine}>Nenhum cachorro perdido no mural agora.</Text>}
+          <Button label="Ver todos no mural" variant="soft" size="md" trailingIcon="arrowRight" onPress={() => router.push("/reports")} />
+          <View style={{ height: 1, backgroundColor: colors.border }} />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={[local.optionIcon, { backgroundColor: colors.success }]}>
+              <Icon name="camera" size={18} color={colors.onPrimary} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={local.stepTitle}>Nenhum parece com ele?</Text>
+              <Text style={local.optionLine}>Publique como achado: quem procura vê no mural.</Text>
+            </View>
+          </View>
+          <Button testID="found-publish" label="Publicar como achado" variant="outline" size="md" onPress={() => setMode("publish")} />
+        </View>
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={[local.content, { paddingTop: insets.top + space.lg }]} keyboardShouldPersistTaps="handled">
       <View style={local.top}>
         <BackButton testID="found-back" onPress={() => (mode !== "start" ? setMode("start") : router.canGoBack() ? router.back() : router.replace("/"))} />
-        <LogoMark size={28} />
-        <Text style={local.brand}>nupii</Text>
+        {!wide && <LogoMark size={28} />}
+        {!wide && <Text style={local.brand}>nupii</Text>}
       </View>
       {identification === null && (
         <View style={{ gap: 8 }}>
@@ -282,6 +399,19 @@ export default function Found() {
 const local = StyleSheet.create({
   content: { alignSelf: "center", backgroundColor: colors.background, flexGrow: 1, maxWidth: 520, paddingHorizontal: space.xl, paddingBottom: space.xl, gap: space.lg, width: "100%" },
   top: { flexDirection: "row", alignItems: "center", gap: 8 },
+  wide: { flexDirection: "row", gap: 32, alignItems: "flex-start", width: "100%", maxWidth: 1280, alignSelf: "center", paddingHorizontal: 48, paddingTop: 32, paddingBottom: 56 },
+  section2: { fontFamily: fonts.titleBold, fontSize: 20, color: colors.ink },
+  step: { flex: 1, gap: 8, padding: 16, borderRadius: 22, borderWidth: 1.5, borderColor: colors.border },
+  stepNumber: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  stepNumberText: { fontFamily: fonts.title, fontSize: 15, color: colors.onPrimary },
+  stepTitle: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
+  tipCard: { width: "48%", flexGrow: 1, flexDirection: "row", gap: 12, padding: 14, borderRadius: 18, backgroundColor: colors.surface },
+  tipCheck: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.success, alignItems: "center", justifyContent: "center" },
+  aside: { flex: 1, minWidth: 0, gap: 14, padding: 20, borderRadius: 28, borderWidth: 1.5, borderColor: colors.border },
+  lostRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 8, borderRadius: 20, borderWidth: 1.5, borderColor: colors.border },
+  lostPhoto: { width: 64, height: 64, borderRadius: 16, overflow: "hidden", backgroundColor: colors.brand, alignItems: "center", justifyContent: "center" },
+  mayBe: { minHeight: 36, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.dark, justifyContent: "center" },
+  mayBeText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.onDark },
   brand: { fontFamily: fonts.title, fontSize: 22, color: colors.ink },
   title: { fontFamily: fonts.title, fontSize: 32, letterSpacing: -0.9, color: colors.ink },
   lead: { fontFamily: fonts.body, fontSize: 16, lineHeight: 24, color: colors.textSecondary },

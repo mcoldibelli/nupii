@@ -13,6 +13,7 @@ import { useWelcome, WelcomeProvider } from "../src/welcome/WelcomeContext";
 import { SelectedPetProvider } from "../src/pets/SelectedPetContext";
 import { Button } from "../src/ui/Button";
 import { StatusScreen } from "../src/ui/StatusScreen";
+import { WebFrame } from "../src/ui/WebFrame";
 import { colors, fonts } from "../src/ui/theme";
 
 /** The header of the screens: the title font of the canvas, with no line under it (ADR 0030). */
@@ -72,6 +73,7 @@ function Screens() {
 
   if (isPublicPage) {
     return (
+      <WebFrame>
       <Stack screenOptions={headerOptions}>
         <Stack.Screen name="found" options={{ headerShown: false }} />
         <Stack.Screen name="reports/index" options={{ headerShown: false }} />
@@ -79,6 +81,7 @@ function Screens() {
         <Stack.Screen name="card" options={{ headerShown: false }} />
         <Stack.Screen name="terms" options={{ title: "Termos de uso" }} />
       </Stack>
+      </WebFrame>
     );
   }
   if (missing.length > 0) {
@@ -102,6 +105,7 @@ function Screens() {
   }
 
   return (
+    <WebFrame>
     <Stack screenOptions={headerOptions}>
       <Stack.Protected guard={state.kind === "ready"}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -148,6 +152,7 @@ function Screens() {
         <Stack.Screen name="card" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>
+    </WebFrame>
   );
 }
 

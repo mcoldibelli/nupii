@@ -21,7 +21,10 @@ function subtitle(pet: HealthCard["pet"]): string {
   return parts.join(" · ");
 }
 
-function Table({ title, rows, empty, testID }: { title: string; rows: (VaccineRow & { product?: string })[]; empty: string; testID: string }) {
+/** The extra columns of a table on a wide screen (Carteirinha-Web): the header and one text per row. */
+type Extra = { headers: [string, string, string, ...string[]]; cells: (index: number) => string[] };
+
+function Table({ title, rows, empty, testID, extra }: { title: string; rows: (VaccineRow & { product?: string })[]; empty: string; testID: string; extra?: Extra }) {
   const late = rows.filter((row) => row.late).length;
   return (
     <View style={local.section} testID={testID}>
@@ -34,16 +37,41 @@ function Table({ title, rows, empty, testID }: { title: string; rows: (VaccineRo
         )}
       </View>
       {rows.length === 0 && <Text style={local.muted}>{empty}</Text>}
-      {rows.map((row, index) => (
-        <View key={index} style={local.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={local.rowName}>{row.name}</Text>
-            {row.product !== undefined && <Text style={local.muted}>{row.product}</Text>}
-          </View>
-          <Text style={local.rowDate}>{row.date}</Text>
-          <Text style={[local.rowNext, row.late && { color: colors.dangerText }]}>{row.next}</Text>
+      {extra !== undefined && rows.length > 0 && (
+        <View style={[local.row, { minHeight: 36 }]}>
+          {extra.headers.map((header, i) => (
+            <Text key={header} style={[local.columnHead, i === 0 && { flex: 1.4 }]}>
+              {header.toUpperCase()}
+            </Text>
+          ))}
         </View>
-      ))}
+      )}
+      {rows.map((row, index) =>
+        extra !== undefined ? (
+          <View key={index} style={local.row}>
+            <View style={{ flex: 1.4 }}>
+              <Text style={local.rowName}>{row.name}</Text>
+              {row.product !== undefined && <Text style={local.muted}>{row.product}</Text>}
+            </View>
+            <Text style={local.cell}>{row.date}</Text>
+            <Text style={[local.cell, local.rowName, row.late && { color: colors.dangerText }]}>{row.next}</Text>
+            {extra.cells(index).map((text, i) => (
+              <Text key={i} style={local.cell} numberOfLines={2}>
+                {text || "—"}
+              </Text>
+            ))}
+          </View>
+        ) : (
+          <View key={index} style={local.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={local.rowName}>{row.name}</Text>
+              {row.product !== undefined && <Text style={local.muted}>{row.product}</Text>}
+            </View>
+            <Text style={local.rowDate}>{row.date}</Text>
+            <Text style={[local.rowNext, row.late && { color: colors.dangerText }]}>{row.next}</Text>
+          </View>
+        ),
+      )}
     </View>
   );
 }
@@ -52,7 +80,7 @@ function Table({ title, rows, empty, testID }: { title: string; rows: (VaccineRo
  * The health card of the Carteirinha-Mobile artboard (RN-83), for the owner
  * and for the public page. Only the owner view has the tutor.
  */
-export function HealthCardView({ card, tutor, noseprint = false, qrText }: { card: HealthCard; tutor?: string; noseprint?: boolean; qrText?: string }) {
+export function HealthCardView({ card, tutor, noseprint = false, qrText, wide = false }: { card: HealthCard; tutor?: string; noseprint?: boolean; qrText?: string; wide?: boolean }) {
   const { pet } = card;
   const facts = [
     pet.birthDate ? { label: "Nascimento", value: dateText(pet.birthDate) } : null,
@@ -101,8 +129,20 @@ export function HealthCardView({ card, tutor, noseprint = false, qrText }: { car
         )}
         {vet !== "" && <Text style={local.cardMuted}>Veterinário: {vet}</Text>}
       </View>
-      <Table testID="card-vaccines" title="Vacinas" rows={vaccineRows(card.vaccines)} empty="Nenhuma vacina registrada." />
-      <Table testID="card-parasites" title="Antiparasitários" rows={medicationRows(card.parasiteControl)} empty="Nenhum antipulgas ou vermífugo registrado." />
+      <Table
+        testID="card-vaccines"
+        title="Vacinas"
+        rows={vaccineRows(card.vaccines)}
+        empty="Nenhuma vacina registrada."
+        extra={wide ? { headers: ["Vacina", "Aplicada", "Próxima", "Lote", "Profissional"], cells: (i) => [card.vaccines[i].batch ?? "", card.vaccines[i].vet ?? ""] } : undefined}
+      />
+      <Table
+        testID="card-parasites"
+        title="Antiparasitários"
+        rows={medicationRows(card.parasiteControl)}
+        empty="Nenhum antipulgas ou vermífugo registrado."
+        extra={wide ? { headers: ["Produto", "Última", "Próxima", "Frequência"], cells: (i) => [card.parasiteControl[i].intervalDays ? `a cada ${card.parasiteControl[i].intervalDays} dias` : ""] } : undefined}
+      />
       {card.exams !== undefined && (
         <View style={local.section} testID="card-exams">
           <View style={local.sectionHead}>
@@ -144,6 +184,8 @@ const local = StyleSheet.create({
   chip: { minHeight: 28, paddingHorizontal: 10, borderRadius: radius.pill, justifyContent: "center" },
   chipText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.onPrimary },
   row: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48, borderBottomWidth: 1, borderBottomColor: colors.border },
+  columnHead: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 0.6, color: colors.textMuted },
+  cell: { flex: 1, fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary },
   rowName: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
   rowDate: { width: 72, fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary },
   rowNext: { width: 70, textAlign: "right", fontFamily: fonts.bodyBold, fontSize: 14, color: colors.ink },

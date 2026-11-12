@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { Location as Point } from "../../src/api/alerts";
@@ -17,6 +17,7 @@ import { Icon } from "../../src/ui/Icon";
 import { TabBar } from "../../src/ui/TabBar";
 import { ErrorText } from "../../src/ui/Text";
 import { colors, fonts, radius, space } from "../../src/ui/theme";
+import { useWide } from "../../src/ui/useWide";
 
 type Kind = "all" | Report["type"];
 type Radius = NonNullable<BoardFilter["radiusKm"]>;
@@ -42,6 +43,7 @@ function cardText(report: Report) {
 /** The board (Mural-Mobile artboard): the open lost and found reports, as a list or a map, by type and radius (RF-16, RN-24). */
 export default function Board() {
   const { state } = useSession();
+  const wide = useWide();
   const insets = useSafeAreaInsets();
   const [kind, setKind] = useState<Kind>("all");
   const [radiusKm, setRadiusKm] = useState<Radius | null>(3);
@@ -107,8 +109,8 @@ export default function Board() {
     const text = cardText(report);
     const lost = report.type === "lost";
     return (
-      <View key={report.id} testID={`report-row-${report.id}`} style={local.card}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Abrir ${text.name}`} style={[local.photo, { backgroundColor: lost ? colors.brand : colors.accent }]} onPress={() => open(report)}>
+      <View key={report.id} testID={`report-row-${report.id}`} style={[local.card, wide && local.cardWide]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Abrir ${text.name}`} style={[local.photo, wide && local.photoWide, { backgroundColor: lost ? colors.brand : colors.accent }]} onPress={() => open(report)}>
           {report.photoUrl ? <Image source={{ uri: report.photoUrl }} style={StyleSheet.absoluteFill} /> : <Icon name="pin" size={30} color={colors.onPrimary} />}
         </Pressable>
         <View style={{ flex: 1, gap: 4 }}>
@@ -141,6 +143,97 @@ export default function Board() {
     );
   };
 
+  const filters = (
+    <View style={local.filters}>
+      {kinds.map((item) => {
+        const selected = item.value === kind;
+        return (
+          <Pressable key={item.value} testID={`filter-${item.value}`} accessibilityRole="button" accessibilityState={{ selected }} style={[local.filter, selected && { backgroundColor: colors.dark }]} onPress={() => setKind(item.value)}>
+            {item.dot && <View style={[local.dot, { backgroundColor: item.dot }]} />}
+            <Text style={[local.filterText, selected && { color: colors.onDark }]}>{item.label}</Text>
+          </Pressable>
+        );
+      })}
+      <View style={{ flex: 1 }} />
+      {Platform.OS === "web" ? (
+        // React Native Web shows no Alert with buttons: the radius is a row of options.
+        <View style={{ flexDirection: "row", gap: 6 }}>
+          {center ? (
+            ([1, 3, 5, 10, null] as (Radius | null)[]).map((value) => {
+              const selected = radiusKm === value;
+              return (
+                <Pressable key={String(value)} testID={`radius-${value ?? "all"}`} accessibilityRole="button" accessibilityState={{ selected }} style={[local.filter, selected && { backgroundColor: colors.dark }]} onPress={() => setRadiusKm(value)}>
+                  <Text style={[local.filterText, selected && { color: colors.onDark }]}>{value === null ? "Tudo" : `${value} km`}</Text>
+                </Pressable>
+              );
+            })
+          ) : (
+            <Text style={local.muted}>Sem localização: o mural mostra tudo</Text>
+          )}
+        </View>
+      ) : (
+      <Pressable testID="radius" accessibilityRole="button" accessibilityLabel={center && radiusKm ? `Raio de busca: ${radiusKm} km` : "Raio de busca: todo o mural"} style={local.radius} onPress={chooseRadius}>
+        <Text style={local.filterText}>{center && radiusKm ? `${radiusKm} km` : "Tudo"}</Text>
+        <Icon name="chevronDown" size={14} />
+      </Pressable>
+      )}
+    </View>
+  );
+  const countsText = last === undefined ? "" : center && radiusKm ? `${last.openLost} perdidos e ${last.openFound} achados em ${radiusKm} km` : `${last.openLost} perdidos e ${last.openFound} achados no mural`;
+
+  if (wide) {
+    // Mural-Web: the cards in two columns and the map beside them (#231).
+    return (
+      <View style={local.page}>
+        <View style={local.wide}>
+          <View style={{ gap: 4 }}>
+            <Text style={local.wideTitle} accessibilityRole="header">
+              Mural
+            </Text>
+            <Text testID="board-counts" style={local.muted}>
+              {countsText}
+            </Text>
+          </View>
+          {state.kind !== "ready" && (
+            <View style={local.banner}>
+              <View style={local.bannerIcon}>
+                <Icon name="bell" size={18} color={colors.onPrimary} />
+              </View>
+              <Text style={[local.bannerText, { flex: 1 }]}>
+                <Text style={{ fontFamily: fonts.bodyBold }}>Quer ser avisado quando um cachorro sumir perto de você?</Text> Com uma conta, você também consegue avisar o tutor.
+              </Text>
+              <Button label="Criar conta" size="sm" stretch={false} onPress={() => router.push({ pathname: "/sign-in", params: { mode: "create" } })} />
+            </View>
+          )}
+          {filters}
+          {error !== null && <ErrorText testID="board-error">{error}</ErrorText>}
+          <View style={local.wideBody}>
+            <ScrollView style={{ flex: 1.4 }} contentContainerStyle={local.wideGrid}>
+              {last !== undefined && reports.length === 0 && (
+                <Text testID="board-empty" style={local.muted}>
+                  Nenhuma ocorrência aberta {center && radiusKm ? "neste raio" : "no mural"}.
+                </Text>
+              )}
+              {reports.map((report) => (
+                <View key={report.id} style={local.wideCell}>
+                  {card(report)}
+                </View>
+              ))}
+              {last?.hasNext && (
+                <View style={{ width: "100%" }}>
+                  <Button testID="board-more" label="Ver mais" variant="soft" size="md" disabled={busy} onPress={() => void load(last.page + 1)} />
+                </View>
+              )}
+            </ScrollView>
+            <View style={local.wideMap}>
+              <MapView style={{ flex: 1 }} markers={reports.map((report) => ({ latitude: report.latitude, longitude: report.longitude, label: `${cardText(report).tag}: ${cardText(report).name}`, kind: "main" }))} />
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={local.page}>
       <View style={[local.header, { paddingTop: insets.top + space.md }]}>
@@ -165,29 +258,14 @@ export default function Board() {
             })}
           </View>
         </View>
-        <View style={local.filters}>
-          {kinds.map((item) => {
-            const selected = item.value === kind;
-            return (
-              <Pressable key={item.value} testID={`filter-${item.value}`} accessibilityRole="button" accessibilityState={{ selected }} style={[local.filter, selected && { backgroundColor: colors.dark }]} onPress={() => setKind(item.value)}>
-                {item.dot && <View style={[local.dot, { backgroundColor: item.dot }]} />}
-                <Text style={[local.filterText, selected && { color: colors.onDark }]}>{item.label}</Text>
-              </Pressable>
-            );
-          })}
-          <View style={{ flex: 1 }} />
-          <Pressable testID="radius" accessibilityRole="button" accessibilityLabel={center && radiusKm ? `Raio de busca: ${radiusKm} km` : "Raio de busca: todo o mural"} style={local.radius} onPress={chooseRadius}>
-            <Text style={local.filterText}>{center && radiusKm ? `${radiusKm} km` : "Tudo"}</Text>
-            <Icon name="chevronDown" size={14} />
-          </Pressable>
-        </View>
+        {filters}
       </View>
 
       {view === "list" ? (
         <ScrollView contentContainerStyle={local.content}>
           {last !== undefined && (
             <Text testID="board-counts" style={local.muted}>
-              {center && radiusKm ? `${last.openLost} perdidos e ${last.openFound} achados em ${radiusKm} km` : `${last.openLost} perdidos e ${last.openFound} achados no mural`}
+              {countsText}
             </Text>
           )}
           {error !== null && <ErrorText testID="board-error">{error}</ErrorText>}
@@ -224,6 +302,17 @@ export default function Board() {
 
 const local = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
+  wide: { flex: 1, width: "100%", maxWidth: 1280, alignSelf: "center", paddingHorizontal: 40, paddingTop: 28, paddingBottom: 24, gap: space.lg },
+  wideTitle: { fontFamily: fonts.title, fontSize: 40, letterSpacing: -1.2, color: colors.ink },
+  banner: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 20, backgroundColor: colors.surface },
+  bannerIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.brand, alignItems: "center", justifyContent: "center" },
+  bannerText: { fontFamily: fonts.body, fontSize: 15, color: colors.ink },
+  wideBody: { flex: 1, flexDirection: "row", gap: 24, minHeight: 520 },
+  wideGrid: { flexDirection: "row", flexWrap: "wrap", gap: 16, paddingBottom: 24 },
+  wideCell: { width: "48%" },
+  cardWide: { flexDirection: "column", padding: 10 },
+  photoWide: { width: "100%", minHeight: 0, height: 200 },
+  wideMap: { flex: 1, borderRadius: radius.cardLarge, overflow: "hidden", minHeight: 520 },
   header: { paddingHorizontal: space.xl, gap: space.md, paddingBottom: space.md, width: "100%", maxWidth: 720, alignSelf: "center" },
   top: { flexDirection: "row", alignItems: "center", gap: 10 },
   round: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },

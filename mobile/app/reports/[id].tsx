@@ -18,6 +18,7 @@ import { Icon } from "../../src/ui/Icon";
 import { BackButton } from "../../src/ui/Surfaces";
 import { ErrorText } from "../../src/ui/Text";
 import { colors, fonts, radius, space } from "../../src/ui/theme";
+import { useWide } from "../../src/ui/useWide";
 
 /** The markers of the detail: the point of the report and the sightings. */
 function markersOf(report: Report): MapMarker[] {
@@ -101,6 +102,7 @@ export default function ReportDetail() {
 
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const wide = useWide();
   const back = () => (router.canGoBack() ? router.back() : router.replace("/reports"));
   if (report === null) {
     return (
@@ -119,15 +121,15 @@ export default function ReportDetail() {
   const share = () => void Share.share({ message: `${name}: ${webUrl}/reports/${report.id}` });
   return (
     <View style={local.page}>
-      <ScrollView contentContainerStyle={{ paddingBottom: space.xl }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={wide ? local.wideContent : { paddingBottom: space.xl }} keyboardShouldPersistTaps="handled">
         {/* RN-86: the photo is the profile photo of the pet, or the wide photo of a found dog. */}
-        <View style={[local.hero, { height: (report.photoUrl !== undefined ? Math.min(width, 520) * 0.85 : 170) + insets.top, backgroundColor: lost ? colors.brand : colors.accent }]}>
+        <View style={[local.hero, wide ? local.heroWide : { height: (report.photoUrl !== undefined ? Math.min(width, 520) * 0.85 : 170) + insets.top }, { backgroundColor: lost ? colors.brand : colors.accent }]}>
           {report.photoUrl !== undefined ? (
             <Image testID="report-photo" accessibilityLabel={`Foto de ${name}`} source={{ uri: report.photoUrl }} style={StyleSheet.absoluteFill} />
           ) : (
             <Icon name="pin" size={56} color={colors.onPrimary} />
           )}
-          <View style={[local.heroBar, { top: insets.top + space.md }]}>
+          <View style={[local.heroBar, { top: wide ? space.lg : insets.top + space.md }]}>
             <Pressable accessibilityRole="button" accessibilityLabel="Voltar" style={local.round} onPress={back}>
               <Icon name="back" size={20} />
             </Pressable>
@@ -137,7 +139,7 @@ export default function ReportDetail() {
           </View>
         </View>
 
-        <View style={local.sheet}>
+        <View style={[local.sheet, wide && local.sheetWide]}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <View style={[local.tag, { backgroundColor: tag.color }]}>
               <Text style={local.tagText}>{tag.label}</Text>
@@ -177,6 +179,16 @@ export default function ReportDetail() {
             </Pressable>
           )}
 
+          {/* On a wide screen the action stays beside the details. */}
+          {wide && open && (lost || code !== undefined) && (
+            <View style={{ alignItems: "flex-start" }}>
+            {lost ? (
+              <Button testID="report-seen" label={report.petSpecies === "dog" ? "Vi este cachorro" : "Vi este pet"} icon="pin" stretch={!wide} onPress={() => setSighting((current) => ({ ...current, open: true }))} />
+            ) : (
+              <Button testID="found-resolve-button" label="O tutor buscou o cão: resolver" stretch={!wide} busy={busy} onPress={() => void resolveWithCode()} />
+            )}
+            </View>
+          )}
           <Text style={local.section}>{lost ? "Onde sumiu" : "Onde foi achado"}</Text>
           <MapView markers={markersOf(report)} style={local.map} />
 
@@ -208,12 +220,12 @@ export default function ReportDetail() {
         </View>
       </ScrollView>
 
-      {open && (lost || code !== undefined) && (
+      {!wide && open && (lost || code !== undefined) && (
         <View style={[local.footer, { paddingBottom: insets.bottom + space.lg }]}>
           {lost ? (
-            <Button testID="report-seen" label={report.petSpecies === "dog" ? "Vi este cachorro" : "Vi este pet"} icon="pin" onPress={() => setSighting((current) => ({ ...current, open: true }))} />
+            <Button testID="report-seen" label={report.petSpecies === "dog" ? "Vi este cachorro" : "Vi este pet"} icon="pin" stretch={!wide} onPress={() => setSighting((current) => ({ ...current, open: true }))} />
           ) : (
-            <Button testID="found-resolve-button" label="O tutor buscou o cão: resolver" busy={busy} onPress={() => void resolveWithCode()} />
+            <Button testID="found-resolve-button" label="O tutor buscou o cão: resolver" stretch={!wide} busy={busy} onPress={() => void resolveWithCode()} />
           )}
         </View>
       )}
@@ -240,6 +252,9 @@ export default function ReportDetail() {
 
 const local = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
+  wideContent: { flexDirection: "row", alignItems: "flex-start", gap: 40, width: "100%", maxWidth: 1180, alignSelf: "center", paddingHorizontal: 40, paddingVertical: 32 },
+  heroWide: { width: 440, height: 440, borderRadius: 28 },
+  sheetWide: { flex: 1, marginTop: 0, paddingTop: 0, paddingHorizontal: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0, maxWidth: undefined },
   hero: { alignItems: "center", justifyContent: "center", overflow: "hidden" },
   heroBar: { position: "absolute", left: space.xl, right: space.xl, flexDirection: "row", justifyContent: "space-between" },
   round: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },

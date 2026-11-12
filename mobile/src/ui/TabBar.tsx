@@ -6,6 +6,7 @@ import { useSelectedPet } from "../pets/SelectedPetContext";
 import { useSession } from "../session/SessionContext";
 import { Icon, type IconName } from "./Icon";
 import { colors, fonts } from "./theme";
+import { useWide } from "./useWide";
 
 type Tab = { key: string; label: string; icon: IconName; testID: string; selected: (path: string) => boolean; go: () => void };
 
@@ -19,7 +20,9 @@ export function TabBar() {
   const insets = useSafeAreaInsets();
   const { state } = useSession();
   const { pet } = useSelectedPet();
-  if (state.kind !== "ready") {
+  // On a wide screen the sidebar of the web frame has the navigation.
+  const wide = useWide();
+  if (state.kind !== "ready" || wide) {
     return null;
   }
   const to = (href: Href) => () => router.replace(href);
