@@ -9,7 +9,7 @@ import { formatDateTime } from "../src/biometrics/messages";
 import { apiUrl } from "../src/config";
 import { styles } from "../src/screens/styles";
 import { useSession } from "../src/session/SessionContext";
-import { colors } from "../src/ui/theme";
+import { colors, fonts } from "../src/ui/theme";
 import { TabBar } from "../src/ui/TabBar";
 
 /** The notifications of the owner: nearby alerts, sightings and found pets (RF-25). */
@@ -91,10 +91,10 @@ export default function Notifications() {
 }
 
 const local = StyleSheet.create({
-  screen: { backgroundColor: "#fff", flex: 1, padding: 16 },
-  row: { borderBottomColor: "#eee", borderBottomWidth: 1, paddingVertical: 12 },
-  unread: { backgroundColor: "#f2f6fd" },
-  title: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
-  line: { fontSize: 15, marginBottom: 4 },
-  date: { color: "#555", fontSize: 13 },
+  screen: { backgroundColor: colors.background, flex: 1, padding: 20 },
+  row: { borderColor: colors.border, borderRadius: 20, borderWidth: 1.5, marginBottom: 8, padding: 14 },
+  unread: { backgroundColor: colors.surface },
+  title: { color: colors.ink, fontSize: 16, fontFamily: fonts.bodyBold, marginBottom: 4 },
+  line: { fontFamily: fonts.body, fontSize: 15, marginBottom: 4 },
+  date: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 13 },
 });

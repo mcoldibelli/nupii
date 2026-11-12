@@ -5,7 +5,7 @@ import { changePassword } from "../src/auth/firebase";
 import { validateNewPassword } from "../src/auth/validation";
 import { styles } from "../src/screens/styles";
 import { useSession } from "../src/session/SessionContext";
-import { colors } from "../src/ui/theme";
+import { colors, fonts } from "../src/ui/theme";
 import { TabBar } from "../src/ui/TabBar";
 
 /** The profile of the owner (RF-06), the change of the password (RF-07) and the delete of the account (RF-08). */
@@ -96,9 +96,9 @@ export default function Profile() {
 }
 
 const local = StyleSheet.create({
-  screen: { backgroundColor: "#fff", flexGrow: 1, padding: 16 },
-  label: { color: "#555", fontSize: 14 },
-  value: { fontSize: 16, marginBottom: 12 },
-  heading: { fontSize: 18, fontWeight: "600", marginBottom: 8, marginTop: 24 },
-  danger: { backgroundColor: "#b00020" },
+  screen: { backgroundColor: colors.background, flexGrow: 1, padding: 20 },
+  label: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 14 },
+  value: { fontFamily: fonts.body, fontSize: 16, marginBottom: 12 },
+  heading: { fontSize: 18, fontFamily: fonts.titleBold, marginBottom: 8, marginTop: 24 },
+  danger: { backgroundColor: colors.danger },
 });

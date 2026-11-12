@@ -8,6 +8,7 @@ import { apiUrl } from "../src/config";
 import { formatDateTime, mapUrl, phoneUrl } from "../src/biometrics/messages";
 import { styles } from "../src/screens/styles";
 import { useSession } from "../src/session/SessionContext";
+import { colors, fonts } from "../src/ui/theme";
 
 /** The notices of the people that found a pet of the owner (RF-14). */
 export default function FoundNotices() {
@@ -77,8 +78,8 @@ export default function FoundNotices() {
 }
 
 const local = StyleSheet.create({
-  screen: { backgroundColor: "#fff", flex: 1, padding: 24 },
-  notice: { borderBottomColor: "#eee", borderBottomWidth: 1, paddingVertical: 12 },
-  title: { fontSize: 18, fontWeight: "600", marginBottom: 4 },
-  line: { fontSize: 16, marginBottom: 4 },
+  screen: { backgroundColor: colors.background, flex: 1, padding: 24 },
+  notice: { borderBottomColor: colors.border, borderBottomWidth: 1, paddingVertical: 12 },
+  title: { fontSize: 18, fontFamily: fonts.titleBold, marginBottom: 4 },
+  line: { fontFamily: fonts.body, fontSize: 16, marginBottom: 4 },
 });
