@@ -2,8 +2,8 @@ import Svg, { Circle, Ellipse, Path, Rect } from "react-native-svg";
 
 import { colors } from "./theme";
 
-// The stroke icons of the design canvas (ADR 0030). Only this file imports
-// react-native-svg.
+// The drawings of the design canvas (ADR 0030): the stroke icons, the logo
+// and the mascot. Only this file imports react-native-svg.
 const icons = {
   home: <Path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
   pin: (
@@ -101,8 +101,45 @@ export type IconName = keyof typeof icons;
 /** A stroke icon of the canvas. The icon is decoration: the control around it has the label. */
 export function Icon({ name, size = 22, color = colors.ink, strokeWidth = 2 }: { name: IconName; size?: number; color?: string; strokeWidth?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       {icons[name]}
+    </Svg>
+  );
+}
+
+/** The face mark of the logo, in the color of the background it sits on. */
+export function LogoMark({ size = 28, color = colors.brand, eyes = colors.background }: { size?: number; color?: string; eyes?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 26 26" aria-hidden>
+      <Path d="M13 3c5 0 9 3.6 9 8.6 0 5.6-4.4 10.4-9 10.4S4 17.2 4 11.6C4 6.6 8 3 13 3z" fill={color} />
+      <Ellipse cx="9.4" cy="12.6" rx="1.9" ry="2.6" fill={eyes} />
+      <Ellipse cx="16.6" cy="12.6" rx="1.9" ry="2.6" fill={eyes} />
+    </Svg>
+  );
+}
+
+/** The dog of the sign-in header of the canvas. It is decoration. */
+export function Mascot({ width = 186 }: { width?: number }) {
+  return (
+    <Svg width={width} height={(width * 260) / 240} viewBox="0 0 240 260" aria-hidden>
+      <Path d="M44 260 C44 188 82 156 120 156 C158 156 196 188 196 260 Z" fill="#2B2730" />
+      <Path d="M94 260 C94 214 106 192 120 192 C134 192 146 214 146 260 Z" fill="#F7E8D4" />
+      <Path d="M64 82 C46 66 40 40 52 24 C72 30 90 50 98 70 Z" fill="#1E1B20" />
+      <Path d="M176 82 C194 66 200 40 188 24 C168 30 150 50 142 70 Z" fill="#1E1B20" />
+      <Ellipse cx="120" cy="108" rx="64" ry="58" fill="#3A3540" />
+      <Path d="M120 54 C110 70 108 90 112 104 L128 104 C132 90 130 70 120 54 Z" fill="#F7E8D4" fillOpacity={0.85} />
+      <Ellipse cx="120" cy="136" rx="34" ry="25" fill="#F7E8D4" />
+      <Circle cx="96" cy="98" r="9.5" fill="#FFFFFF" />
+      <Circle cx="96" cy="98" r="6.5" fill="#1E1B18" />
+      <Circle cx="144" cy="98" r="9.5" fill="#FFFFFF" />
+      <Circle cx="144" cy="98" r="6.5" fill="#1E1B18" />
+      <Circle cx="98.5" cy="95.5" r="2.2" fill="#FFFFFF" />
+      <Circle cx="146.5" cy="95.5" r="2.2" fill="#FFFFFF" />
+      <Path d="M105 121 C105 113 135 113 135 121 C135 129 127 134 120 134 C113 134 105 129 105 121 Z" fill="#1E1B18" />
+      <Path d="M114 148 C114 160 126 160 126 148 Z" fill="#E8636B" />
+      <Path d="M120 134 V144 M120 144 C115 149 108 149 104 145 M120 144 C125 149 132 149 136 145" stroke="#1E1B18" strokeWidth={3} fill="none" strokeLinecap="round" />
+      <Path d="M76 170 C100 182 140 182 164 170 L162 184 C140 196 100 196 78 184 Z" fill={colors.brand} />
+      <Circle cx="120" cy="194" r="7.5" fill="#F2C14E" />
     </Svg>
   );
 }
