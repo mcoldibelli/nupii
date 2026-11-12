@@ -9,7 +9,7 @@ export type SaveTarget = {
 };
 
 export type SaveOutcome =
-  | { kind: "saved" }
+  | { kind: "saved"; petId: string }
   /** Nothing was saved. */
   | { kind: "failed"; message: string }
   /** The data of the pet petId was saved, and the photo was not sent. */
@@ -42,5 +42,5 @@ export async function savePet(
       return { kind: "photoFailed", petId: saved.value.id, message: failureMessage(uploaded) };
     }
   }
-  return { kind: "saved" };
+  return { kind: "saved", petId: saved.value.id };
 }

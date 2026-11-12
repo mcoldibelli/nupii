@@ -148,6 +148,59 @@ func (h *Handlers) RegisterNoseprint(
 	}
 }
 
+// CheckNoseprint gives the quality of a photo of the nose, from the part
+// "file" of the body, and stores nothing (RN-85).
+func (h *Handlers) CheckNoseprint(
+	ctx context.Context,
+	request api.CheckNoseprintRequestObject,
+) (api.CheckNoseprintResponseObject, error) {
+	invalid := func(message string) api.CheckNoseprintResponseObject {
+		return api.CheckNoseprint400JSONResponse{
+			InvalidRequestJSONResponse: api.InvalidRequestJSONResponse{
+				Error: api.ErrorCodeInvalidRequest, Message: message,
+			},
+		}
+	}
+	for {
+		part, err := request.Body.NextPart()
+		if errors.Is(err, io.EOF) {
+			return invalid(`the body has no part "file"`), nil
+		}
+		if err != nil {
+			return invalid("the multipart body could not be read"), nil
+		}
+		if part.FormName() != "file" {
+			continue
+		}
+		quality, err := h.service.Check(ctx, request.PetId.String(), part)
+		if err == nil {
+			return api.CheckNoseprint200JSONResponse{Quality: quality}, nil
+		}
+		switch status, body := classify(err); status {
+		case http.StatusBadRequest:
+			return api.CheckNoseprint400JSONResponse{
+				InvalidRequestJSONResponse: api.InvalidRequestJSONResponse(body),
+			}, nil
+		case http.StatusNotFound:
+			return api.CheckNoseprint404JSONResponse{
+				PetNotFoundJSONResponse: api.PetNotFoundJSONResponse(body),
+			}, nil
+		case http.StatusUnprocessableEntity:
+			return api.CheckNoseprint422JSONResponse{
+				NosePhotoRefusedJSONResponse: api.NosePhotoRefusedJSONResponse(body),
+			}, nil
+		case http.StatusServiceUnavailable:
+			h.logger.ErrorContext(ctx, "check noseprint: inference service failed",
+				slog.Any("error", err))
+			return api.CheckNoseprint503JSONResponse{
+				UnavailableJSONResponse: api.UnavailableJSONResponse(body),
+			}, nil
+		default:
+			return nil, fmt.Errorf("check noseprint: %w", err)
+		}
+	}
+}
+
 // GetNoseprint returns the primary noseprint of a pet of the owner that
 // made the request.
 func (h *Handlers) GetNoseprint(

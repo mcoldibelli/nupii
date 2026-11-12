@@ -131,24 +131,12 @@ func NewService(
 // ValidationError when photo is not an accepted image, and the errors of
 // the Embedder when the inference service refuses the photo or fails.
 func (s *Service) Register(ctx context.Context, petID string, photo io.Reader) (Noseprint, error) {
-	pet, err := s.pets.Get(ctx, petID)
-	if err != nil {
-		return Noseprint{}, fmt.Errorf("get the pet of the noseprint: %w", err)
-	}
-	if pet.Species != _speciesWithNoseprint {
-		return Noseprint{}, ErrSpeciesNotSupported
-	}
-	data, contentType, extension, err := readPhoto(photo)
+	photoData, err := s.embedNosePhoto(ctx, petID, photo)
 	if err != nil {
 		return Noseprint{}, err
 	}
-
-	// RN-08: o vetor é gerado antes de a foto ser salva. Uma foto recusada
-	// pela inferência não é gravada.
-	embedding, err := s.embedder.Embed(ctx, data)
-	if err != nil {
-		return Noseprint{}, fmt.Errorf("embed the photo of the nose: %w", err)
-	}
+	data, contentType, extension := photoData.data, photoData.contentType, photoData.extension
+	embedding := photoData.embedding
 
 	key := "noseprints/" + petID + "/" + strings.ToLower(rand.Text()) + "." + extension
 	err = s.photos.Put(ctx, key, contentType, bytes.NewReader(data), int64(len(data)))
@@ -172,6 +160,53 @@ func (s *Service) Register(ctx context.Context, petID string, photo io.Reader) (
 		return Noseprint{}, err
 	}
 	return s.noseprint(row.ID, row.ImageKey, row.ModelVersion, row.Quality, row.CapturedAt)
+}
+
+// nosePhoto is a photo of a nose that the inference service accepted.
+type nosePhoto struct {
+	data        []byte
+	contentType string
+	extension   string
+	embedding   inference.Embedding
+}
+
+// embedNosePhoto checks that the pet petID of the owner is a dog, reads the
+// photo and gets its vector from the inference service.
+func (s *Service) embedNosePhoto(
+	ctx context.Context,
+	petID string,
+	photo io.Reader,
+) (nosePhoto, error) {
+	pet, err := s.pets.Get(ctx, petID)
+	if err != nil {
+		return nosePhoto{}, fmt.Errorf("get the pet of the noseprint: %w", err)
+	}
+	if pet.Species != _speciesWithNoseprint {
+		return nosePhoto{}, ErrSpeciesNotSupported
+	}
+	data, contentType, extension, err := readPhoto(photo)
+	if err != nil {
+		return nosePhoto{}, err
+	}
+	// RN-08: o vetor é gerado antes de a foto ser salva. Uma foto recusada
+	// pela inferência não é gravada.
+	embedding, err := s.embedder.Embed(ctx, data)
+	if err != nil {
+		return nosePhoto{}, fmt.Errorf("embed the photo of the nose: %w", err)
+	}
+	return nosePhoto{
+		data: data, contentType: contentType, extension: extension, embedding: embedding,
+	}, nil
+}
+
+// Check gives the quality of a photo of the nose of the pet petID, with the
+// same refusals as Register, and stores nothing (RN-85).
+func (s *Service) Check(ctx context.Context, petID string, photo io.Reader) (float64, error) {
+	photoData, err := s.embedNosePhoto(ctx, petID, photo)
+	if err != nil {
+		return 0, err
+	}
+	return photoData.embedding.Quality, nil
 }
 
 // create writes the noseprint as the primary one of the pet, in one

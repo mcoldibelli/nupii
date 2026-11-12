@@ -89,6 +89,44 @@ const icons = {
     </>
   ),
   pencil: <Path d="M4 20h4L19 9l-4-4L4 16z" />,
+  camera: (
+    <>
+      <Path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+      <Circle cx="12" cy="13" r="3.5" />
+    </>
+  ),
+  frame: (
+    <>
+      <Rect x="5" y="5" width="14" height="14" rx="2" />
+      <Path d="M3 8V3h5M16 3h5v5M21 16v5h-5M8 21H3v-5" />
+    </>
+  ),
+  sun: (
+    <>
+      <Circle cx="12" cy="12" r="4" />
+      <Path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </>
+  ),
+  phone: (
+    <>
+      <Rect x="7" y="2" width="10" height="20" rx="2.5" />
+      <Path d="M11 18h2" />
+    </>
+  ),
+  close: <Path d="M6 6l12 12M18 6 6 18" />,
+  refresh: (
+    <>
+      <Path d="M4 12a8 8 0 1 0 2.4-5.7" />
+      <Path d="M4 4v4h4" />
+    </>
+  ),
+  image: (
+    <>
+      <Rect x="4" y="4" width="16" height="16" rx="3" />
+      <Circle cx="9" cy="9.5" r="1.5" />
+      <Path d="m20 15-4-4-8 8" />
+    </>
+  ),
   flask: (
     <>
       <Path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3" />
@@ -218,6 +256,33 @@ export function WeightChart({ points, width }: { points: { date: string; kg: num
           </G>
         );
       })}
+    </Svg>
+  );
+}
+
+/** The examples of the noseprint intro (Focinho-Intro artboard): the nose up close, or the dog far away. */
+export function NoseExample({ good, size }: { good: boolean; size: number }) {
+  return good ? (
+    <Svg width={size} height={size} viewBox="0 0 150 150" aria-hidden>
+      <Rect width="150" height="150" fill="#3A3F46" />
+      <Path d="M75 22c38 0 66 20 66 50 0 30-30 50-66 50S9 102 9 72C9 42 37 22 75 22z" fill="#2A2E33" />
+      <Path d="M45 56c10-5 22 1 23 13 1 10-7 17-17 16-10-1-16-9-15-18 1-5 4-9 9-11z" fill="#0D0E10" />
+      <Path d="M105 56c-10-5-22 1-23 13-1 10 7 17 17 16 10-1 16-9 15-18-1-5-4-9-9-11z" fill="#0D0E10" />
+      <Path d="M75 88v22" stroke="#0D0E10" strokeWidth={4} strokeLinecap="round" />
+    </Svg>
+  ) : (
+    <Svg width={size} height={size} viewBox="0 0 150 150" aria-hidden>
+      <Rect width="150" height="150" fill="#2A2622" />
+      <G transform="translate(45 40) scale(0.25)">
+        <Path d="M64 82 C46 66 40 40 52 24 C72 30 90 50 98 70 Z" fill="#A9622A" />
+        <Path d="M176 82 C194 66 200 40 188 24 C168 30 150 50 142 70 Z" fill="#A9622A" />
+        <Ellipse cx="120" cy="108" rx="64" ry="58" fill="#E39C52" />
+        <Ellipse cx="120" cy="136" rx="34" ry="25" fill="#F7E8D4" />
+        <Circle cx="96" cy="98" r="7" fill="#1E1B18" />
+        <Circle cx="144" cy="98" r="7" fill="#1E1B18" />
+        <Path d="M105 121 C105 113 135 113 135 121 C135 129 127 134 120 134 C113 134 105 129 105 121 Z" fill="#1E1B18" />
+        <Path d="M44 260 C44 188 82 156 120 156 C158 156 196 188 196 260 Z" fill="#D88B3F" />
+      </G>
     </Svg>
   );
 }

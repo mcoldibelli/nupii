@@ -756,6 +756,12 @@ type Noseprint struct {
 	Quality float64 `json:"quality"`
 }
 
+// NoseprintCheck O resultado da conferência de uma foto do focinho.
+type NoseprintCheck struct {
+	// Quality Nitidez da foto, de 0 a 1.
+	Quality float64 `json:"quality"`
+}
+
 // NoteCategory Anotação. Obrigatório na anotação.
 type NoteCategory string
 
@@ -1101,6 +1107,12 @@ type RegisterNoseprintMultipartBody struct {
 	File openapi_types.File `json:"file"`
 }
 
+// CheckNoseprintMultipartBody defines parameters for CheckNoseprint.
+type CheckNoseprintMultipartBody struct {
+	// File Foto do focinho. Imagem JPEG, PNG ou WebP, com no máximo 8 MB.
+	File openapi_types.File `json:"file"`
+}
+
 // SetPetPhotoMultipartBody defines parameters for SetPetPhoto.
 type SetPetPhotoMultipartBody struct {
 	// File Imagem JPEG, PNG ou WebP, com no máximo 5 MB.
@@ -1175,6 +1187,9 @@ type CreateHealthAttachmentMultipartRequestBody CreateHealthAttachmentMultipartB
 
 // RegisterNoseprintMultipartRequestBody defines body for RegisterNoseprint for multipart/form-data ContentType.
 type RegisterNoseprintMultipartRequestBody RegisterNoseprintMultipartBody
+
+// CheckNoseprintMultipartRequestBody defines body for CheckNoseprint for multipart/form-data ContentType.
+type CheckNoseprintMultipartRequestBody CheckNoseprintMultipartBody
 
 // SetPetPhotoMultipartRequestBody defines body for SetPetPhoto for multipart/form-data ContentType.
 type SetPetPhotoMultipartRequestBody SetPetPhotoMultipartBody
@@ -1280,6 +1295,9 @@ type ServerInterface interface {
 	// RegisterNoseprint Cadastra o focinho de um pet do tutor com uma foto.
 	// (POST /v1/pets/{petId}/noseprints)
 	RegisterNoseprint(w http.ResponseWriter, r *http.Request, petId PetId)
+	// CheckNoseprint Confere a qualidade de uma foto do focinho, sem gravar nada (RN-85).
+	// (POST /v1/pets/{petId}/noseprints/check)
+	CheckNoseprint(w http.ResponseWriter, r *http.Request, petId PetId)
 	// SetPetPhoto Envia a foto de perfil de um pet do tutor.
 	// (PUT /v1/pets/{petId}/photo)
 	SetPetPhoto(w http.ResponseWriter, r *http.Request, petId PetId)
@@ -1944,6 +1962,32 @@ func (siw *ServerInterfaceWrapper) RegisterNoseprint(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r)
 }
 
+// CheckNoseprint operation middleware
+func (siw *ServerInterfaceWrapper) CheckNoseprint(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "petId" -------------
+	var petId PetId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "petId", r.PathValue("petId"), &petId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "petId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CheckNoseprint(w, r, petId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SetPetPhoto operation middleware
 func (siw *ServerInterfaceWrapper) SetPetPhoto(w http.ResponseWriter, r *http.Request) {
 
@@ -2382,6 +2426,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/pets/{petId}", wrapper.UpdatePet)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/pets/{petId}/photo", wrapper.SetPetPhoto)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/pets/{petId}/noseprints", wrapper.RegisterNoseprint)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/pets/{petId}/noseprints/check", wrapper.CheckNoseprint)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/pets/{petId}/noseprint", wrapper.GetNoseprint)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/identifications", wrapper.IdentifyNose)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/identifications/{identificationId}/confirmation", wrapper.ConfirmIdentification)
@@ -4582,6 +4627,116 @@ func (response RegisterNoseprintdefaultJSONResponse) VisitRegisterNoseprintRespo
 	return err
 }
 
+type CheckNoseprintRequestObject struct {
+	PetId PetId `json:"petId"`
+	Body  *multipart.Reader
+}
+
+type CheckNoseprintResponseObject interface {
+	VisitCheckNoseprintResponse(w http.ResponseWriter) error
+}
+
+type CheckNoseprint200JSONResponse NoseprintCheck
+
+func (response CheckNoseprint200JSONResponse) VisitCheckNoseprintResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckNoseprint400JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response CheckNoseprint400JSONResponse) VisitCheckNoseprintResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckNoseprint401JSONResponse struct{ UnauthenticatedJSONResponse }
+
+func (response CheckNoseprint401JSONResponse) VisitCheckNoseprintResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckNoseprint404JSONResponse struct{ PetNotFoundJSONResponse }
+
+func (response CheckNoseprint404JSONResponse) VisitCheckNoseprintResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckNoseprint422JSONResponse struct{ NosePhotoRefusedJSONResponse }
+
+func (response CheckNoseprint422JSONResponse) VisitCheckNoseprintResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckNoseprint503JSONResponse struct{ UnavailableJSONResponse }
+
+func (response CheckNoseprint503JSONResponse) VisitCheckNoseprintResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckNoseprintdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response CheckNoseprintdefaultJSONResponse) VisitCheckNoseprintResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SetPetPhotoRequestObject struct {
 	PetId PetId `json:"petId"`
 	Body  *multipart.Reader
@@ -5676,6 +5831,9 @@ type StrictServerInterface interface {
 	// RegisterNoseprint Cadastra o focinho de um pet do tutor com uma foto.
 	// (POST /v1/pets/{petId}/noseprints)
 	RegisterNoseprint(ctx context.Context, request RegisterNoseprintRequestObject) (RegisterNoseprintResponseObject, error)
+	// CheckNoseprint Confere a qualidade de uma foto do focinho, sem gravar nada (RN-85).
+	// (POST /v1/pets/{petId}/noseprints/check)
+	CheckNoseprint(ctx context.Context, request CheckNoseprintRequestObject) (CheckNoseprintResponseObject, error)
 	// SetPetPhoto Envia a foto de perfil de um pet do tutor.
 	// (PUT /v1/pets/{petId}/photo)
 	SetPetPhoto(ctx context.Context, request SetPetPhotoRequestObject) (SetPetPhotoResponseObject, error)
@@ -6546,6 +6704,39 @@ func (sh *strictHandler) RegisterNoseprint(w http.ResponseWriter, r *http.Reques
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RegisterNoseprintResponseObject); ok {
 		if err := validResponse.VisitRegisterNoseprintResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CheckNoseprint operation middleware
+func (sh *strictHandler) CheckNoseprint(w http.ResponseWriter, r *http.Request, petId PetId) {
+	var request CheckNoseprintRequestObject
+
+	request.PetId = petId
+
+	if reader, err := r.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CheckNoseprint(ctx, request.(CheckNoseprintRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CheckNoseprint")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CheckNoseprintResponseObject); ok {
+		if err := validResponse.VisitCheckNoseprintResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

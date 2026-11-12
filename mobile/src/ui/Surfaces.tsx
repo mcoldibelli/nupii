@@ -108,3 +108,34 @@ export function BackButton({ onPress, testID }: { onPress: () => void; testID?: 
     </Pressable>
   );
 }
+
+/** The top of a step of a flow (AddPet-Novo artboard): a round button, the progress bars and "N de M". The first access has no button (AddPet-Primeiro). */
+export function StepHeader({ step, steps, onClose, icon = "back" }: { step: number; steps: number; onClose?: () => void; icon?: "back" | "close" }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 44 }}>
+      {onClose && (
+      <Pressable
+        testID="step-close"
+        accessibilityRole="button"
+        accessibilityLabel={icon === "close" ? "Fechar" : "Voltar"}
+        onPress={onClose}
+        style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" }}
+      >
+        <Icon name={icon} size={18} strokeWidth={2.4} color={colors.ink} />
+      </Pressable>
+      )}
+      {steps > 1 && (
+        <>
+          <View style={{ flex: 1, flexDirection: "row", gap: 8 }} accessibilityLabel={`Passo ${step} de ${steps}`}>
+            {Array.from({ length: steps }, (_, index) => (
+              <View key={index} style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: index < step ? colors.brand : colors.border }} />
+            ))}
+          </View>
+          <Text style={{ fontFamily: fonts.bodyBold, fontSize: 13, color: colors.textMuted }}>
+            {step} de {steps}
+          </Text>
+        </>
+      )}
+    </View>
+  );
+}
