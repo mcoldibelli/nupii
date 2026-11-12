@@ -114,10 +114,28 @@ app() {
   exec npx expo start --port "${EXPO_PORT:-8099}" --android
 }
 
+# The public web (/card, /reports, /found) in the browser of this machine, at
+# localhost:8081: the address of the links that the app makes. The browser
+# reaches the API and the Authentication emulator at localhost, not at the
+# address of the Android emulator (10.0.2.2), so this run changes them.
+web() {
+  cd mobile
+  [[ -d node_modules ]] || npm install
+  unset CI
+  export EXPO_PUBLIC_API_URL=http://localhost:8080 EXPO_PUBLIC_WEB_URL=http://localhost:8081
+  local emulator
+  emulator=$(env_value .env EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_URL)
+  if [[ -n $emulator ]]; then
+    export EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_URL=${emulator//10.0.2.2/localhost}
+  fi
+  exec npx expo start --web --port 8081
+}
+
 case "${1:-}" in
   emulador) up_emulator ;;
   firebase) up_firebase ;;
   app) app ;;
+  web) web ;;
   status) "${compose[@]}" -f deploy/compose.yaml ps ;;
   logs) "${compose[@]}" -f deploy/compose.yaml logs -f "${@:2}" ;;
   stop) "${compose[@]}" -f deploy/compose.yaml down ;;
@@ -128,6 +146,7 @@ Uso: ./dev.sh <comando>
   emulador   sobe a API, o banco, o S3, a inferência e o emulador do Firebase Authentication
   firebase   sobe o mesmo ambiente, com a API no projeto real do Firebase (backend/.env)
   app        abre o emulador Android e o app no Expo
+  web        abre a web pública (carteirinha, mural, achei) em http://localhost:8081
   status     mostra o estado de cada serviço
   logs [s]   mostra o log dos serviços (ou só do serviço s, por exemplo api)
   stop       para tudo; os dados ficam nos volumes
