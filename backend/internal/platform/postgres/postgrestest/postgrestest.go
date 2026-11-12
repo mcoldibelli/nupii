@@ -102,7 +102,8 @@ func migrate(ctx context.Context, testURL string) (err error) {
 		return fmt.Errorf("lock the migrations: %w", err)
 	}
 	defer func() {
-		_, unlockErr := conn.Exec(context.WithoutCancel(ctx), "SELECT pg_advisory_unlock($1)", _migrationLock)
+		const unlock = "SELECT pg_advisory_unlock($1)"
+		_, unlockErr := conn.Exec(context.WithoutCancel(ctx), unlock, _migrationLock)
 		if unlockErr != nil {
 			err = errors.Join(err, fmt.Errorf("unlock the migrations: %w", unlockErr))
 		}
