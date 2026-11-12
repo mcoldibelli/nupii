@@ -1,5 +1,6 @@
 import { Pressable, ScrollView, Text, View, type ScrollViewProps, type ViewProps } from "react-native";
 
+import { Icon } from "./Icon";
 import { colors, fonts, radius, space } from "./theme";
 
 /** The page of a screen: white, with the side spaces of the canvas. */
@@ -60,5 +61,50 @@ export function Segmented<T extends string>({ options, value, onChange, testID }
         );
       })}
     </View>
+  );
+}
+
+/** The square check box of the canvas, with its text beside it. */
+export function Checkbox({ label, checked, onChange, testID }: { label: string; checked: boolean; onChange: (checked: boolean) => void; testID?: string }) {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="checkbox"
+      accessibilityLabel={label}
+      accessibilityState={{ checked }}
+      onPress={() => onChange(!checked)}
+      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44 }}
+    >
+      <View
+        style={{
+          width: 24,
+          height: 24,
+          borderRadius: 7,
+          borderWidth: 2,
+          borderColor: checked ? colors.dark : colors.textDisabled,
+          backgroundColor: checked ? colors.dark : colors.background,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {checked && <Icon name="check" size={14} color={colors.onDark} strokeWidth={3.2} />}
+      </View>
+      <Text style={{ fontFamily: fonts.body, fontSize: 15, color: colors.ink, flexShrink: 1 }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** The round back button of the canvas, for a screen with no header. */
+export function BackButton({ onPress, testID }: { onPress: () => void; testID?: string }) {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel="Voltar"
+      onPress={onPress}
+      style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" }}
+    >
+      <Icon name="back" size={18} strokeWidth={2.4} />
+    </Pressable>
   );
 }

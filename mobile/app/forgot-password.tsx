@@ -1,9 +1,15 @@
+import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { View } from "react-native";
 
 import { sendPasswordReset } from "../src/auth/firebase";
 import { validateEmail } from "../src/auth/validation";
-import { styles } from "../src/screens/styles";
+import { Button } from "../src/ui/Button";
+import { Field } from "../src/ui/Field";
+import { Icon } from "../src/ui/Icon";
+import { BackButton, Card, Screen } from "../src/ui/Surfaces";
+import { Body, ErrorText, Title } from "../src/ui/Text";
+import { colors } from "../src/ui/theme";
 
 /** Sends the link to reset a forgotten password by e-mail (RF-05). */
 export default function ForgotPassword() {
@@ -27,30 +33,36 @@ export default function ForgotPassword() {
   }
 
   return (
-    <View style={styles.screen}>
-      <TextInput
+    <Screen>
+      <BackButton testID="reset-back" onPress={() => (router.canGoBack() ? router.back() : router.replace("/sign-in"))} />
+      <View style={{ gap: 8 }}>
+        <Title>Recuperar senha</Title>
+        <Body style={{ color: colors.textSecondary }}>Mandamos um link para você criar uma senha nova.</Body>
+      </View>
+      <Field
         testID="reset-email-input"
-        accessibilityLabel="E-mail"
-        placeholder="E-mail"
+        label="E-mail da conta"
+        icon="mail"
         autoCapitalize="none"
         keyboardType="email-address"
-        style={styles.input}
         value={email}
         onChangeText={setEmail}
+        invalid={error !== null}
       />
-      {error !== null && (
-        <Text testID="reset-error" accessibilityRole="alert" style={styles.error}>
-          {error}
-        </Text>
-      )}
+      {error !== null && <ErrorText testID="reset-error">{error}</ErrorText>}
       {message !== null && (
-        <Text testID="reset-message" style={styles.text}>
-          {message}
-        </Text>
+        <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }} accessibilityRole="summary">
+          <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.success, alignItems: "center", justifyContent: "center" }}>
+            <Icon name="check" size={15} color={colors.onPrimary} strokeWidth={3} />
+          </View>
+          <Body testID="reset-message" style={{ flex: 1, fontSize: 14 }}>
+            {message} Olhe também o spam.
+          </Body>
+        </Card>
       )}
-      <Pressable testID="reset-button" accessibilityRole="button" style={styles.button} disabled={busy} onPress={() => void send()}>
-        <Text style={styles.buttonText}>Enviar link</Text>
-      </Pressable>
-    </View>
+      <View style={{ marginTop: "auto" }}>
+        <Button testID="reset-button" label={message === null ? "Enviar link" : "Reenviar link"} trailingIcon="arrowRight" busy={busy} onPress={() => void send()} />
+      </View>
+    </Screen>
   );
 }

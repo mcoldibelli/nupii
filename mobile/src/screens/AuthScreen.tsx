@@ -1,12 +1,16 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { createAccount, signIn } from "../auth/firebase";
 import { validateCredentials } from "../auth/validation";
-import { styles } from "./styles";
+import { Button } from "../ui/Button";
+import { Field } from "../ui/Field";
+import { LogoMark, Mascot } from "../ui/Icon";
+import { Body, ErrorText, Title } from "../ui/Text";
+import { colors, fonts, space } from "../ui/theme";
 
-/** Sign-in and account creation with e-mail and password (RF-01, RF-02). */
+/** Sign-in and account creation with e-mail and password (RF-01, RF-02). The look is the Login-Mobile artboard. */
 export function AuthScreen() {
   const [creating, setCreating] = useState(false);
   const [email, setEmail] = useState("");
@@ -28,59 +32,71 @@ export function AuthScreen() {
   }
 
   return (
-    <View style={styles.screen}>
-      <Text style={styles.title}>Nupii</Text>
-      <Text style={styles.label}>E-mail</Text>
-      <TextInput
-        testID="email-input"
-        accessibilityLabel="E-mail"
-        style={styles.input}
-        autoCapitalize="none"
-        autoComplete="email"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <Text style={styles.label}>Senha</Text>
-      <TextInput
-        testID="password-input"
-        accessibilityLabel="Senha"
-        style={styles.input}
-        secureTextEntry
-        autoComplete={creating ? "new-password" : "current-password"}
-        value={password}
-        onChangeText={setPassword}
-      />
-      {error !== null && (
-        <Text testID="auth-error" accessibilityRole="alert" style={styles.error}>
-          {error}
-        </Text>
-      )}
-      <Pressable
-        testID="submit-button"
-        accessibilityRole="button"
-        style={[styles.button, busy && styles.buttonDisabled]}
-        disabled={busy}
-        onPress={submit}
-      >
-        <Text style={styles.buttonText}>{creating ? "Criar conta" : "Entrar"}</Text>
-      </Pressable>
-      <Pressable
-        testID="toggle-mode-button"
-        accessibilityRole="button"
-        style={styles.link}
-        onPress={() => {
-          setCreating(!creating);
-          setError(null);
-        }}
-      >
-        <Text style={styles.linkText}>{creating ? "Já tenho conta" : "Criar uma conta"}</Text>
-      </Pressable>
-      {!creating && (
-        <Pressable testID="forgot-password-link" accessibilityRole="button" style={styles.link} onPress={() => router.push("/forgot-password")}>
-          <Text style={styles.linkText}>Esqueci a senha</Text>
-        </Pressable>
-      )}
-    </View>
+    <ScrollView style={local.page} contentContainerStyle={local.content} keyboardShouldPersistTaps="handled">
+      <View style={local.hero}>
+        <View style={local.brand}>
+          <LogoMark size={26} color={colors.onPrimary} eyes={colors.accent} />
+          <Text style={local.brandText}>nupii</Text>
+        </View>
+        <View style={local.mascot}>
+          <Mascot width={170} />
+        </View>
+      </View>
+      <View style={local.form}>
+        <View style={{ gap: 6 }}>
+          <Title>{creating ? "Criar conta" : "Entrar"}</Title>
+          <Body style={{ color: colors.textSecondary }}>{creating ? "Cuide da saúde do seu pet e ajude a achar os perdidos." : "Que bom te ver de novo."}</Body>
+        </View>
+        <Field
+          testID="email-input"
+          label="E-mail"
+          icon="mail"
+          autoCapitalize="none"
+          autoComplete="email"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+          invalid={error !== null}
+        />
+        <Field
+          testID="password-input"
+          label={creating ? "Crie uma senha" : "Senha"}
+          icon="lock"
+          secureTextEntry
+          autoComplete={creating ? "new-password" : "current-password"}
+          value={password}
+          onChangeText={setPassword}
+          invalid={error !== null}
+        />
+        {error !== null && <ErrorText testID="auth-error">{error}</ErrorText>}
+        {!creating && (
+          <Button testID="forgot-password-link" label="Esqueci minha senha" variant="soft" size="sm" stretch={false} onPress={() => router.push("/forgot-password")} />
+        )}
+      </View>
+      <View style={local.actions}>
+        <Button testID="submit-button" label={creating ? "Criar conta" : "Entrar"} trailingIcon="arrowRight" busy={busy} onPress={() => void submit()} />
+        <Button
+          testID="toggle-mode-button"
+          label={creating ? "Já tenho conta. Entrar" : "Não tem conta? Criar conta"}
+          variant="soft"
+          size="md"
+          onPress={() => {
+            setCreating(!creating);
+            setError(null);
+          }}
+        />
+      </View>
+    </ScrollView>
   );
 }
+
+const local = StyleSheet.create({
+  page: { backgroundColor: colors.background },
+  content: { flexGrow: 1 },
+  hero: { height: 224, backgroundColor: colors.accent, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: "hidden" },
+  brand: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: space.xl, paddingTop: space.xl },
+  brandText: { fontFamily: fonts.title, fontSize: 22, color: colors.onPrimary },
+  mascot: { position: "absolute", right: 18, bottom: -2 },
+  form: { paddingHorizontal: space.xl, paddingTop: 26, gap: 18 },
+  actions: { marginTop: "auto", paddingHorizontal: space.xl, paddingVertical: space.xl, gap: 10 },
+});
