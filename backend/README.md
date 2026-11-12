@@ -114,7 +114,7 @@ O roteiro abre as páginas do console do Firebase, diz o que fazer em cada uma e
 | Chave da conta de serviço (segredo) | `~/.config/nupii/firebase-service-account.json`, fora do repositório, com acesso só para o dono |
 | Configuração do app | `mobile/.env`, fora do git |
 
-Para subir a API com o projeto real, carregue também o `backend/.env` e não defina `FIREBASE_AUTH_EMULATOR_HOST`:
+O jeito mais curto de subir a API com o projeto real é `./dev.sh firebase` na raiz: a API do compose recebe o `backend/.env` e a chave da conta de serviço (`deploy/compose.firebase.yaml`). Para executar a API com `go run`, carregue também o `backend/.env` e não defina `FIREBASE_AUTH_EMULATOR_HOST`:
 
 ```bash
 set -a; . ../deploy/.env; . ./.env; set +a
