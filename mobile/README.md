@@ -153,6 +153,7 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `src/found/location.ts` | Posição do aparelho no navegador (RN-61), com testes |
 | `src/pets/form.ts` | Regras do formulário do pet (RN-48, RN-50, RN-51, RN-56), com testes |
 | `src/pets/save.ts` | Salva os dados do pet e depois envia a foto, com testes |
+| `src/pets/photoSize.ts` | O tamanho máximo das fotos de perfil e de achado, 1600 px no lado maior ([ADR 0033](../docs/adr/0033-reduzir-fotos-antes-do-envio.md)), com testes |
 | `src/pets/PetFormView.tsx` | O formulário de editar pet, com todos os dados do pet |
 | `src/pets/profile.ts` | Os cuidados e os dados do perfil do pet, com testes |
 | `src/pets/breeds.ts`, `src/pets/BreedPicker.tsx` | A lista de raças de cachorro com a busca (com testes) e o campo que abre a lista |
