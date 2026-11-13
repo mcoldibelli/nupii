@@ -11,6 +11,7 @@ import { listHealthEvents, listUpcomingCare, type UpcomingCare } from "../src/ap
 import { failureMessage, SESSION_FAILURE } from "../src/api/http";
 import { listPets, type Pet } from "../src/api/pets";
 import { apiUrl } from "../src/config";
+import { AnotarSheet } from "../src/health/AnotarSheet";
 import { careLine, dateTile } from "../src/health/care";
 import { petSubtitle, pickPet, unreadCount, weightTrend } from "../src/home/home";
 import { PetSwitcher } from "../src/home/PetSwitcher";
@@ -38,6 +39,9 @@ export default function Home() {
   const [weights, setWeights] = useState<{ date: string; weightKg?: number }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [switcher, setSwitcher] = useState(false);
+  // The quick access to a new health record (Saude-Mobile-Registrar sheet).
+  const [anotar, setAnotar] = useState(false);
+  const [loads, setLoads] = useState(0);
   const pet = pickPet(pets ?? [], savedId);
 
   const load = useCallback(async () => {
@@ -58,6 +62,8 @@ export default function Home() {
       return;
     }
     setPets(result.value);
+    // The weight chart is read again too: a weight saved from the home must show.
+    setLoads((count) => count + 1);
     setError(null);
     if (result.value.length === 0 && !firstPetOffered) {
       firstPetOffered = true;
@@ -75,7 +81,7 @@ export default function Home() {
     }, [load]),
   );
 
-  // The weight chart reads the events of the chosen pet (RN-51).
+  // The weight chart reads the events of the chosen pet (RN-51), at each load of the home.
   useEffect(() => {
     if (pet === null) {
       return;
@@ -86,7 +92,7 @@ export default function Home() {
       const events = token === null ? null : await listHealthEvents(apiUrl, token, pet.id);
       setWeights(events?.ok ? events.value : []);
     })();
-  }, [pet?.id, pet?.name, idToken, select]);
+  }, [pet?.id, pet?.name, idToken, select, loads]);
 
   // RF-22: the app sends the position of the device one time when it opens.
   useEffect(() => {
@@ -105,7 +111,9 @@ export default function Home() {
 
   return (
     <View style={local.page}>
-      <ScrollView contentContainerStyle={[local.content, { paddingTop: insets.top + space.lg }]}>
+      <View style={{ flex: 1 }}>
+      {/* The bottom space keeps the end of the home above the floating Anotar button. */}
+      <ScrollView contentContainerStyle={[local.content, { paddingTop: insets.top + space.lg, paddingBottom: 96 }]}>
         <View style={local.top}>
           {pet !== null ? (
             <Pressable testID="pet-switcher" accessibilityRole="button" accessibilityLabel="Trocar de pet" style={local.switcher} onPress={() => setSwitcher(true)}>
@@ -218,7 +226,25 @@ export default function Home() {
           </View>
         )}
       </ScrollView>
+      {/* The quick access to a new health record, above the tab bar (#227). */}
+      {pet !== null && (
+        <Pressable testID="home-anotar" accessibilityRole="button" accessibilityLabel="Anotar um cuidado" style={local.fab} onPress={() => setAnotar(true)}>
+          <Icon name="plus" size={28} color={colors.onPrimary} strokeWidth={2.6} />
+        </Pressable>
+      )}
+      </View>
       <TabBar />
+      {pet !== null && (
+        <AnotarSheet
+          visible={anotar}
+          petName={pet.name}
+          onClose={() => setAnotar(false)}
+          onPick={(type, preset) => {
+            setAnotar(false);
+            router.push({ pathname: "/health/event", params: { petId: pet.id, petName: pet.name, type, ...(preset ? { preset } : {}) } });
+          }}
+        />
+      )}
       <PetSwitcher
         visible={switcher}
         pets={pets ?? []}
@@ -246,6 +272,7 @@ export default function Home() {
 
 const local = StyleSheet.create({
   page: { backgroundColor: colors.background, flex: 1 },
+  fab: { position: "absolute", right: space.xl, bottom: space.lg, width: 60, height: 60, borderRadius: 30, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", shadowColor: colors.ink, shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
   content: { gap: space.lg, paddingBottom: space.xl, paddingHorizontal: space.xl },
   top: { alignItems: "center", flexDirection: "row", gap: 10 },
   switcher: { alignItems: "center", backgroundColor: colors.surface, borderRadius: radius.pill, flexDirection: "row", gap: 10, height: 48, paddingLeft: 4, paddingRight: 14 },

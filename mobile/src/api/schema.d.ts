@@ -294,7 +294,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Publica um achado, com a foto do focinho.
+         * Publica um achado, com uma foto ampla do cachorro.
          * @description Operação pública. A resposta tem o código que resolve o achado. O código aparece só nesta resposta.
          */
         post: operations["reportFound"];
@@ -773,12 +773,10 @@ export interface components {
          * @enum {string}
          */
         Size: "small" | "medium" | "large";
-        /** @description Cadastro biométrico de um pet, a foto do focinho com o vetor dela. */
+        /** @description Cadastro biométrico de um pet. A foto do focinho fica gravada e nunca vem numa resposta (RN-86). */
         Noseprint: {
             /** Format: uuid */
             id: string;
-            /** @description URL temporária da foto do focinho. Vale por 900 segundos. */
-            imageUrl: string;
             /**
              * Format: double
              * @description Nitidez da foto, de 0 a 1.
@@ -901,7 +899,7 @@ export interface components {
             petSpecies?: components["schemas"]["Species"];
             /** @description O pet tem cadastro biométrico, e quem o encontrar pode identificá-lo pela foto do focinho. */
             petHasNoseprint?: boolean;
-            /** @description URL temporária da foto de perfil do pet, ou da foto do focinho de um achado. Vale por 900 segundos. */
+            /** @description URL temporária da foto de perfil do pet, ou da foto ampla do cachorro de um achado. Nunca é a foto do focinho (RN-86). Vale por 900 segundos. */
             photoUrl?: string;
             /** Format: double */
             latitude: number;
@@ -2059,7 +2057,7 @@ export interface operations {
                 "multipart/form-data": {
                     /**
                      * Format: binary
-                     * @description A foto do focinho usada na identificação. JPEG, PNG ou WebP, com no máximo 8 MB.
+                     * @description Uma foto ampla do cachorro achado, não a do focinho (RN-27, RN-86). JPEG, PNG ou WebP, com no máximo 8 MB.
                      */
                     file: string;
                     /** Format: double */

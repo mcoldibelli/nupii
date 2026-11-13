@@ -4,14 +4,16 @@ import { useFonts } from "expo-font";
 import { Stack, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { StatusBar } from "expo-status-bar";
-import { Platform, Pressable, Text, View } from "react-native";
+import { Platform } from "react-native";
 
 import { missingConfig } from "../src/config";
 import { isPublicPath } from "../src/reports/publicPaths";
-import { styles } from "../src/screens/styles";
 import { SessionProvider, useSession } from "../src/session/SessionContext";
 import { useWelcome, WelcomeProvider } from "../src/welcome/WelcomeContext";
 import { SelectedPetProvider } from "../src/pets/SelectedPetContext";
+import { Button } from "../src/ui/Button";
+import { StatusScreen } from "../src/ui/StatusScreen";
+import { WebFrame } from "../src/ui/WebFrame";
 import { colors, fonts } from "../src/ui/theme";
 
 /** The header of the screens: the title font of the canvas, with no line under it (ADR 0030). */
@@ -38,9 +40,12 @@ function Screens() {
       : state.kind === "needsProfile"
         ? "/complete-profile"
         : state.kind === "signedOut"
-          ? Platform.OS !== "web" && welcome.seen === false
-            ? "/welcome"
-            : "/sign-in"
+          ? Platform.OS === "web"
+            ? // The visitor of the web starts at the landing page (Landing-Web, #231).
+              "/landing"
+            : welcome.seen === false
+              ? "/welcome"
+              : "/sign-in"
           : null;
   // The state of the session for which the app last went to the first screen.
   const lastKind = useRef<string | null>(null);
@@ -71,57 +76,46 @@ function Screens() {
 
   if (isPublicPage) {
     return (
+      <WebFrame>
       <Stack screenOptions={headerOptions}>
         <Stack.Screen name="found" options={{ headerShown: false }} />
         <Stack.Screen name="reports/index" options={{ headerShown: false }} />
-        <Stack.Screen name="reports/[id]" options={{ title: "Ocorrência" }} />
+        <Stack.Screen name="reports/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="card" options={{ headerShown: false }} />
+        <Stack.Screen name="landing" options={{ headerShown: false }} />
         <Stack.Screen name="terms" options={{ title: "Termos de uso" }} />
       </Stack>
+      </WebFrame>
     );
   }
   if (missing.length > 0) {
     return (
-      <View style={styles.screen}>
-        <Text testID="status-message" style={styles.text}>
-          Defina no arquivo mobile/.env: {missing.join(", ")}.
-        </Text>
-      </View>
+      <StatusScreen alert message={`Defina no arquivo mobile/.env: ${missing.join(", ")}.`} />
     );
   }
   // On the first open, the app waits to know if it shows the welcome.
   if (state.kind === "loading" || (state.kind === "signedOut" && Platform.OS !== "web" && welcome.seen === null)) {
     return (
-      <View style={styles.screen}>
-        <Text testID="status-message" style={styles.text}>
-          Carregando...
-        </Text>
-      </View>
+      <StatusScreen busy message="Carregando..." />
     );
   }
   if (state.kind === "failed") {
     return (
-      <View style={styles.screen}>
-        <Text testID="status-message" accessibilityRole="alert" style={styles.text}>
-          {state.message}
-        </Text>
-        <Pressable testID="retry-button" accessibilityRole="button" style={styles.button} onPress={reload}>
-          <Text style={styles.buttonText}>Tentar de novo</Text>
-        </Pressable>
-        <Pressable testID="failed-sign-out-button" accessibilityRole="button" style={styles.link} onPress={signOut}>
-          <Text style={styles.linkText}>Sair</Text>
-        </Pressable>
-      </View>
+      <StatusScreen alert message={state.message}>
+        <Button testID="retry-button" label="Tentar de novo" onPress={reload} />
+        <Button testID="failed-sign-out-button" label="Sair" variant="soft" size="md" onPress={signOut} />
+      </StatusScreen>
     );
   }
 
   return (
+    <WebFrame>
     <Stack screenOptions={headerOptions}>
       <Stack.Protected guard={state.kind === "ready"}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="pets/new" options={{ headerShown: false }} />
         <Stack.Screen name="pets/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="pets/edit/[id]" options={{ title: "Editar pet" }} />
+        <Stack.Screen name="pets/edit/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="noseprint/[petId]" options={{ headerShown: false }} />
         <Stack.Screen name="found-notices" options={{ title: "Avisos de encontro" }} />
         <Stack.Screen name="share/[petId]" options={{ headerShown: false }} />
@@ -147,7 +141,7 @@ function Screens() {
           after the groups above, so they are never the fallback screen. */}
       <Stack.Protected guard={state.kind === "ready" || state.kind === "signedOut"}>
         <Stack.Screen name="reports/index" options={{ headerShown: false }} />
-        <Stack.Screen name="reports/[id]" options={{ title: "Ocorrência" }} />
+        <Stack.Screen name="reports/[id]" options={{ headerShown: false }} />
       </Stack.Protected>
       <Stack.Protected guard={Platform.OS !== "web" && (state.kind === "ready" || state.kind === "signedOut")}>
         <Stack.Screen name="found" options={{ headerShown: false }} />
@@ -160,8 +154,10 @@ function Screens() {
           sign-out, and on the web at "/" with no session). */}
       <Stack.Protected guard={false}>
         <Stack.Screen name="card" options={{ headerShown: false }} />
+        <Stack.Screen name="landing" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>
+    </WebFrame>
   );
 }
 

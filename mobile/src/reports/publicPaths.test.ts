@@ -11,6 +11,7 @@ describe("isPublicPath", () => {
     ["/reportsx", false],
     ["/card", true],
     ["/terms", true],
+    ["/landing", true],
     ["/share/0195f3c8-7a55-7c1e-9d2a-000000000001", false],
   ])("%s is public: %s", (path, want) => {
     expect(isPublicPath(path)).toBe(want);

@@ -175,9 +175,12 @@ export default function PetProfile() {
                 <Text style={local.link}>{noseprint ? "Recapturar" : "Cadastrar"}</Text>
               </Pressable>
             </View>
+            {/* RN-86: a foto do focinho não é mostrada depois do cadastro. */}
             {noseprint ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                <Image testID="noseprint-photo" accessibilityLabel="Foto do focinho" source={{ uri: noseprint.imageUrl }} style={local.nose} />
+                <View style={local.nose}>
+                  <Icon name="check" size={20} strokeWidth={2.8} color={colors.onPrimary} />
+                </View>
                 <Text testID="noseprint-status" style={[local.muted, { flex: 1 }]}>
                   Cadastrado em {formatDateTime(noseprint.capturedAt).slice(0, 5)} · usado só para identificação
                 </Text>
@@ -233,7 +236,7 @@ const local = StyleSheet.create({
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { minHeight: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: colors.surface, justifyContent: "center" },
   chipText: { fontFamily: fonts.bodySemibold, fontSize: 14 },
-  nose: { width: 64, height: 50, borderRadius: 12, backgroundColor: "#25292E" },
+  nose: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.success, alignItems: "center", justifyContent: "center" },
   lostRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingTop: 14, borderTopWidth: 1.5, borderTopColor: colors.borderStrong },
   outline: { minHeight: 40, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1.5, borderColor: colors.danger, justifyContent: "center" },
   outlineText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.dangerText },

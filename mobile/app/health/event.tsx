@@ -16,43 +16,29 @@ import {
 } from "../../src/api/health";
 import { failureMessage, SESSION_FAILURE } from "../../src/api/http";
 import { apiUrl } from "../../src/config";
-import { attachmentFailure, emptyValues, fieldsOf, presetValues, toEventInput, typeLabels, valuesFromEvent, type Field, type Preset, type Values } from "../../src/health/form";
+import { attachmentFailure, categoryFields, categoryOf, emptyValues, presetValues, toEventInput, valuesFromEvent, type Category, type Field, type Preset, type Values } from "../../src/health/form";
 import { pickAttachment } from "../../src/health/pickFile";
 import { filePart } from "../../src/pets/pickPhoto";
 import { useSession } from "../../src/session/SessionContext";
 import { Button } from "../../src/ui/Button";
+import { DateField } from "../../src/ui/DateField";
 import { Field as Input } from "../../src/ui/Field";
 import { Icon } from "../../src/ui/Icon";
 import { ErrorText, Label } from "../../src/ui/Text";
 import { colors, fonts, radius, space } from "../../src/ui/theme";
 
-/** The type chips of the Saude-Mobile-Form artboard. A medication chip also sets the category. */
-const chips: { label: string; type: HealthEventType; category?: string }[] = [
-  { label: "Vacina", type: "vaccine" },
-  { label: "Vermífugo", type: "medication", category: "deworm" },
-  { label: "Antipulgas", type: "medication", category: "flea" },
-  { label: "Medicação", type: "medication", category: "medication" },
-  { label: "Consulta", type: "consultation" },
-  { label: "Exame", type: "exam" },
-  { label: "Anotação", type: "note" },
-];
-
-/** The title of the form, as "Nova vacina" and "Dose de antipulgas" in the canvas. */
-function formTitle(type: HealthEventType, values: Values, editing: boolean): string {
-  if (editing) {
-    return typeLabels[type];
-  }
-  if (type === "medication" && values.medicationCategory === "flea") {
-    return "Dose de antipulgas";
-  }
-  if (type === "medication" && values.medicationCategory === "deworm") {
-    return "Dose de vermífugo";
-  }
-  if (type === "note" && values.noteCategory === "weight") {
-    return "Peso de hoje";
-  }
-  return { vaccine: "Nova vacina", consultation: "Nova consulta", medication: "Nova medicação", exam: "Novo exame", note: "Nova anotação" }[type];
-}
+/** The titles of the form of each category, as "Nova vacina" and "Dose de antipulgas" in the canvas. */
+const titles: Record<Category, [string, string]> = {
+  vaccine: ["Nova vacina", "Vacina"],
+  flea: ["Dose de antipulgas", "Antipulgas"],
+  deworm: ["Dose de vermífugo", "Vermífugo"],
+  medication: ["Nova medicação", "Medicação"],
+  consultation: ["Nova consulta", "Consulta"],
+  exam: ["Novo exame", "Exame"],
+  symptom: ["Sintoma", "Sintoma"],
+  weight: ["Peso de hoje", "Peso"],
+  note: ["Nova anotação", "Anotação"],
+};
 
 /** Creates or changes a health event of one of the five types (RF-27), with its attachments (RF-28). */
 export default function HealthEventForm() {
@@ -60,7 +46,7 @@ export default function HealthEventForm() {
   const { petId, petName, eventId, preset, from } = params;
   const { idToken } = useSession();
   const insets = useSafeAreaInsets();
-  const [type, setType] = useState<HealthEventType>(params.type);
+  const type = params.type;
   const [values, setValues] = useState<Values>(() => (preset && preset !== "again" ? presetValues(preset, undefined) : emptyValues()));
   const [attachments, setAttachments] = useState<HealthAttachment[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -191,11 +177,9 @@ export default function HealthEventForm() {
     }
   }
 
+  // RN-37, RN-79: the category is fixed by the option of the Anotar sheet; the form shows only its fields.
+  const category = categoryOf(type, values);
   const input = (field: Field) => {
-    // A new event takes the category of the medication from the chips.
-    if (field.key === "medicationCategory" && eventId === undefined) {
-      return null;
-    }
     if (field.kind === "switch") {
       return (
         <View key={field.key} style={local.switchRow}>
@@ -235,15 +219,18 @@ export default function HealthEventForm() {
         </View>
       );
     }
+    if (field.kind === "date") {
+      // The next dose, the return and the end come after the date of the event.
+      return <DateField key={field.key} testID={`field-${field.key}`} label={field.label.replace(" (DD/MM/AAAA)", "")} optional min={values.date} value={String(values[field.key])} onChange={(value) => set(field.key, value)} />;
+    }
     return (
       <Input
         key={field.key}
         testID={`field-${field.key}`}
         label={field.label}
-        icon={field.kind === "date" ? "calendar" : undefined}
         multiline={field.kind === "long"}
         style={field.kind === "long" ? local.long : undefined}
-        keyboardType={field.kind === "weight" ? "decimal-pad" : field.kind === "days" ? "number-pad" : field.kind === "date" ? "numbers-and-punctuation" : "default"}
+        keyboardType={field.kind === "weight" ? "decimal-pad" : field.kind === "days" ? "number-pad" : "default"}
         value={String(values[field.key])}
         onChangeText={(value) => set(field.key, value)}
       />
@@ -264,36 +251,11 @@ export default function HealthEventForm() {
           ) : null}
         </View>
         <Text style={local.heading} accessibilityRole="header">
-          {formTitle(type, values, eventId !== undefined)}
+          {titles[category][eventId === undefined ? 0 : 1]}
         </Text>
-        {eventId === undefined && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ marginHorizontal: -space.xl }} accessibilityRole="radiogroup">
-            <View style={{ width: space.xl - 8 }} />
-            {chips.map((chip) => {
-              const selected = chip.type === type && (chip.category === undefined || chip.category === values.medicationCategory);
-              return (
-                <Pressable
-                  key={chip.label}
-                  testID={`type-${chip.label}`}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  style={[local.chip, selected && local.chipSelected]}
-                  onPress={() => {
-                    setType(chip.type);
-                    if (chip.category) {
-                      set("medicationCategory", chip.category);
-                    }
-                  }}
-                >
-                  <Text style={[local.chipText, selected && { color: colors.onDark }]}>{chip.label}</Text>
-                </Pressable>
-              );
-            })}
-            <View style={{ width: space.xl - 8 }} />
-          </ScrollView>
-        )}
-        <Input testID="field-date" label="Data (DD/MM/AAAA)" icon="calendar" keyboardType="numbers-and-punctuation" maxLength={10} value={values.date} onChangeText={(value) => set("date", value)} />
-        {fieldsOf(type).map(input)}
+        {/* RN-76: a data do evento não é futura. */}
+        <DateField testID="field-date" label="Data" noFuture value={values.date} onChange={(value) => set("date", value)} />
+        {categoryFields(category).map(input)}
         <Input testID="field-notes" label="Observações" multiline style={local.long} value={values.notes} onChangeText={(value) => set("notes", value)} />
 
         {eventId !== undefined && (

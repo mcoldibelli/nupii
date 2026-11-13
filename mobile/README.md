@@ -55,7 +55,7 @@ O mapa é uma página com o Leaflet e os quadros do OpenStreetMap, dentro de um 
 
 ## Web pública
 
-As páginas públicas são rotas do mesmo projeto, no alvo web: `/found` ("encontrei um pet", com a publicação do achado), `/reports` (mural), `/reports/<id>` (ficha, com o avistamento) `/card` (carteirinha) e `/terms` (termos de uso e política de privacidade). Com o link que a publicação do achado mostra, `/reports/<id>#code=...`, quem publicou resolve o achado. O link da carteirinha é `/card#token=...` ([ADR 0027](../docs/adr/0027-link-da-carteirinha.md)). Nenhuma delas pede conta ([ADR 0022](../docs/adr/0022-web-publica-no-alvo-web-do-expo.md)).
+As páginas públicas são rotas do mesmo projeto, no alvo web: `/landing` (página de entrada do visitante, para onde vai `/` sem sessão), `/found` ("encontrei um pet", com a publicação do achado), `/reports` (mural), `/reports/<id>` (ficha, com o avistamento) `/card` (carteirinha) e `/terms` (termos de uso e política de privacidade). Com o link que a publicação do achado mostra, `/reports/<id>#code=...`, quem publicou resolve o achado. O link da carteirinha é `/card#token=...` ([ADR 0027](../docs/adr/0027-link-da-carteirinha.md)). Nenhuma delas pede conta ([ADR 0022](../docs/adr/0022-web-publica-no-alvo-web-do-expo.md)).
 
 No navegador da sua máquina, a API fica em `localhost`, e não no endereço do emulador Android. Suba a web com o endereço certo:
 
@@ -122,20 +122,20 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `app/index.tsx` | Lista de pets |
 | `app/pets/new.tsx` | Novo pet (passo 1 de 2). O início abre o novo pet como "primeiro pet" uma vez por execução do app, quando o tutor não tem pet |
 | `app/pets/[id].tsx` | Perfil do pet: dados, saúde, focinho e desaparecimento |
-| `app/pets/edit/[id].tsx` | Editar e excluir o pet |
+| `app/pets/edit/[id].tsx` | Editar e excluir o pet (artboard EditPet-Mobile) |
 | `app/noseprint/[petId].tsx` | Cadastro do focinho de um cachorro (passo 2 de 2): orientação, captura e conferência de 2 fotos (RN-85) |
 | `app/found-notices.tsx` | Avisos de encontro |
 | `app/found.tsx` | Página pública "encontrei um pet" |
-| `app/reports/index.tsx`, `app/reports/[id].tsx` | Mural (lista e mapa, filtro por tipo e raio, faixa do visitante) e ficha de uma ocorrência |
+| `app/reports/index.tsx`, `app/reports/[id].tsx` | Mural (lista e mapa, filtro por tipo e raio, faixa do visitante) e ficha de uma ocorrência (artboard Ocorrencia-Mobile), com o avistamento numa folha |
 | `src/reports/board.ts` | Distância, tempo desde a ocorrência e posição no mapa do mural, com testes |
 | `app/reports/lost.tsx` | Registro do desaparecimento de um pet |
 | `src/map/` | O mapa: a página HTML (`mapHtml.ts`, com testes), o WebView do app e o iframe da web |
 | `app/notifications.tsx` | Notificações, num painel sob o sino, agrupadas por Hoje, Esta semana e Antes, com "marcar todas como lidas" |
 | `app/profile.tsx` | Conta: nome, avisos de encontro, termos, troca da senha, saída e exclusão da conta |
 | `app/health/[petId].tsx`, `app/health/event.tsx` | Saúde de um pet: o aviso de cuidado atrasado com "Já dei", as abas por tipo e a folha "Anotar"; e o formulário de um evento com os anexos |
-| `app/share/[petId].tsx`, `app/card.tsx` | Carteirinha do tutor com a folha de compartilhar (validade, exames, QR code, WhatsApp, e-mail), e a carteirinha pública |
+| `app/share/[petId].tsx`, `app/card.tsx` | Carteirinha do tutor com a folha de compartilhar (validade, exames, QR code, Copiar, WhatsApp, e-mail), e a carteirinha pública |
 | `src/cards/` | A carteirinha (`HealthCardView`), as linhas de vacinas e antiparasitários com o atraso, o link e o QR code, com testes |
-| `src/health/` | Campos e regras de cada tipo de evento (RN-37, RN-38, RN-76 a RN-80), texto dos próximos cuidados, as abas e os estados da lista (`board.ts`), os atalhos do "Anotar" e do "Já dei" (`presetValues`), com testes; o único arquivo que importa o seletor de documentos |
+| `src/health/` | Campos e regras de cada tipo de evento (RN-37, RN-38, RN-76 a RN-80), texto dos próximos cuidados, as abas e os estados da lista (`board.ts`), os atalhos do "Anotar" e do "Já dei" (`presetValues`), os campos de cada categoria (`categoryFields`), com testes; a folha "Anotar" (`AnotarSheet`), na saúde e no início; o único arquivo que importa o seletor de documentos |
 | `src/alerts/` | Envio da localização (com testes), destino de uma notificação (com testes), e o único arquivo que importa a localização do aparelho |
 | `src/reports/` | Regras dos textos de uma ocorrência (RN-70), títulos e mensagens, com testes; ações do desaparecimento na tela do pet |
 | `app/sign-in.tsx`, `app/complete-profile.tsx` | Entrada e primeiro acesso |
@@ -153,10 +153,11 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `src/found/location.ts` | Posição do aparelho no navegador (RN-61), com testes |
 | `src/pets/form.ts` | Regras do formulário do pet (RN-48, RN-50, RN-51, RN-56), com testes |
 | `src/pets/save.ts` | Salva os dados do pet e depois envia a foto, com testes |
-| `src/pets/PetFormView.tsx` | O formulário do pet |
+| `src/pets/PetFormView.tsx` | O formulário de editar pet, com todos os dados do pet |
 | `src/pets/profile.ts` | Os cuidados e os dados do perfil do pet, com testes |
+| `src/pets/breeds.ts`, `src/pets/BreedPicker.tsx` | A lista de raças de cachorro com a busca (com testes) e o campo que abre a lista |
 | `src/pets/pickPhoto.ts` | O único arquivo que importa a galeria e o sistema de arquivos do aparelho |
 | `src/screens/` | Telas de entrada e de primeiro acesso, e os estilos comuns |
 | `src/home/` | O início (RF-34): subtítulo do pet, pet escolhido, série do peso, notificações não lidas, com testes; a folha do seletor de pets |
 | `src/welcome/` | A apresentação da primeira abertura (RF-33): os quatro passos e a marca de já vista, com testes |
-| `src/ui/` | O visual do canvas de design ([ADR 0030](../docs/adr/0030-visual-do-app.md)): tema (cores, fontes, cantos, espaços) com o teste de contraste, ícones, logo e mascote em SVG, textos, botão, campo, cartão, abas e barra de navegação. O único lugar que importa `react-native-svg` |
+| `src/ui/` | O visual do canvas de design ([ADR 0030](../docs/adr/0030-visual-do-app.md)): tema (cores, fontes, cantos, espaços) com o teste de contraste, ícones, logo e mascote em SVG, textos, botão, campo, cartão, abas, barra de navegação, a tela de carregamento e de falha (`StatusScreen`) o campo de data com calendário (`DateField`, com a grade do mês testada em `calendar.ts`), e o layout da web larga (`useWide`, `WebFrame`). O único lugar que importa `react-native-svg` |

@@ -109,9 +109,9 @@
 |---|---|---|---|
 | RN-05 | A exclusão de um pet é lógica: o registro fica no banco com a data da exclusão. A exclusão apaga a foto de perfil do armazenamento. | RF-09 | estável |
 | RN-06 | A foto fica no armazenamento de objetos. A API devolve uma URL temporária, válida por 15 minutos. | RF-10 | estável |
-| RN-48 | O nome e a espécie do pet são obrigatórios. A espécie é cachorro, gato ou outro. | RF-09 | estável |
+| RN-48 | O nome e a espécie do pet são obrigatórios. A API aceita cachorro, gato ou outro; o app cadastra só cachorro, porque a inferência lê só o focinho de cachorro. A raça vem de uma lista de raças de cachorro, com a opção SRD (sem raça definida). | RF-09 | estável |
 | RN-49 | O sexo é macho, fêmea ou indefinido. O porte é pequeno, médio ou grande. Os dois são opcionais. | RF-09 | estável |
-| RN-50 | A data de nascimento, quando informada, não é uma data futura. A data de hoje é a data em UTC. | RF-09 | estável |
+| RN-50 | A data de nascimento é opcional, porque o tutor pode não saber. Quando informada, não é uma data futura. A data de hoje é a data em UTC. Sem a data, as telas não mostram a idade. | RF-09 | estável |
 | RN-51 | O peso, quando informado, fica entre 0,01 kg e 999,99 kg, com no máximo 2 casas decimais. | RF-09 | estável |
 | RN-52 | Só o tutor do pet vê, altera e exclui o pet. Para outro tutor, o pet não existe. | RF-09, RF-10 | estável |
 | RN-53 | A lista mostra os pets do tutor que não foram excluídos, em ordem de nome. | RF-09 | estável |
@@ -136,6 +136,7 @@
 | RN-59 | A foto do focinho, no cadastro e na identificação, é uma imagem JPEG, PNG ou WebP de até 8 MB (RN-17). | RF-11, RF-12 | estável |
 | RN-60 | O cadastro que a API devolve para um pet é o principal (RN-09). | RF-11 | estável |
 | RN-85 | O app confere cada foto do focinho antes do cadastro, com a mesma inferência do cadastro (RN-07, RN-21, RN-59). A conferência devolve só a qualidade e não grava a foto nem o vetor. O app cadastra 2 fotos do focinho, e só as fotos que passaram na conferência. | RF-11 | estável |
+| RN-86 | A foto do focinho é gravada no cadastro e na identificação e nunca é mostrada depois, nem ao tutor nem a outra pessoa: nenhuma resposta da API tem a foto ou a URL dela. A única foto do cachorro que a API mostra é a foto de perfil do pet, ou a foto ampla de um achado (RN-27). | RF-11, RF-12, RF-19 | estável |
 | RN-61 | A identificação aceita a latitude e a longitude de quem encontrou. As duas são opcionais e vêm juntas. A latitude vai de -90 a 90 e a longitude vai de -180 a 180. Um valor que não é um número é recusado. | RF-12 | estável |
 | RN-62 | O resultado da identificação não tem dado do tutor. Cada candidato tem o nome e a foto de perfil do pet, a similaridade e a marca de correspondência forte. | RF-12 | estável |
 | RN-63 | A confirmação tem o candidato, o nome (obrigatório, até 120 caracteres), o telefone (obrigatório, de 8 a 30 caracteres: dígitos, espaço, `+`, `-`, `(` e `)`) e a mensagem (opcional, até 500 caracteres). Os espaços do começo e do fim são removidos. | RF-13 | estável |
@@ -177,7 +178,7 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 | RN-24 | O mural mostra 20 ocorrências abertas por página, da mais nova para a mais antiga, com as contagens de perdidos e de achados abertos. Um desaparecimento de um pet excluído sai do mural. O mural filtra pelo tipo (perdido ou achado) e pelo raio de 1, 3, 5 ou 10 km em volta de um ponto (RN-61). O ponto e o raio vêm juntos. O raio vale também para as contagens; o tipo não muda as contagens. | RF-16 | estável |
 | RN-25 | A ficha de uma ocorrência do tipo perdido mostra os avistamentos dela, do mais antigo para o mais novo. | RF-17 | estável |
 | RN-26 | Só o tutor do pet registra o desaparecimento dele. | RF-18 | estável |
-| RN-27 | Um achado não pede conta e não pede pet cadastrado. A foto do achado é a foto do focinho usada na identificação: uma imagem JPEG, PNG ou WebP de até 8 MB (RN-59). A página pública envia a foto da identificação. A API não liga o achado à identificação. | RF-19 | estável |
+| RN-27 | Um achado não pede conta e não pede pet cadastrado. A foto do achado é uma foto ampla do cachorro, tirada por quem achou: uma imagem JPEG, PNG ou WebP de até 8 MB (RN-59). Quem achou faz primeiro, de preferência, o scan do focinho (RF-12); a foto do focinho não vai para o achado (RN-86). A API não liga o achado à identificação. | RF-19 | estável |
 | RN-28 | Um avistamento só entra em uma ocorrência do tipo perdido que está aberta. Latitude e longitude vêm juntas ou não vêm. Sem coordenadas, vale o ponto do desaparecimento. | RF-20 | estável |
 | RN-29 | Só o autor resolve a ocorrência. Uma ocorrência resolvida sai do mural e não recebe avistamentos. Resolver de novo não muda nada. | RF-21 | estável |
 | RN-68 | Um pet tem no máximo um desaparecimento aberto. Um segundo registro recebe 409 `lost_report_open`. | RF-18 | estável |

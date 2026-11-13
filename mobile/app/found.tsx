@@ -1,6 +1,6 @@
 import { router } from "expo-router";
-import { useState } from "react";
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { confirmIdentification, identifyNose, type Identification } from "../src/api/found";
@@ -9,11 +9,16 @@ import { apiUrl } from "../src/config";
 import { CONTACT_LIMITS, foundFailureMessage, similarityLabel, toContact } from "../src/found/contact";
 import { currentLocation } from "../src/found/location";
 import { filePart, NOSE_PHOTO_QUALITY, pickPhoto, takePhoto } from "../src/pets/pickPhoto";
+import { listBoard, type Report } from "../src/api/reports";
+import { timeAgo } from "../src/reports/board";
 import { PublishFound } from "../src/reports/PublishFound";
 import { styles } from "../src/screens/styles";
-import { BackButton } from "../src/ui/Surfaces";
+import { Button } from "../src/ui/Button";
+import { Field } from "../src/ui/Field";
+import { BackButton, Checkbox } from "../src/ui/Surfaces";
 import { Icon, LogoMark, type IconName } from "../src/ui/Icon";
 import { colors, fonts, radius, space } from "../src/ui/theme";
+import { useWide } from "../src/ui/useWide";
 
 /**
  * The public page "encontrei um pet": a visitor with no account sends the
@@ -24,6 +29,15 @@ export default function Found() {
   const insets = useSafeAreaInsets();
   // "start" is the Achei-Mobile artboard; "scan" sends the photo to the search; "publish" goes to the board.
   const [mode, setMode] = useState<"start" | "scan" | "publish">("start");
+  const wide = useWide();
+  // The lost dogs of the board, for the column of the wide layout.
+  const [lost, setLost] = useState<Report[]>([]);
+  useEffect(() => {
+    if (!wide) {
+      return;
+    }
+    void listBoard(apiUrl, 1, { type: "lost" }).then((result) => result.ok && setLost(result.value.reports.slice(0, 4)));
+  }, [wide]);
   const [photo, setPhoto] = useState<LocalFile | null>(null);
   const [shareLocation, setShareLocation] = useState(false);
   const [identification, setIdentification] = useState<Identification | null>(null);
@@ -32,8 +46,12 @@ export default function Found() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  // The candidate on the screen, and true when the person said that none is the dog.
+  const [current, setCurrent] = useState(0);
+  const [noneIsTheDog, setNoneIsTheDog] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
-  async function choosePhoto(next: "scan" | "publish" = mode === "publish" ? "publish" : "scan", gallery = false) {
+  async function choosePhoto(next: "scan" = "scan", gallery = false) {
     // In the app the camera opens with a square crop; the web and a refused camera use the gallery.
     const taken = gallery || Platform.OS === "web" ? "denied" : await takePhoto(true);
     const picked = taken === "denied" ? await pickPhoto(NOSE_PHOTO_QUALITY) : taken;
@@ -57,6 +75,8 @@ export default function Found() {
     const result = await identifyNose(apiUrl, filePart(photo), location);
     if (result.ok) {
       setIdentification(result.value);
+      setCurrent(0);
+      setNoneIsTheDog(false);
     } else {
       setError(foundFailureMessage(result));
     }
@@ -83,21 +103,130 @@ export default function Found() {
     setBusy(false);
   }
 
-  const chosen = identification?.candidates.find((candidate) => candidate.id === candidateId);
+  const candidates = identification?.candidates ?? [];
+  const candidate = noneIsTheDog ? undefined : candidates[current];
+  const chosen = candidates.find((item) => item.id === candidateId);
+
+  if (wide && mode === "start") {
+    // Achei-Web: the scan and the help on the left, the lost dogs on the right (#231).
+    return (
+      <ScrollView contentContainerStyle={local.wide}>
+        <View style={{ flex: 1.5, minWidth: 0, gap: 24 }}>
+          <View style={{ gap: 10 }}>
+            <Text style={[local.title, { fontSize: 52, letterSpacing: -1.6 }]} accessibilityRole="header">
+              Achou um cachorro?
+            </Text>
+            <Text style={[local.lead, { fontSize: 18 }]}>Obrigado por ajudar. Vamos tentar encontrar o tutor dele.</Text>
+          </View>
+          <View style={[local.scanCard, { padding: 28 }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+              <View style={[local.scanArt, { width: 140, height: 140 }]}>
+                <Icon name="scan" size={64} color={colors.brand} strokeWidth={2.2} />
+              </View>
+              <View style={{ flex: 1, gap: 6 }}>
+                <Text style={[local.scanTitle, { fontSize: 28 }]}>Escaneie o focinho</Text>
+                <Text style={local.scanText}>Se ele tiver cadastro, o tutor é avisado na hora. Leva menos de 1 minuto.</Text>
+              </View>
+            </View>
+            <Pressable testID="found-pick-photo-button" accessibilityRole="button" style={local.scanButton} disabled={busy} onPress={() => void choosePhoto("scan")}>
+              <Icon name="scan" size={22} color={colors.onPrimary} strokeWidth={2.1} />
+              <Text style={local.scanButtonText}>Escanear focinho</Text>
+            </Pressable>
+          </View>
+          <View style={{ gap: 12 }}>
+            <Text style={local.section2}>Como funciona</Text>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              {[
+                { n: "1", color: colors.brand, title: "Foto do focinho", text: "Bem de perto, com o focinho no centro da foto." },
+                { n: "2", color: colors.accent, title: "Veja os parecidos", text: "Os cachorros cadastrados mais parecidos, com foto. Nunca dados do tutor." },
+                { n: "3", color: colors.success, title: "Avise o tutor", text: "Se for ele, o tutor recebe o seu contato na hora." },
+              ].map((step) => (
+                <View key={step.n} style={local.step}>
+                  <View style={[local.stepNumber, { backgroundColor: step.color }]}>
+                    <Text style={local.stepNumberText}>{step.n}</Text>
+                  </View>
+                  <Text style={local.stepTitle}>{step.title}</Text>
+                  <Text style={local.optionLine}>{step.text}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+          <View style={{ gap: 12 }}>
+            <Text style={local.section2}>Enquanto isso</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+              {[
+                { title: "Olhe a coleira", text: "Plaquinha ou telefone resolvem na hora." },
+                { title: "Microchip", text: "Uma clínica veterinária consegue ler, se ele tiver." },
+                { title: "Lugar seguro e água", text: "Evite dar comida diferente da que ele está acostumado." },
+                { title: "Não entregue sem confirmar", text: "Peça uma foto antiga ou o cadastro no Nupii antes." },
+              ].map((tip) => (
+                <View key={tip.title} style={local.tipCard}>
+                  <View style={local.tipCheck}>
+                    <Icon name="check" size={13} color={colors.onPrimary} strokeWidth={3.2} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={local.stepTitle}>{tip.title}</Text>
+                    <Text style={local.optionLine}>{tip.text}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+        <View style={local.aside} accessibilityLabel="Perdidos">
+          <View style={{ gap: 2 }}>
+            <Text style={local.section2}>Pode ser um destes?</Text>
+            <Text style={local.optionLine}>Os cachorros perdidos mais recentes do mural</Text>
+          </View>
+          {lost.map((report) => (
+            <View key={report.id} style={local.lostRow}>
+              <View style={local.lostPhoto}>{report.photoUrl ? <Image source={{ uri: report.photoUrl }} style={StyleSheet.absoluteFill} /> : <Icon name="pin" size={22} color={colors.onPrimary} />}</View>
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <Text style={local.stepTitle} numberOfLines={1}>
+                  {report.petName ?? "Pet perdido"}
+                </Text>
+                <Text style={local.optionLine} numberOfLines={1}>
+                  {[report.place, timeAgo(report.occurredAt)].filter(Boolean).join(" · ")}
+                </Text>
+              </View>
+              <Pressable accessibilityRole="button" style={local.mayBe} onPress={() => router.push({ pathname: "/reports/[id]", params: { id: report.id } })}>
+                <Text style={local.mayBeText}>Pode ser</Text>
+              </Pressable>
+            </View>
+          ))}
+          {lost.length === 0 && <Text style={local.optionLine}>Nenhum cachorro perdido no mural agora.</Text>}
+          <Button label="Ver todos no mural" variant="soft" size="md" trailingIcon="arrowRight" onPress={() => router.push("/reports")} />
+          <View style={{ height: 1, backgroundColor: colors.border }} />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={[local.optionIcon, { backgroundColor: colors.success }]}>
+              <Icon name="camera" size={18} color={colors.onPrimary} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={local.stepTitle}>Nenhum parece com ele?</Text>
+              <Text style={local.optionLine}>Publique como achado: quem procura vê no mural.</Text>
+            </View>
+          </View>
+          <Button testID="found-publish" label="Publicar como achado" variant="outline" size="md" onPress={() => setMode("publish")} />
+        </View>
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={[local.content, { paddingTop: insets.top + space.lg }]} keyboardShouldPersistTaps="handled">
       <View style={local.top}>
         <BackButton testID="found-back" onPress={() => (mode !== "start" ? setMode("start") : router.canGoBack() ? router.back() : router.replace("/"))} />
-        <LogoMark size={28} />
-        <Text style={local.brand}>nupii</Text>
+        {!wide && <LogoMark size={28} />}
+        {!wide && <Text style={local.brand}>nupii</Text>}
       </View>
-      <View style={{ gap: 8 }}>
-        <Text style={local.title} accessibilityRole="header">
-          Achou um cachorro?
-        </Text>
-        <Text style={local.lead}>Obrigado por ajudar. Vamos tentar encontrar o tutor dele.</Text>
-      </View>
+      {identification === null && (
+        <View style={{ gap: 8 }}>
+          <Text style={local.title} accessibilityRole="header">
+            Achou um cachorro?
+          </Text>
+          <Text style={local.lead}>Obrigado por ajudar. Vamos tentar encontrar o tutor dele.</Text>
+        </View>
+      )}
 
       {mode === "start" && (
         <>
@@ -125,7 +254,7 @@ export default function Found() {
           {(
             [
               { testID: "found-board", icon: "pin", color: colors.danger, title: "Ver perdidos perto daqui", line: "compare com os cachorros que sumiram no bairro", go: () => router.push("/reports") },
-              { testID: "found-publish", icon: "camera", color: colors.success, title: "Publicar como achado no mural", line: "foto do focinho, local e como ele está · o tutor pode te achar", go: () => void choosePhoto("publish") },
+              { testID: "found-publish", icon: "camera", color: colors.success, title: "Publicar como achado no mural", line: "foto do cachorro, local e como ele está · o tutor pode te achar", go: () => setMode("publish") },
             ] as { testID: string; icon: IconName; color: string; title: string; line: string; go: () => void }[]
           ).map((option) => (
             <Pressable key={option.testID} testID={option.testID} accessibilityRole="button" style={local.option} onPress={option.go}>
@@ -148,125 +277,116 @@ export default function Found() {
         </>
       )}
 
-      {mode !== "start" && photo !== null && <Image testID="found-photo" accessibilityLabel="Foto enviada" source={{ uri: photo.uri }} style={local.photo} />}
-      {mode !== "start" && (
-        <Pressable testID="found-change-photo" accessibilityRole="button" style={styles.link} disabled={busy} onPress={() => void choosePhoto()}>
-          <Text style={local.link}>Trocar a foto</Text>
-        </Pressable>
-      )}
-      {mode === "publish" && photo !== null && <PublishFound photo={() => filePart(photo)} />}
-
+      {/* Before the search: the photo of the nose, to confirm it. After the search it is not shown (RN-86). */}
       {mode === "scan" && photo !== null && identification === null && (
         <>
-          <Pressable
-            testID="found-location-toggle"
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: shareLocation }}
-            style={styles.row}
-            onPress={() => setShareLocation((value) => !value)}
-          >
-            <View style={[local.checkbox, shareLocation && local.checkboxChecked]} />
-            <Text style={styles.rowText}>Enviar a minha localização, para o tutor saber onde o cão está</Text>
-          </Pressable>
-          <Pressable
-            testID="found-search-button"
-            accessibilityRole="button"
-            style={[styles.button, busy && styles.buttonDisabled]}
-            disabled={busy}
-            onPress={search}
-          >
-            <Text style={styles.buttonText}>{busy ? "Procurando..." : "Procurar o cão"}</Text>
-          </Pressable>
+          <Image testID="found-photo" accessibilityLabel="Foto do focinho" source={{ uri: photo.uri }} style={local.photo} />
+          <Button testID="found-change-photo" label="Trocar a foto" variant="soft" size="sm" stretch={false} disabled={busy} onPress={() => void choosePhoto()} />
+          <Checkbox testID="found-location-toggle" label="Enviar a minha localização, para o tutor saber onde o cão está" checked={shareLocation} onChange={setShareLocation} />
+          <Button testID="found-search-button" label={busy ? "Procurando..." : "Procurar o tutor"} icon="scan" busy={busy} onPress={() => void search()} />
         </>
       )}
+      {mode === "publish" && <PublishFound />}
 
-      {identification !== null && identification.candidates.length === 0 && (
-        <Text testID="found-no-candidate" style={styles.text}>
-          Não achamos um pet parecido. Tente outra foto, mais de perto e com mais luz.
-        </Text>
-      )}
-
-      {identification !== null && !sent && identification.candidates.length > 0 && (
-        <>
-          <Text style={local.section}>É um destes?</Text>
-          {identification.candidates.map((candidate) => (
+      {/* The result (Match artboard), without the photos of the nose. */}
+      {identification !== null && !sent && chosen === undefined && candidate !== undefined && (
+        <View style={{ gap: space.lg }}>
+          <View style={{ gap: 6 }}>
+            <Text style={local.overline}>RESULTADO DA BUSCA</Text>
+            <Text style={local.title} accessibilityRole="header">
+              {candidates.length === 1 ? "Achamos uma possível correspondência" : `Achamos ${candidates.length} cães parecidos`}
+            </Text>
+          </View>
+          {(showAll ? candidates : [candidate]).map((item) => (
             <Pressable
-              key={candidate.id}
-              testID={`found-candidate-${candidate.petName}`}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: candidate.id === candidateId }}
-              style={[local.candidate, candidate.id === candidateId && local.candidateSelected]}
-              onPress={() => setCandidateId(candidate.id)}
+              key={item.id}
+              testID={`found-candidate-${item.petName}`}
+              accessibilityRole="button"
+              accessibilityLabel={`${item.petName}, ${similarityLabel(item.similarity)}`}
+              style={[local.match, item.id === candidate.id && local.matchCurrent]}
+              onPress={() => setCurrent(candidates.indexOf(item))}
             >
-              {candidate.petPhotoUrl ? (
-                <Image accessibilityLabel={`Foto de ${candidate.petName}`} source={{ uri: candidate.petPhotoUrl }} style={local.petPhoto} />
-              ) : (
-                <View style={[local.petPhoto, local.petPhotoEmpty]} />
-              )}
-              <View style={local.candidateText}>
-                <Text style={local.petName}>{candidate.petName}</Text>
-                <Text style={local.similarity}>{similarityLabel(candidate.similarity)}</Text>
-                {candidate.strong && <Text style={local.strong}>Correspondência forte</Text>}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                {item.petPhotoUrl ? <Image source={{ uri: item.petPhotoUrl }} style={local.matchPhoto} /> : <View style={[local.matchPhoto, local.matchPhotoEmpty]}><Icon name="camera" size={22} color={colors.onPrimary} /></View>}
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={local.matchName}>{item.petName}</Text>
+                  <Text style={local.muted}>{similarityLabel(item.similarity)}</Text>
+                </View>
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <View style={local.bar}>
+                  <View style={[local.barFill, { width: `${Math.round(Math.max(0, Math.min(1, item.similarity)) * 100)}%` }]} />
+                </View>
+                <View style={local.confidence}>
+                  <Text style={[local.confidenceText, !item.strong && { color: colors.textSecondary }]}>{item.strong ? "Alta confiança" : "Parecido"}</Text>
+                </View>
               </View>
             </Pressable>
           ))}
-        </>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <Icon name="lock" size={18} color={colors.textMuted} />
+            <Text style={[local.muted, { flex: 1 }]}>A confirmação final é do tutor. Seu contato só vai para o tutor do cão que você escolher.</Text>
+          </View>
+          {candidates.length > 1 && !showAll && (
+            <Pressable testID="found-show-all" accessibilityRole="button" hitSlop={8} onPress={() => setShowAll(true)}>
+              <Text style={local.link}>Ver {candidates.length - 1 === 1 ? "outro parecido" : `outros ${candidates.length - 1} parecidos`}</Text>
+            </Pressable>
+          )}
+          <Button testID="found-pick-candidate" label="Avisar o tutor" onPress={() => setCandidateId(candidate.id)} />
+          <Button
+            testID="found-not-this"
+            label="Não é este cão"
+            variant="soft"
+            size="md"
+            onPress={() => {
+              if (current + 1 < candidates.length) {
+                setCurrent(current + 1);
+              } else {
+                setNoneIsTheDog(true);
+              }
+            }}
+          />
+        </View>
       )}
 
+      {/* The contact for the owner of the chosen dog (RF-13, RN-63). */}
       {chosen !== undefined && !sent && (
-        <>
-          <Text style={local.section}>Deixe o seu contato para o tutor de {chosen.petName}</Text>
-          <Text style={styles.label}>Seu nome</Text>
-          <TextInput
-            testID="found-name-input"
-            accessibilityLabel="Seu nome"
-            style={styles.input}
-            maxLength={CONTACT_LIMITS.name}
-            value={contact.name}
-            onChangeText={(name) => setContact((current) => ({ ...current, name }))}
-          />
-          <Text style={styles.label}>Telefone com DDD</Text>
-          <TextInput
-            testID="found-phone-input"
-            accessibilityLabel="Telefone com DDD"
-            style={styles.input}
-            keyboardType="phone-pad"
-            maxLength={CONTACT_LIMITS.phone}
-            value={contact.phone}
-            onChangeText={(phone) => setContact((current) => ({ ...current, phone }))}
-          />
-          <Text style={styles.label}>Mensagem (opcional)</Text>
-          <TextInput
-            testID="found-message-input"
-            accessibilityLabel="Mensagem"
-            style={[styles.input, local.message]}
-            multiline
-            maxLength={CONTACT_LIMITS.message}
-            value={contact.message}
-            onChangeText={(message) => setContact((current) => ({ ...current, message }))}
-          />
-          <Pressable
-            testID="found-confirm-button"
-            accessibilityRole="button"
-            style={[styles.button, busy && styles.buttonDisabled]}
-            disabled={busy}
-            onPress={confirm}
-          >
-            <Text style={styles.buttonText}>{busy ? "Enviando..." : "Avisar o tutor"}</Text>
-          </Pressable>
-        </>
-      )}
-
-      {/* RF-19: with no candidate, or after the contact, the dog can go to the board. */}
-      {mode === "scan" && photo !== null && identification !== null && (identification.candidates.length === 0 || sent) && (
-        <PublishFound photo={() => filePart(photo)} />
+        <View style={{ gap: 14 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            {chosen.petPhotoUrl ? <Image source={{ uri: chosen.petPhotoUrl }} style={local.contactPhoto} /> : null}
+            <Text style={[local.title, { flex: 1, fontSize: 26 }]} accessibilityRole="header">
+              Avise o tutor de {chosen.petName}
+            </Text>
+          </View>
+          <Text style={local.muted}>O tutor recebe o seu nome, o telefone e o recado na hora. Ele liga ou manda mensagem para você.</Text>
+          <Field testID="found-name-input" label="Seu nome" icon="user" maxLength={CONTACT_LIMITS.name} value={contact.name} onChangeText={(name) => setContact((value) => ({ ...value, name }))} />
+          <Field testID="found-phone-input" label="Telefone com DDD" icon="phone" keyboardType="phone-pad" maxLength={CONTACT_LIMITS.phone} value={contact.phone} onChangeText={(phone) => setContact((value) => ({ ...value, phone }))} />
+          <Field testID="found-message-input" label="Recado (opcional)" multiline maxLength={CONTACT_LIMITS.message} style={local.message} placeholder="Ex.: ele está comigo, perto da praça" value={contact.message} onChangeText={(message) => setContact((value) => ({ ...value, message }))} />
+          <Button testID="found-confirm-button" label={busy ? "Enviando..." : "Avisar o tutor"} busy={busy} onPress={() => void confirm()} />
+          <Button testID="found-back-to-candidates" label="Escolher outro cão" variant="soft" size="md" disabled={busy} onPress={() => setCandidateId(null)} />
+        </View>
       )}
 
       {sent && chosen !== undefined && (
-        <Text testID="found-sent" style={local.sent}>
-          Pronto. O tutor de {chosen.petName} recebeu o seu contato. Obrigado por ajudar.
-        </Text>
+        <View testID="found-sent" style={local.sentCard}>
+          <View style={local.sentIcon}>
+            <Icon name="check" size={26} color={colors.onPrimary} strokeWidth={2.8} />
+          </View>
+          <Text style={local.sentTitle}>O tutor de {chosen.petName} foi avisado</Text>
+          <Text style={local.muted}>Ele recebeu o seu contato. Obrigado por ajudar.</Text>
+        </View>
       )}
+
+      {/* RF-19: with no candidate, or none is the dog, or after the contact, the dog can go to the board. */}
+      {mode === "scan" && identification !== null && (candidates.length === 0 || noneIsTheDog) && !sent && (
+        <View style={{ gap: 6 }}>
+          <Text testID="found-no-candidate" style={local.title} accessibilityRole="header">
+            Não achamos o tutor
+          </Text>
+          <Text style={local.muted}>Nenhum cão cadastrado tem esse focinho. Publique o achado no mural com uma foto do cachorro: o tutor pode te achar.</Text>
+        </View>
+      )}
+      {mode === "scan" && identification !== null && (candidates.length === 0 || noneIsTheDog || sent) && <PublishFound />}
       {error !== null && (
         <Text testID="found-error" accessibilityRole="alert" style={styles.error}>
           {error}
@@ -279,6 +399,19 @@ export default function Found() {
 const local = StyleSheet.create({
   content: { alignSelf: "center", backgroundColor: colors.background, flexGrow: 1, maxWidth: 520, paddingHorizontal: space.xl, paddingBottom: space.xl, gap: space.lg, width: "100%" },
   top: { flexDirection: "row", alignItems: "center", gap: 8 },
+  wide: { flexDirection: "row", gap: 32, alignItems: "flex-start", width: "100%", maxWidth: 1280, alignSelf: "center", paddingHorizontal: 48, paddingTop: 32, paddingBottom: 56 },
+  section2: { fontFamily: fonts.titleBold, fontSize: 20, color: colors.ink },
+  step: { flex: 1, gap: 8, padding: 16, borderRadius: 22, borderWidth: 1.5, borderColor: colors.border },
+  stepNumber: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  stepNumberText: { fontFamily: fonts.title, fontSize: 15, color: colors.onPrimary },
+  stepTitle: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
+  tipCard: { width: "48%", flexGrow: 1, flexDirection: "row", gap: 12, padding: 14, borderRadius: 18, backgroundColor: colors.surface },
+  tipCheck: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.success, alignItems: "center", justifyContent: "center" },
+  aside: { flex: 1, minWidth: 0, gap: 14, padding: 20, borderRadius: 28, borderWidth: 1.5, borderColor: colors.border },
+  lostRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 8, borderRadius: 20, borderWidth: 1.5, borderColor: colors.border },
+  lostPhoto: { width: 64, height: 64, borderRadius: 16, overflow: "hidden", backgroundColor: colors.brand, alignItems: "center", justifyContent: "center" },
+  mayBe: { minHeight: 36, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.dark, justifyContent: "center" },
+  mayBeText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.onDark },
   brand: { fontFamily: fonts.title, fontSize: 22, color: colors.ink },
   title: { fontFamily: fonts.title, fontSize: 32, letterSpacing: -0.9, color: colors.ink },
   lead: { fontFamily: fonts.body, fontSize: 16, lineHeight: 24, color: colors.textSecondary },
@@ -296,17 +429,19 @@ const local = StyleSheet.create({
   tip: { padding: 14, borderRadius: 18, backgroundColor: colors.surface },
   link: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.link },
   photo: { alignSelf: "center", borderRadius: radius.card, height: 220, width: 220 },
-  checkbox: { borderColor: colors.textMuted, borderRadius: 4, borderWidth: 1, height: 24, width: 24 },
-  checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
-  section: { fontSize: 18, fontFamily: fonts.titleBold },
-  candidate: { alignItems: "center", borderColor: colors.border, borderRadius: radius.card, borderWidth: 1.5, flexDirection: "row", gap: 16, padding: 12 },
-  candidateSelected: { borderColor: colors.primary, borderWidth: 2 },
-  candidateText: { flex: 1 },
-  petPhoto: { borderRadius: 32, height: 64, width: 64 },
-  petPhotoEmpty: { backgroundColor: colors.borderStrong },
-  petName: { fontSize: 18, fontFamily: fonts.titleBold },
-  similarity: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 14 },
-  strong: { color: colors.success, fontSize: 14, fontFamily: fonts.bodyBold },
-  message: { minHeight: 88, textAlignVertical: "top" },
-  sent: { fontFamily: fonts.body, color: colors.success, fontSize: 16, textAlign: "center" },
+  message: { minHeight: 88, textAlignVertical: "top", paddingTop: 12 },
+  muted: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.textMuted },
+  match: { gap: 12, padding: 12, borderRadius: radius.cardLarge, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.surface },
+  matchCurrent: { borderColor: colors.brand },
+  matchPhoto: { width: 76, height: 76, borderRadius: 20 },
+  matchPhotoEmpty: { backgroundColor: colors.brand, alignItems: "center", justifyContent: "center" },
+  matchName: { fontFamily: fonts.titleBold, fontSize: 21, color: colors.ink },
+  bar: { flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.background, overflow: "hidden" },
+  barFill: { height: 8, borderRadius: 4, backgroundColor: colors.brand },
+  confidence: { minHeight: 28, paddingHorizontal: 10, borderRadius: radius.pill, backgroundColor: colors.background, justifyContent: "center" },
+  confidenceText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.success },
+  contactPhoto: { width: 56, height: 56, borderRadius: 28 },
+  sentCard: { alignItems: "center", gap: 10, padding: space.xl, borderRadius: radius.cardLarge, backgroundColor: colors.surface },
+  sentIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.success, alignItems: "center", justifyContent: "center" },
+  sentTitle: { fontFamily: fonts.titleBold, fontSize: 20, color: colors.ink, textAlign: "center" },
 });

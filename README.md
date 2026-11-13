@@ -6,6 +6,28 @@ Plataforma para tutores de pets, com três partes: saúde do pet, mural de perdi
 
 As fatias 0, 1, 2 e 3 do [roteiro](docs/roteiro.md) estão prontas. O ambiente local sobe com um comando e o CI confere a API, o app, a integração e o serviço de inferência. O tutor cria a conta e entra pelo app, e cadastra os pets dele com foto de perfil. O serviço de inferência transforma a foto de um focinho em um vetor. As fatias 4 e 5 estão prontas: o tutor cadastra o focinho de um cachorro pelo app, e quem encontra um cão envia a foto do focinho pela página pública, vê os pets parecidos e deixa o contato para o tutor. O tutor registra o desaparecimento de um pet no mapa, e qualquer pessoa vê o mural, registra um avistamento e publica um achado pela web. A fatia 6 também está pronta: o tutor a até 3.000 m de um desaparecimento recebe uma notificação no app, mesmo que a API pare logo depois do registro. Na fatia 7, o tutor registra a saúde dos pets: vacinas, consultas, medicações, exames e anotações, com anexos e os próximos cuidados. Na fatia 8, o tutor compartilha a carteirinha do pet por um link com QR code, que qualquer pessoa abre na web até o tutor revogar. Na fatia 9, o tutor altera o perfil, troca e redefine a senha e exclui a conta, e a API apaga todo dia os dados pessoais com mais de 30 dias. O andamento de cada fatia está nos milestones do GitHub.
 
+## Como testar o app
+
+Um comando sobe o ambiente local e outro abre o app no emulador Android:
+
+```bash
+./dev.sh firebase   # ou ./dev.sh emulador
+./dev.sh app
+```
+
+| Modo | Login | Arquivos que o comando confere |
+|---|---|---|
+| `emulador` | Emulador do Firebase Authentication (contas de teste, somem quando o container reinicia) | `deploy/.env`, `mobile/.env` com `EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_URL` preenchido (o `mobile/.env.example` já vem assim) |
+| `firebase` | Projeto real do Firebase | `deploy/.env`, `backend/.env` com `FIREBASE_PROJECT_ID` e `GOOGLE_APPLICATION_CREDENTIALS`, e `mobile/.env` com `EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_URL` vazio. Os dois arquivos vêm do `./deploy/firebase-setup.sh` |
+
+O comando para com uma mensagem quando falta um arquivo, um valor, os pesos do modelo, ou quando outro programa usa a porta 8080 (por exemplo, um `go run` da API). Ele avisa quando o app e a API usam modos diferentes do Firebase.
+
+Para abrir no navegador os links que o app cria (carteirinha, mural, achado), suba a web pública com `./dev.sh web`: ela responde em `http://localhost:8081`, o endereço desses links no ambiente local.
+
+Outros comandos: `./dev.sh status`, `./dev.sh logs [serviço]` e `./dev.sh stop`. O `./dev.sh app` usa o primeiro emulador Android criado (ou o da variável `AVD`) e o Expo na porta 8099 (ou a da variável `EXPO_PORT`).
+
+Os passos detalhados de cada parte estão abaixo e nos READMEs do [backend](backend/README.md) e do [mobile](mobile/README.md).
+
 ## Como executar
 
 Requisitos: Docker com o Compose, e o GitHub CLI (`gh`) com acesso ao repositório. Para desenvolver a API: Go 1.26 ou mais novo.
@@ -113,6 +135,7 @@ O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app n
 | [0027](docs/adr/0027-link-da-carteirinha.md) | Link da carteirinha com validade de 30 dias, token no fragmento e QR code no app | aceito |
 | [0028](docs/adr/0028-exclusao-da-conta-e-limpeza.md) | Exclusão da conta com um apagador por módulo, e limpeza diária às 3h de Brasília | aceito |
 | [0030](docs/adr/0030-visual-do-app.md) | Visual do app a partir do canvas de design, com Bricolage Grotesque, Figtree e ícones em SVG | aceito |
+| [0031](docs/adr/0031-copiar-para-a-area-de-transferencia.md) | Copiar o link da carteirinha com o expo-clipboard | aceito |
 
 ## Regras do projeto
 
