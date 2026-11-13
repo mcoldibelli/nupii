@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"maps"
+	"slices"
 	"testing"
 
 	"github.com/mcoldibelli/nupii/backend/internal/platform/config"
@@ -187,6 +188,43 @@ func TestPushEnabled(t *testing.T) {
 			}
 			if cfg.PushEnabled != tt.want {
 				t.Errorf("PushEnabled = %t, want %t", cfg.PushEnabled, tt.want)
+			}
+		})
+	}
+}
+
+// ADR 0029, item 8: WEB_ORIGINS has the origins of the web with an account,
+// separated by commas.
+func TestLoadReadsTheWebOrigins(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+		want  []string
+	}{
+		{name: "not set", value: "", want: nil},
+		{name: "one origin", value: "https://app.nupii.com.br", want: []string{"https://app.nupii.com.br"}},
+		{name: "two origins with spaces", value: "http://localhost:8081, https://app.nupii.com.br", want: []string{"http://localhost:8081", "https://app.nupii.com.br"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := config.Load(env(map[string]string{"WEB_ORIGINS": tt.value}))
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if !slices.Equal(cfg.WebOrigins, tt.want) {
+				t.Errorf("WebOrigins = %q, want %q", cfg.WebOrigins, tt.want)
+			}
+		})
+	}
+}
+
+// RNF-06: an origin is a scheme and a host, as the browser sends it in the
+// Origin header. A path or a trailing slash never matches.
+func TestLoadRejectsInvalidWebOrigins(t *testing.T) {
+	for _, value := range []string{"app.nupii.com.br", "https://app.nupii.com.br/", "https://app.nupii.com.br/web", "*"} {
+		t.Run(value, func(t *testing.T) {
+			if _, err := config.Load(env(map[string]string{"WEB_ORIGINS": value})); err == nil {
+				t.Errorf("Load with WEB_ORIGINS=%q: got nil error, want an error", value)
 			}
 		})
 	}

@@ -168,7 +168,7 @@ Limites conhecidos da fila:
 - Um erro devolvido por uma operação, ou um panic em um handler, recebe 500 com o código `internal_error`. O detalhe do erro vai só para o log, com o identificador da requisição.
 - Rotas em inglês, com versão no caminho: `/v1/...`.
 - Endpoints públicos têm limite de tentativas por IP (RN-43). O IP é o endereço da conexão, e a rota é o padrão do contrato, não o caminho com os identificadores. Acima do limite, a resposta é 429 com o código `rate_limited`. Atrás de um proxy, o endereço da conexão é o do proxy: a fatia 10 decide de onde a API lê o endereço do cliente.
-- Uma rota pública responde com `Access-Control-Allow-Origin: *`, para a página pública ler a resposta de outra origem. As rotas com token não têm esse cabeçalho.
+- Uma rota pública responde com `Access-Control-Allow-Origin: *`, para a página pública ler a resposta de outra origem. Uma rota com token responde com a origem exata só para as origens de `WEB_ORIGINS`, a web com conta, e o preflight dela aceita o cabeçalho `Authorization` ([ADR 0029](adr/0029-publicacao-na-vps.md), item 8).
 - O mapa da web fica em um `iframe` com `sandbox="allow-scripts"`: os scripts do mapa rodam em uma origem própria, sem acesso à página. Por isso, na web, o mapa não começa na posição do aparelho, e o visitante toca o ponto.
 - A API responde 204 à requisição `OPTIONS` de verificação que o navegador envia antes de um `POST` com JSON para uma rota pública. Uma rota com token recebe 404.
 - Autenticação: uma operação do contrato sem `security` é pública. Toda outra operação pede o ID token do Firebase no cabeçalho `Authorization: Bearer`. Sem token válido, a resposta é 401 com o código `unauthenticated` (RN-46). A conferência do token acontece antes da leitura do corpo.

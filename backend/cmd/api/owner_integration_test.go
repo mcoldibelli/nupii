@@ -86,7 +86,7 @@ func newTestAPI(t *testing.T, verifier identity.TokenVerifier, uids ...string) t
 	operations := newServer(logger, pool, photos, embedder)
 	return testAPI{
 		t:          t,
-		handler:    newHandler(logger, operations, verifier, operations.owners),
+		handler:    newHandler(logger, operations, verifier, operations.owners, nil),
 		pool:       pool,
 		embedder:   embedder,
 		noseprints: operations.noseprints,
