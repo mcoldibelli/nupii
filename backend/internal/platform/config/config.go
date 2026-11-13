@@ -54,6 +54,11 @@ type Config struct {
 	StorageAccessKeyID    string
 	// StorageSecretAccessKey is a secret. It must not be written to the log.
 	StorageSecretAccessKey string
+
+	// WebOrigins are the origins of the web with an account, as
+	// "https://app.nupii.com.br". A browser page of one of them can call
+	// the routes with a token (ADR 0029, item 8).
+	WebOrigins []string
 }
 
 // Load reads the configuration with getenv and validates it. The caller
@@ -126,6 +131,15 @@ func Load(getenv func(string) string) (Config, error) {
 			return Config{}, fmt.Errorf("%s: the variable is not set", variable.name)
 		}
 	}
+	if raw := getenv("WEB_ORIGINS"); raw != "" {
+		for origin := range strings.SplitSeq(raw, ",") {
+			origin = strings.TrimSpace(origin)
+			if err := validateOrigin(origin); err != nil {
+				return Config{}, fmt.Errorf("WEB_ORIGINS %q: %w", origin, err)
+			}
+			cfg.WebOrigins = append(cfg.WebOrigins, origin)
+		}
+	}
 	return cfg, nil
 }
 
@@ -137,6 +151,22 @@ func validateHTTPURL(raw string) error {
 	}
 	if (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 		return errors.New(`the value must be an address that starts with "http://" or "https://"`)
+	}
+	return nil
+}
+
+// validateOrigin checks that raw is an origin as the browser sends it in
+// the Origin header: an http or https address with a host and no path.
+func validateOrigin(raw string) error {
+	if err := validateHTTPURL(raw); err != nil {
+		return err
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("parse URL: %w", err)
+	}
+	if u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
+		return errors.New("an origin has no path, query or fragment")
 	}
 	return nil
 }
