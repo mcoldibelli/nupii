@@ -123,7 +123,7 @@ function Screens() {
         <Stack.Screen name="notifications" options={{ headerShown: false, presentation: "transparentModal", animation: "fade" }} />
         <Stack.Screen name="health/[petId]" options={{ headerShown: false }} />
         <Stack.Screen name="health/event" options={{ headerShown: false }} />
-        <Stack.Screen name="reports/lost" options={{ title: "Pet desaparecido" }} />
+        <Stack.Screen name="reports/lost" options={{ headerShown: false }} />
       </Stack.Protected>
       <Stack.Protected guard={state.kind === "needsProfile"}>
         <Stack.Screen name="complete-profile" options={{ headerShown: false }} />
