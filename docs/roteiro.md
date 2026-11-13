@@ -53,5 +53,5 @@ A versão sem detector no aparelho é o padrão da fatia 4. O detector no aparel
 
 | Decisão | Fatia |
 |---|---|
-| Biblioteca de push no app ([ADR 0024](adr/0024-push-no-app.md)) | 10 |
-| Onde a API, a web e a inferência são publicadas | 10 |
+| Biblioteca de push no app ([ADR 0024](adr/0024-push-no-app.md)): `expo-notifications` ([ADR 0029](adr/0029-publicacao-na-vps.md)) | 10 |
+| Onde a API, a web e a inferência são publicadas: na VPS ([ADR 0029](adr/0029-publicacao-na-vps.md)) | 10 |
