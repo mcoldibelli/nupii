@@ -6,14 +6,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { devicePosition, locationAllowed } from "../src/alerts/deviceLocation";
 import { sendLocation } from "../src/alerts/location";
 import { listNotifications, setMyLocation } from "../src/api/alerts";
-import { getNoseprint } from "../src/api/biometrics";
 import { listHealthEvents, listUpcomingCare, type UpcomingCare } from "../src/api/health";
 import { failureMessage, SESSION_FAILURE } from "../src/api/http";
 import { listPets, type Pet } from "../src/api/pets";
 import { apiUrl } from "../src/config";
 import { AnotarSheet } from "../src/health/AnotarSheet";
 import { careLine, dateTile } from "../src/health/care";
-import { petSubtitle, pickPet, unreadCount, weightTrend } from "../src/home/home";
+import { noseprintBadges, petSubtitle, pickPet, unreadCount, weightTrend } from "../src/home/home";
 import { PetSwitcher } from "../src/home/PetSwitcher";
 import { useSelectedPet } from "../src/pets/SelectedPetContext";
 import { useSession } from "../src/session/SessionContext";
@@ -70,9 +69,7 @@ export default function Home() {
       router.push({ pathname: "/pets/new", params: { first: "1" } });
     }
     // The noseprint badge of each dog, for the home and the pet switcher.
-    const dogs = result.value.filter((item) => item.species === "dog");
-    const found = await Promise.all(dogs.map((item) => getNoseprint(apiUrl, token, item.id)));
-    setNoseprints(Object.fromEntries(dogs.map((item, i) => [item.id, found[i].ok && found[i].value !== null])));
+    setNoseprints(noseprintBadges(result.value));
   }, [idToken]);
 
   useFocusEffect(

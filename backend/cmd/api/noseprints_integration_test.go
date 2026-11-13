@@ -271,3 +271,25 @@ func TestNoseprintCheck(t *testing.T) {
 		t.Errorf("check by Bia: status = %d, want 404 (RN-52)", rec.Code)
 	}
 }
+
+// #252: the list of pets tells which pets have a noseprint, so the app does
+// not ask GET /noseprint for each dog.
+func TestPetListTellsWhichPetsHaveANoseprint(t *testing.T) {
+	testAPI := petsAPI(t)
+	withNose := testAPI.createPet("token-ana", `{"name": "Rex", "species": "dog"}`)
+	testAPI.createPet("token-ana", `{"name": "Toby", "species": "dog"}`)
+	rec := testAPI.upload(http.MethodPost, "token-ana", "/v1/pets/"+withNose.Id.String()+"/noseprints", nosePhoto())
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("POST noseprints: status = %d, want 201, body %s", rec.Code, rec.Body)
+	}
+
+	list := decode[api.PetList](t, testAPI.call(http.MethodGet, "/v1/pets", "token-ana", ""))
+
+	got := map[string]*bool{}
+	for _, pet := range list.Pets {
+		got[pet.Name] = pet.HasNoseprint
+	}
+	if got["Rex"] == nil || !*got["Rex"] || got["Toby"] == nil || *got["Toby"] {
+		t.Errorf("hasNoseprint by pet = Rex %v, Toby %v, want true and false", got["Rex"], got["Toby"])
+	}
+}

@@ -60,3 +60,8 @@ export function weightTrend(events: { date: string; weightKg?: number }[], now: 
 export function unreadCount(notifications: { read: boolean }[]): number {
   return notifications.filter((notification) => !notification.read).length;
 }
+
+/** The noseprint badge of each dog, by id, from the list of pets (#252). Only a dog has a noseprint. */
+export function noseprintBadges(pets: Pick<Pet, "id" | "species" | "hasNoseprint">[]): Record<string, boolean> {
+  return Object.fromEntries(pets.filter((pet) => pet.species === "dog").map((pet) => [pet.id, pet.hasNoseprint === true]));
+}

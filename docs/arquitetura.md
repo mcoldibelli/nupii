@@ -101,6 +101,7 @@ Leituras com `JOIN` entre módulos, conhecidas pelos requisitos:
 | Nome e foto de perfil dos candidatos | `biometrics` | `pets` | RN-62 |
 | Mural e ficha (visão `report_views`) | `reports` | `pets` (nome, espécie, foto, pet não excluído), `biometrics` (o pet tem cadastro) | RN-24, RN-72 |
 | Avisos de encontro do tutor | `biometrics` | `pets` (pets do tutor, não excluídos) | RN-66 |
+| Lista de pets com o selo do focinho | `pets` | `biometrics` (o pet tem cadastro, por `EXISTS` em `noseprints`) | #252 |
 | Próximos cuidados | `health` | `pets` (nome, pets do tutor, não excluídos) | RN-81 |
 | Carteirinha aberta pelo link | `health` | `pets` (dados e foto do pet, pet não excluído) | RN-41, RN-83 |
 | Exclusão da conta: os dados dos pets do tutor | `biometrics`, `health` | `pets` (os pets do tutor, por `owner_id`, sem escrita) | RN-84 |

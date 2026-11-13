@@ -869,9 +869,14 @@ type Pet struct {
 	BirthDate *openapi_types.Date `json:"birthDate,omitempty"`
 
 	// Breed Raça, em texto livre.
-	Breed     *string            `json:"breed,omitempty"`
-	CreatedAt time.Time          `json:"createdAt"`
-	Id        openapi_types.UUID `json:"id"`
+	Breed     *string   `json:"breed,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
+
+	// HasNoseprint O pet tem cadastro biométrico. O campo vem só na lista de
+	// pets (`GET /v1/pets`), para o app mostrar o selo do focinho
+	// sem uma chamada por pet.
+	HasNoseprint *bool              `json:"hasNoseprint,omitempty"`
+	Id           openapi_types.UUID `json:"id"`
 
 	// Name Nome do pet. Não pode ser vazio.
 	Name string `json:"name"`

@@ -3,7 +3,6 @@ import { useCallback, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { getNoseprint } from "../../src/api/biometrics";
 import { listHealthEvents, listUpcomingCare, type HealthEvent, type HealthEventType, type UpcomingCare } from "../../src/api/health";
 import { failureMessage, SESSION_FAILURE } from "../../src/api/http";
 import { listPets, type Pet } from "../../src/api/pets";
@@ -12,6 +11,7 @@ import { itemLine, itemStatus, lateCare, tabs, type Status } from "../../src/hea
 import { careLine } from "../../src/health/care";
 import { dateText, eventTitle, type Preset } from "../../src/health/form";
 import { AnotarSheet } from "../../src/health/AnotarSheet";
+import { noseprintBadges } from "../../src/home/home";
 import { PetSwitcher } from "../../src/home/PetSwitcher";
 import { useSelectedPet } from "../../src/pets/SelectedPetContext";
 import { useSession } from "../../src/session/SessionContext";
@@ -64,9 +64,7 @@ export default function Health() {
         setCare(upcoming.ok ? upcoming.value.filter((item) => item.petId === petId) : []);
         if (mine.ok) {
           setPets(mine.value);
-          const dogs = mine.value.filter((item) => item.species === "dog");
-          const found = await Promise.all(dogs.map((item) => getNoseprint(apiUrl, token, item.id)));
-          setNoseprints(Object.fromEntries(dogs.map((item, i) => [item.id, found[i].ok && found[i].value !== null])));
+          setNoseprints(noseprintBadges(mine.value));
         }
       })();
     }, [idToken, petId]),

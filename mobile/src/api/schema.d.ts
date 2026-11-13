@@ -754,6 +754,12 @@ export interface components {
              *     O campo não vem quando o pet não tem foto.
              */
             photoUrl?: string;
+            /**
+             * @description O pet tem cadastro biométrico. O campo vem só na lista de
+             *     pets (`GET /v1/pets`), para o app mostrar o selo do focinho
+             *     sem uma chamada por pet.
+             */
+            hasNoseprint?: boolean;
         };
         PetList: {
             pets: components["schemas"]["Pet"][];
