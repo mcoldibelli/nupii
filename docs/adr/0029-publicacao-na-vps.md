@@ -1,6 +1,6 @@
 # ADR 0029: Publicação na VPS e decisões da fatia 10
 
-Data: 2026-11-12. Estado: proposto. Este ADR aprova três dependências no app: `@react-native-google-signin/google-signin`, `expo-notifications` e o serviço EAS Build (pelo `npx eas-cli`, sem entrar no `package.json`).
+Data: 2026-11-12. Estado: aceito. Este ADR aprova três dependências no app: `@react-native-google-signin/google-signin`, `expo-notifications` e o serviço EAS Build (pelo `npx eas-cli`, sem entrar no `package.json`).
 
 ## Contexto
 
