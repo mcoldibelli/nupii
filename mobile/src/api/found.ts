@@ -50,6 +50,6 @@ export function confirmIdentification(
     body.append("message", contact.message);
   }
   body.append("file", photo);
-  const url = `${baseUrl}/v1/identifications/${identificationId}/confirmation`;
+  const url = `${baseUrl}/v1/identifications/${encodeURIComponent(identificationId)}/confirmation`;
   return request<void>(fetchFn, url, null, { method: "POST", body });
 }
