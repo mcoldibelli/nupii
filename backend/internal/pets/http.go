@@ -265,6 +265,8 @@ func petToAPI(pet Pet) (api.Pet, error) {
 		VetClinic: pet.VetClinic,
 		VetPhone:  pet.VetPhone,
 		PhotoUrl:  pet.PhotoURL,
+
+		HasNoseprint: pet.HasNoseprint,
 	}
 	if pet.Sex != nil {
 		sex := api.Sex(*pet.Sex)
