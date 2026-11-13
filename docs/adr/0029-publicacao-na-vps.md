@@ -80,3 +80,7 @@ Fatos do código nesta data:
 - #153: login com Google numa conta nova, numa conta com senha `@gmail.com` e numa conta com senha de outro domínio, com o `firebase_uid` de antes e de depois.
 - #154: o APK instalado num aparelho real usa a API publicada e recebe um push.
 - #155: a saída do script de restauração.
+
+## Verificação posterior
+
+Data: 2026-11-13. A cópia de segurança (itens 17 e 18) fica no backlog ([issue #155](https://github.com/mcoldibelli/nupii/issues/155)) até a publicação ter usuários reais. O plano dos dois itens continua.
