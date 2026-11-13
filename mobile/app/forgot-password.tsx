@@ -4,12 +4,14 @@ import { View } from "react-native";
 
 import { sendPasswordReset } from "../src/auth/firebase";
 import { validateEmail } from "../src/auth/validation";
+import { AuthSplit } from "../src/ui/AuthSplit";
 import { Button } from "../src/ui/Button";
 import { Field } from "../src/ui/Field";
 import { Icon } from "../src/ui/Icon";
 import { BackButton, Card, Screen } from "../src/ui/Surfaces";
 import { Body, ErrorText, Title } from "../src/ui/Text";
 import { colors } from "../src/ui/theme";
+import { useWide } from "../src/ui/useWide";
 
 /** Sends the link to reset a forgotten password by e-mail (RF-05). */
 export default function ForgotPassword() {
@@ -17,6 +19,8 @@ export default function ForgotPassword() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // A computer browser gets the split page of Login-Web, step "recuperar senha" (#232).
+  const wide = useWide();
 
   async function send() {
     const problem = validateEmail(email);
@@ -32,11 +36,10 @@ export default function ForgotPassword() {
     setMessage(failure === null ? "Se o e-mail tiver uma conta, enviamos um link para criar uma senha nova." : null);
   }
 
-  return (
-    <Screen>
-      <BackButton testID="reset-back" onPress={() => (router.canGoBack() ? router.back() : router.replace("/sign-in"))} />
+  const content = (
+    <>
       <View style={{ gap: 8 }}>
-        <Title>Recuperar senha</Title>
+        <Title style={wide ? { fontSize: 40, lineHeight: 42, letterSpacing: -0.9 } : undefined}>Recuperar senha</Title>
         <Body style={{ color: colors.textSecondary }}>Mandamos um link para você criar uma senha nova.</Body>
       </View>
       <Field
@@ -60,9 +63,26 @@ export default function ForgotPassword() {
           </Body>
         </Card>
       )}
-      <View style={{ marginTop: "auto" }}>
-        <Button testID="reset-button" label={message === null ? "Enviar link" : "Reenviar link"} trailingIcon="arrowRight" busy={busy} onPress={() => void send()} />
-      </View>
+    </>
+  );
+  const sendButton = <Button testID="reset-button" label={message === null ? "Enviar link" : "Reenviar link"} trailingIcon="arrowRight" busy={busy} onPress={() => void send()} />;
+  const back = () => (router.canGoBack() ? router.back() : router.replace("/sign-in"));
+
+  if (wide) {
+    return (
+      <AuthSplit side="signIn">
+        {content}
+        {sendButton}
+        <Button testID="reset-back" label="Voltar para entrar" variant="soft" size="sm" stretch={false} onPress={back} />
+      </AuthSplit>
+    );
+  }
+
+  return (
+    <Screen>
+      <BackButton testID="reset-back" onPress={back} />
+      {content}
+      <View style={{ marginTop: "auto" }}>{sendButton}</View>
     </Screen>
   );
 }
