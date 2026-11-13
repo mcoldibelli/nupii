@@ -1,4 +1,4 @@
-import { DEFAULT_CENTER, mapHtml, parsePick } from "./mapHtml";
+import { DEFAULT_CENTER, mapHtml, mapNavigation, parsePick } from "./mapHtml";
 
 describe("mapHtml", () => {
   it("loads Leaflet 1.9.4 with the hash of the file (ADR 0023)", () => {
@@ -46,4 +46,21 @@ describe("parsePick", () => {
       expect(parsePick(message)).toBeNull();
     },
   );
+});
+
+describe("mapNavigation (#246)", () => {
+  it("keeps the map page in the WebView", () => {
+    expect(mapNavigation("about:blank")).toBe("allow");
+  });
+
+  it("sends a link of the map, as the Leaflet link, to the browser of the device", () => {
+    expect(mapNavigation("https://leafletjs.com/")).toBe("browser");
+    expect(mapNavigation("http://example.com/page")).toBe("browser");
+  });
+
+  it("blocks any other address", () => {
+    expect(mapNavigation("javascript:alert(1)")).toBe("block");
+    expect(mapNavigation("intent://scan/#Intent;scheme=zxing;end")).toBe("block");
+    expect(mapNavigation("file:///data/data/app/files")).toBe("block");
+  });
 });

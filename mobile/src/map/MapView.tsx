@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import type { StyleProp, ViewStyle } from "react-native";
+import { Linking, type StyleProp, type ViewStyle } from "react-native";
 import { WebView } from "react-native-webview";
 
-import { mapHtml, parsePick, type MapMarker, type MapPoint } from "./mapHtml";
+import { mapHtml, mapNavigation, parsePick, type MapMarker, type MapPoint } from "./mapHtml";
 
 export type MapViewProps = {
   markers: MapMarker[];
@@ -20,8 +20,15 @@ export function MapView({ markers, onPick, style }: MapViewProps) {
   return (
     <WebView
       testID="map"
-      originWhitelist={["*"]}
+      originWhitelist={["about:blank"]}
       source={{ html }}
+      onShouldStartLoadWithRequest={({ url }) => {
+        const action = mapNavigation(url);
+        if (action === "browser") {
+          void Linking.openURL(url);
+        }
+        return action === "allow";
+      }}
       geolocationEnabled
       style={style}
       onMessage={(event) => {
