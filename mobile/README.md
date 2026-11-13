@@ -67,7 +67,7 @@ Abra `http://localhost:8081/found` ou `http://localhost:8081/reports`. Para medi
 
 As fotos vêm do armazenamento por uma URL temporária. No emulador Android, o `deploy/.env` precisa de `S3_PUBLIC_ENDPOINT=http://10.0.2.2:8333`, para o aparelho alcançar o armazenamento da sua máquina.
 
-A sessão continua depois de fechar o app. As contas do emulador somem quando o container do emulador reinicia: nesse caso a API recusa a sessão antiga e o app volta para a tela de entrada.
+A sessão continua depois de fechar o app. Ela fica no armazenamento do app, e o Android não faz cópia de segurança dele (`android.allowBackup: false` no `app.json`, #246): a sessão não vai para o backup do Google nem para um `adb backup`. As contas do emulador somem quando o container do emulador reinicia: nesse caso a API recusa a sessão antiga e o app volta para a tela de entrada.
 
 ## Conta
 
