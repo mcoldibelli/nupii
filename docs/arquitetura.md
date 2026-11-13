@@ -227,7 +227,7 @@ Os arquivos de pesos ficam em uma release do repositório, com a tag `model-<ver
 - Go: Effective Go, Go Code Review Comments e o guia de estilo da Uber. `gofmt` e `go vet` em toda mudança.
 - Lint: um comando por projeto, usado no ambiente local e no CI. No backend é `./lint.sh` (`gofmt` e `go vet`). No app é `npm run lint` (conferência de tipos do TypeScript). Na inferência é `./lint.sh` (`ruff`).
 - Erros em Go: sempre com contexto e `%w`. Nenhum erro descartado.
-- Log: `log/slog` com saída JSON e um identificador por requisição.
+- Log: `log/slog` com saída JSON e um identificador por requisição. Na publicação, logs, traces e métricas vão para o Grafana ([ADR 0032](adr/0032-observabilidade-lgtm.md)).
 - Configuração: variáveis de ambiente, lidas uma vez em `main` e validadas na subida. O processo não sobe com configuração inválida.
 - Segredos: nenhuma senha, chave secreta ou token fica no repositório, em issue ou em PR. Onde há segredo, um arquivo `.env.example` versionado tem os nomes das variáveis, sem os valores secretos. Os valores ficam em um arquivo `.env`, que o `.gitignore` exclui. No CI, eles ficam nos secrets do GitHub Actions ou são gerados em cada execução.
 - TypeScript: modo `strict`.
@@ -337,7 +337,6 @@ Cada item entra quando o gatilho acontece.
 |---|---|
 | Broker de eventos (Kafka, NATS) | Um segundo serviço precisa reagir aos mesmos eventos |
 | Redis | Mais de uma instância da API (limite de tentativas compartilhado) |
-| Métricas e tracing (OpenTelemetry) | A primeira publicação com usuários reais |
 | Detector de focinho no aparelho | Depois da prova técnica descrita no [roteiro](roteiro.md) |
 | Login com Apple | Publicação na App Store |
 | Endpoints de administração | Uma tarefa de administração que se repete |
