@@ -6,7 +6,7 @@ export type CreatedShareLink = components["schemas"]["CreatedShareLink"];
 export type HealthCard = components["schemas"]["HealthCard"];
 export type ShareLinkInput = components["schemas"]["ShareLinkInput"];
 
-const links = (baseUrl: string, petId: string) => `${baseUrl}/v1/pets/${petId}/share-links`;
+const links = (baseUrl: string, petId: string) => `${baseUrl}/v1/pets/${encodeURIComponent(petId)}/share-links`;
 
 /** Calls POST /v1/pets/{petId}/share-links with the validity and the exams (RN-40). Only this answer has the token (RN-39). */
 export function createShareLink(
@@ -38,7 +38,7 @@ export function revokeShareLink(
   linkId: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<ApiResult<void>> {
-  return request<void>(fetchFn, `${links(baseUrl, petId)}/${linkId}`, idToken, { method: "DELETE" });
+  return request<void>(fetchFn, `${links(baseUrl, petId)}/${encodeURIComponent(linkId)}`, idToken, { method: "DELETE" });
 }
 
 /** Calls POST /v1/share-links/opening. The operation is public, and the token goes in the body. */

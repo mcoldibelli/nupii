@@ -14,7 +14,7 @@ export async function getNoseprint(
   petId: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<ApiResult<Noseprint | null>> {
-  const result = await request<Noseprint>(fetchFn, `${baseUrl}/v1/pets/${petId}/noseprint`, idToken, { method: "GET" });
+  const result = await request<Noseprint>(fetchFn, `${baseUrl}/v1/pets/${encodeURIComponent(petId)}/noseprint`, idToken, { method: "GET" });
   if (!result.ok && result.code === "noseprint_not_found") {
     return { ok: true, value: null };
   }
@@ -34,7 +34,7 @@ export function registerNoseprint(
 ): Promise<ApiResult<Noseprint>> {
   const body = new FormData();
   body.append("file", photo);
-  return request<Noseprint>(fetchFn, `${baseUrl}/v1/pets/${petId}/noseprints`, idToken, { method: "POST", body });
+  return request<Noseprint>(fetchFn, `${baseUrl}/v1/pets/${encodeURIComponent(petId)}/noseprints`, idToken, { method: "POST", body });
 }
 
 /** Calls GET /v1/found-notices. The notices come from the newest to the oldest. */
@@ -59,5 +59,5 @@ export function checkNoseprint(
 ): Promise<ApiResult<components["schemas"]["NoseprintCheck"]>> {
   const body = new FormData();
   body.append("file", photo);
-  return request(fetchFn, `${baseUrl}/v1/pets/${petId}/noseprints/check`, idToken, { method: "POST", body });
+  return request(fetchFn, `${baseUrl}/v1/pets/${encodeURIComponent(petId)}/noseprints/check`, idToken, { method: "POST", body });
 }

@@ -18,7 +18,7 @@ export async function listPets(baseUrl: string, idToken: string, fetchFn: typeof
 
 /** Calls GET /v1/pets/{petId}. */
 export function getPet(baseUrl: string, idToken: string, petId: string, fetchFn: typeof fetch = fetch): Promise<ApiResult<Pet>> {
-  return request<Pet>(fetchFn, `${baseUrl}/v1/pets/${petId}`, idToken, { method: "GET" });
+  return request<Pet>(fetchFn, `${baseUrl}/v1/pets/${encodeURIComponent(petId)}`, idToken, { method: "GET" });
 }
 
 /** Calls POST /v1/pets. */
@@ -39,7 +39,7 @@ export function updatePet(
   input: PetInput,
   fetchFn: typeof fetch = fetch,
 ): Promise<ApiResult<Pet>> {
-  return request<Pet>(fetchFn, `${baseUrl}/v1/pets/${petId}`, idToken, json("PUT", input));
+  return request<Pet>(fetchFn, `${baseUrl}/v1/pets/${encodeURIComponent(petId)}`, idToken, json("PUT", input));
 }
 
 /** Calls DELETE /v1/pets/{petId}. */
@@ -49,7 +49,7 @@ export function deletePet(
   petId: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<ApiResult<void>> {
-  return request<void>(fetchFn, `${baseUrl}/v1/pets/${petId}`, idToken, { method: "DELETE" });
+  return request<void>(fetchFn, `${baseUrl}/v1/pets/${encodeURIComponent(petId)}`, idToken, { method: "DELETE" });
 }
 
 /**
@@ -65,5 +65,5 @@ export function uploadPetPhoto(
 ): Promise<ApiResult<Pet>> {
   const body = new FormData();
   body.append("file", photo);
-  return request<Pet>(fetchFn, `${baseUrl}/v1/pets/${petId}/photo`, idToken, { method: "PUT", body });
+  return request<Pet>(fetchFn, `${baseUrl}/v1/pets/${encodeURIComponent(petId)}/photo`, idToken, { method: "PUT", body });
 }

@@ -30,7 +30,7 @@ export function listBoard(baseUrl: string, page: number, filter: BoardFilter = {
 
 /** Calls GET /v1/reports/{reportId}, a public operation. */
 export function getReport(baseUrl: string, reportId: string, fetchFn: typeof fetch = fetch): Promise<ApiResult<Report>> {
-  return request<Report>(fetchFn, `${baseUrl}/v1/reports/${reportId}`, null, { method: "GET" });
+  return request<Report>(fetchFn, `${baseUrl}/v1/reports/${encodeURIComponent(reportId)}`, null, { method: "GET" });
 }
 
 /** Calls POST /v1/reports/lost. */
@@ -71,7 +71,7 @@ export function reportSighting(
   input: SightingInput,
   fetchFn: typeof fetch = fetch,
 ): Promise<ApiResult<Sighting>> {
-  return request<Sighting>(fetchFn, `${baseUrl}/v1/reports/${reportId}/sightings`, null, json("POST", input));
+  return request<Sighting>(fetchFn, `${baseUrl}/v1/reports/${encodeURIComponent(reportId)}/sightings`, null, json("POST", input));
 }
 
 /** Calls POST /v1/reports/{reportId}/resolution: the author resolves the report. */
@@ -81,7 +81,7 @@ export function resolveReport(
   reportId: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<ApiResult<Report>> {
-  return request<Report>(fetchFn, `${baseUrl}/v1/reports/${reportId}/resolution`, idToken, { method: "POST" });
+  return request<Report>(fetchFn, `${baseUrl}/v1/reports/${encodeURIComponent(reportId)}/resolution`, idToken, { method: "POST" });
 }
 
 /** Calls POST /v1/reports/{reportId}/code-resolution, a public operation. */
@@ -91,7 +91,7 @@ export function resolveFoundReport(
   code: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<ApiResult<Report>> {
-  return request<Report>(fetchFn, `${baseUrl}/v1/reports/${reportId}/code-resolution`, null, json("POST", { code }));
+  return request<Report>(fetchFn, `${baseUrl}/v1/reports/${encodeURIComponent(reportId)}/code-resolution`, null, json("POST", { code }));
 }
 
 /** Calls GET /v1/me/reports: the reports of the owner, open and resolved. */

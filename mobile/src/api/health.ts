@@ -7,7 +7,7 @@ export type HealthEventType = components["schemas"]["HealthEventType"];
 export type UpcomingCare = components["schemas"]["UpcomingCare"];
 export type HealthAttachment = components["schemas"]["HealthAttachment"];
 
-const events = (baseUrl: string, petId: string) => `${baseUrl}/v1/pets/${petId}/health-events`;
+const events = (baseUrl: string, petId: string) => `${baseUrl}/v1/pets/${encodeURIComponent(petId)}/health-events`;
 
 /** Calls GET /v1/pets/{petId}/health-events: from the newest date to the oldest. */
 export async function listHealthEvents(
@@ -40,7 +40,7 @@ export function updateHealthEvent(
   input: HealthEventInput,
   fetchFn: typeof fetch = fetch,
 ): Promise<ApiResult<HealthEvent>> {
-  return request<HealthEvent>(fetchFn, `${events(baseUrl, petId)}/${eventId}`, idToken, json("PUT", input));
+  return request<HealthEvent>(fetchFn, `${events(baseUrl, petId)}/${encodeURIComponent(eventId)}`, idToken, json("PUT", input));
 }
 
 /** Calls DELETE /v1/pets/{petId}/health-events/{eventId}: the attachments go too. */
@@ -51,7 +51,7 @@ export function deleteHealthEvent(
   eventId: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<ApiResult<void>> {
-  return request<void>(fetchFn, `${events(baseUrl, petId)}/${eventId}`, idToken, { method: "DELETE" });
+  return request<void>(fetchFn, `${events(baseUrl, petId)}/${encodeURIComponent(eventId)}`, idToken, { method: "DELETE" });
 }
 
 /** Calls GET /v1/upcoming-care: from the nearest date to the farthest. */
@@ -74,7 +74,7 @@ export async function listHealthAttachments(
   eventId: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<ApiResult<HealthAttachment[]>> {
-  const url = `${events(baseUrl, petId)}/${eventId}/attachments`;
+  const url = `${events(baseUrl, petId)}/${encodeURIComponent(eventId)}/attachments`;
   const result = await request<components["schemas"]["HealthAttachmentList"]>(fetchFn, url, idToken, { method: "GET" });
   return result.ok ? { ok: true, value: result.value.attachments } : result;
 }
@@ -96,7 +96,7 @@ export function uploadHealthAttachment(
   if (fileName !== undefined) {
     body.append("fileName", fileName);
   }
-  return request<HealthAttachment>(fetchFn, `${events(baseUrl, petId)}/${eventId}/attachments`, idToken, {
+  return request<HealthAttachment>(fetchFn, `${events(baseUrl, petId)}/${encodeURIComponent(eventId)}/attachments`, idToken, {
     method: "POST",
     body,
   });
@@ -111,7 +111,7 @@ export function deleteHealthAttachment(
   attachmentId: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<ApiResult<void>> {
-  return request<void>(fetchFn, `${events(baseUrl, petId)}/${eventId}/attachments/${attachmentId}`, idToken, {
+  return request<void>(fetchFn, `${events(baseUrl, petId)}/${encodeURIComponent(eventId)}/attachments/${encodeURIComponent(attachmentId)}`, idToken, {
     method: "DELETE",
   });
 }
