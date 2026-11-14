@@ -45,11 +45,14 @@ out=$(mktemp -d)
   EXPO_PUBLIC_API_URL=https://api.nupii.com.br EXPO_PUBLIC_WEB_URL=https://app.nupii.com.br \
     EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_URL= npx expo export --platform web --output-dir "$out" >/dev/null
 )
-# The web of production never points to this machine or to the emulator.
-! grep -rqE 'localhost|10\.0\.2\.2|demo-nupii' "$out" --include='*.js' --include='*.html' ||
+# The web of production never points to the addresses of the local
+# environment or to the emulator. A bare "localhost" is fine: the Firebase SDK
+# and the router of Expo have it as a default value.
+! grep -rqE 'localhost:(8080|8081|8099|9099)|10\.0\.2\.2|demo-nupii' "$out" --include='*.js' --include='*.html' ||
   fail "o pacote da web tem um endereço local ou o projeto do emulador. Confira o mobile/.env."
 # Caddy reads the files as its own user: no owner or mode of this machine.
-tar -C "$out" -c . | ssh "$host" "rm -rf $dir/web.new && mkdir $dir/web.new && tar -x --no-same-owner -C $dir/web.new && chmod -R a+rX $dir/web.new && rm -rf $dir/web && mv $dir/web.new $dir/web"
+# No metadata of macOS (the ._ files and the extended attributes).
+COPYFILE_DISABLE=1 tar --no-xattrs -C "$out" -c . | ssh "$host" "rm -rf $dir/web.new && mkdir $dir/web.new && tar -x --no-same-owner -C $dir/web.new && chmod -R a+rX $dir/web.new && rm -rf $dir/web && mv $dir/web.new $dir/web"
 rm -rf "$out"
 
 echo "5/5 serviços"
