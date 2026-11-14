@@ -47,7 +47,7 @@ Para usar o projeto real do Firebase no lugar do emulador, execute `./deploy/fir
 5. Focinho: na tela de editar de um cachorro, a ação "Focinho do pet" abre o cadastro do focinho, com a câmera ou a galeria. A tela mostra o motivo quando a foto é recusada.
 6. Avisos de encontro: a lista dos contatos de quem encontrou um pet do tutor.
 7. Mural: as ocorrências abertas de perdidos e achados. A ficha de uma ocorrência tem o mapa, os avistamentos e o formulário de um novo avistamento.
-8. Desaparecimento: a linha "Avisar desaparecimento", no fim do início, e o botão do perfil do pet abrem o formulário com o mapa para o tutor marcar o ponto. Com um desaparecimento aberto, a tela tem a ação "Marcar como encontrado".
+8. Desaparecimento: no botão + do início, a seção "Emergência" pede confirmação e abre o formulário com o mapa para o tutor marcar o ponto. O botão do perfil do pet abre o mesmo formulário. Com um desaparecimento aberto, a tela tem a ação "Marcar como encontrado".
 9. Notificações: os alertas de pets desaparecidos perto do tutor, os avistamentos e os encontros de um pet do tutor. Tocar em uma notificação abre a ocorrência e marca a notificação como lida. O app envia a posição do aparelho quando a lista de pets abre ([ADR 0025](../docs/adr/0025-localizacao-no-app.md)). No emulador Android, envie um ponto de GPS com `adb emu geo fix <longitude> <latitude>` enquanto o app pede a posição.
 10. Saúde: na tela de editar pet, a ação "Saúde do pet" abre os eventos de saúde: vacina, consulta, medicação, exame e anotação. Cada evento tem um formulário com os campos do tipo, e os anexos (foto ou PDF). A tela inicial mostra os três próximos cuidados de vacina e de medicação.
 
