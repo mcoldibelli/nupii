@@ -96,6 +96,7 @@ O processo não sobe com um valor inválido. Ele escreve o erro na saída de err
 | `S3_ACCESS_KEY_ID` | Sim | | Identificador da chave de acesso |
 | `S3_SECRET_ACCESS_KEY` | Sim | | Segredo da chave de acesso. Não fica no repositório e não é escrito no log |
 | `WEB_ORIGINS` | Não | | Origens da web com conta, separadas por vírgula, como `https://app.nupii.com.br`. Uma página dessas origens chama as rotas com token pelo navegador ([ADR 0029](../docs/adr/0029-publicacao-na-vps.md), item 8). Sem a variável, só as rotas públicas aceitam outra origem |
+| `TRUSTED_PROXIES` | Não | | Redes dos proxies confiáveis, separadas por vírgula, como `172.31.0.0/16`. Uma conexão de uma delas usa o último endereço de `X-Forwarded-For` como o endereço do cliente (limite de RN-43, log) ([ADR 0029](../docs/adr/0029-publicacao-na-vps.md), item 6). Sem a variável, vale o endereço da conexão |
 | `FIREBASE_AUTH_EMULATOR_HOST` | Não | | Endereço `host:porta` do emulador do Authentication. Só no ambiente local e no CI. A API só aceita essa variável com um `FIREBASE_PROJECT_ID` que começa com `demo-` |
 
 ## Projeto real do Firebase

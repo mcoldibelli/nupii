@@ -90,7 +90,7 @@ func healthyServer() server {
 }
 
 func TestGetHealth(t *testing.T) {
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, nil)
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, nil, nil)
 	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
 	rec := httptest.NewRecorder()
 
@@ -114,7 +114,7 @@ func TestGetHealthWhenTheDatabaseDoesNotRespond(t *testing.T) {
 	var logs bytes.Buffer
 	logger := slog.New(httpx.NewLogHandler(slog.NewJSONHandler(&logs, nil)))
 	operations := server{logger: logger, database: fakeDatabase{err: errors.New(detail)}}
-	handler := newHandler(logger, operations, fakeVerifier{}, noDeletedAccounts{}, nil)
+	handler := newHandler(logger, operations, fakeVerifier{}, noDeletedAccounts{}, nil, nil)
 	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
 	rec := httptest.NewRecorder()
 
