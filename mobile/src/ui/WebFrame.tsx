@@ -24,6 +24,7 @@ function Sidebar() {
   const { state, signOut } = useSession();
   const { pet } = useSelectedPet();
   const owner = state.kind === "ready" ? state.owner : null;
+  const adding = pathname === "/pets/new" || pathname.startsWith("/noseprint");
   const items: { label: string; icon: IconName; href: Href; selected: boolean }[] = [
     { label: "Início", icon: "home", href: "/", selected: pathname === "/" },
     { label: "Mural", icon: "pin", href: "/reports", selected: pathname.startsWith("/reports") },
@@ -57,9 +58,10 @@ function Sidebar() {
             </Text>
           </Pressable>
         )}
-        <Pressable accessibilityRole="link" style={local.nav} onPress={() => router.push("/pets/new")}>
-          <Icon name="plus" size={18} color={colors.textSecondary} />
-          <Text style={local.navText}>Adicionar pet</Text>
+        {/* AddPet-Web: the item shows the registration in progress (#233). */}
+        <Pressable accessibilityRole="link" accessibilityState={{ selected: adding }} style={[local.nav, adding && local.navSelected]} onPress={() => router.push("/pets/new")}>
+          <Icon name="plus" size={18} color={adding ? colors.brand : colors.textSecondary} />
+          <Text style={[local.navText, adding && { color: colors.ink }]}>{adding ? "Adicionando cachorro" : "Adicionar pet"}</Text>
         </Pressable>
       </View>
       <View style={{ flex: 1 }} />
