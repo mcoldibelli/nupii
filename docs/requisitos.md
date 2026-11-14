@@ -246,7 +246,7 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 | RNF-08 | A API responde o que o contrato declara. | Contrato OpenAPI e teste de contrato ([ADR 0005](adr/0005-contrato-openapi.md)). |
 | RNF-09 | Toda RN tem um teste que cita o identificador dela. | Estratégia de testes ([arquitetura.md](arquitetura.md)). |
 
-Limite conhecido de RN-43: a contagem fica na memória do processo. Ela vale para uma instância da API e zera quando o processo sobe ([ADR 0003](adr/0003-estado-postgres-fila-no-banco.md)). O IP é o endereço da conexão. O minuto começa na primeira chamada do endereço para a rota.
+Limite conhecido de RN-43: a contagem fica na memória do processo. Ela vale para uma instância da API e zera quando o processo sobe ([ADR 0003](adr/0003-estado-postgres-fila-no-banco.md)). O IP é o endereço da conexão, ou, atrás de um proxy de `TRUSTED_PROXIES`, o último endereço de `X-Forwarded-For` ([ADR 0029](adr/0029-publicacao-na-vps.md), item 6). O minuto começa na primeira chamada do endereço para a rota.
 
 ## Uso do modelo
 

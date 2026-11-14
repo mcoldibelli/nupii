@@ -21,7 +21,7 @@ func TestProtectedRouteWithoutAValidTokenGetsUnauthenticated(t *testing.T) {
 	verifier := fakeVerifier{identities: map[string]identity.Identity{
 		"valid-token": {UID: "uid-1", Email: "tutor@example.com"},
 	}}
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), verifier, noDeletedAccounts{}, nil)
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), verifier, noDeletedAccounts{}, nil, nil)
 	tests := []struct {
 		name          string
 		authorization string
@@ -62,7 +62,7 @@ func TestProtectedRouteWithoutAValidTokenGetsUnauthenticated(t *testing.T) {
 func TestVerifierFailureGetsInternalError(t *testing.T) {
 	const detail = "dial tcp 10.0.0.9:443: i/o timeout"
 	verifier := fakeVerifier{err: errors.New(detail)}
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), verifier, noDeletedAccounts{}, nil)
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), verifier, noDeletedAccounts{}, nil, nil)
 	req := httptest.NewRequest(http.MethodGet, "/v1/me", nil)
 	req.Header.Set("Authorization", "Bearer any-token")
 	rec := httptest.NewRecorder()
@@ -79,7 +79,7 @@ func TestVerifierFailureGetsInternalError(t *testing.T) {
 }
 
 func TestPublicRouteNeedsNoToken(t *testing.T) {
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, nil)
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, nil, nil)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/health", nil))
@@ -119,7 +119,7 @@ func TestRequestBodyOverTheLimitGetsInvalidRequest(t *testing.T) {
 	verifier := fakeVerifier{identities: map[string]identity.Identity{
 		"valid-token": {UID: "uid-1", Email: "tutor@example.com"},
 	}}
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), verifier, noDeletedAccounts{}, nil)
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), verifier, noDeletedAccounts{}, nil, nil)
 	body := `{"name": "` + strings.Repeat("a", _maxBodyBytes) + `", "acceptedTermsVersion": "x"}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/me", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -143,7 +143,7 @@ func TestRequestBodyOverTheLimitGetsInvalidRequest(t *testing.T) {
 // The public web page runs in a browser, at another origin. The browser
 // gives the answer to the page only with this header.
 func TestOnlyPublicRoutesAllowOtherOrigins(t *testing.T) {
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, nil)
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, nil, nil)
 	tests := []struct {
 		method string
 		path   string
@@ -171,7 +171,7 @@ func TestOnlyPublicRoutesAllowOtherOrigins(t *testing.T) {
 // The public web page sends JSON to a public route of another origin. The
 // browser first sends a preflight request with the method OPTIONS.
 func TestPreflightOfPublicRoutes(t *testing.T) {
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, nil)
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, nil, nil)
 	const sightings = "/v1/reports/0195f3c8-7a55-7c1e-9d2a-0d1c2b3a4f5e/sightings"
 	tests := []struct {
 		name       string
@@ -213,7 +213,7 @@ func TestPreflightOfPublicRoutes(t *testing.T) {
 // from another origin. Only the origins of WEB_ORIGINS get the answer.
 func TestWebOriginsReachRoutesWithAToken(t *testing.T) {
 	const web = "https://app.nupii.com.br"
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, []string{web})
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, []string{web}, nil)
 	tests := []struct {
 		name       string
 		origin     string
@@ -247,7 +247,7 @@ func TestWebOriginsReachRoutesWithAToken(t *testing.T) {
 // header. An allowed origin gets it for a route with a token.
 func TestPreflightOfRoutesWithAToken(t *testing.T) {
 	const web = "https://app.nupii.com.br"
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, []string{web})
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, []string{web}, nil)
 	tests := []struct {
 		name       string
 		origin     string

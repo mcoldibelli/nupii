@@ -139,7 +139,7 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	}
 	srv := &http.Server{
 		Handler: newHandler(
-			logger, operations, tokenVerifier{firebase: verifier}, operations.owners, cfg.WebOrigins),
+			logger, operations, tokenVerifier{firebase: verifier}, operations.owners, cfg.WebOrigins, cfg.TrustedProxies),
 		ReadHeaderTimeout: _readHeaderTimeout,
 		ReadTimeout:       _readTimeout,
 		WriteTimeout:      _writeTimeout,

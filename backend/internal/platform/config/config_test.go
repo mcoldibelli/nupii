@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"maps"
+	"net/netip"
 	"slices"
 	"testing"
 
@@ -227,5 +228,30 @@ func TestLoadRejectsInvalidWebOrigins(t *testing.T) {
 				t.Errorf("Load with WEB_ORIGINS=%q: got nil error, want an error", value)
 			}
 		})
+	}
+}
+
+// ADR 0029, item 6: TRUSTED_PROXIES has the networks of the proxies whose
+// X-Forwarded-For the API reads, separated by commas.
+func TestLoadReadsTheTrustedProxies(t *testing.T) {
+	cfg, err := config.Load(env(map[string]string{"TRUSTED_PROXIES": "172.31.0.0/16, 127.0.0.1/32"}))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	want := []netip.Prefix{netip.MustParsePrefix("172.31.0.0/16"), netip.MustParsePrefix("127.0.0.1/32")}
+	if !slices.Equal(cfg.TrustedProxies, want) {
+		t.Errorf("TrustedProxies = %v, want %v", cfg.TrustedProxies, want)
+	}
+	if cfg, _ := config.Load(env(nil)); cfg.TrustedProxies != nil {
+		t.Errorf("TrustedProxies with no variable = %v, want nil", cfg.TrustedProxies)
+	}
+}
+
+// RNF-06: a value that is not a network stops the start.
+func TestLoadRejectsInvalidTrustedProxies(t *testing.T) {
+	for _, value := range []string{"172.31.0.1", "caddy", "172.31.0.0/40"} {
+		if _, err := config.Load(env(map[string]string{"TRUSTED_PROXIES": value})); err == nil {
+			t.Errorf("Load with TRUSTED_PROXIES=%q: got nil error, want an error", value)
+		}
 	}
 }
