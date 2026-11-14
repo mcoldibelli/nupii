@@ -87,6 +87,11 @@ export async function shrinkPhoto<T extends LocalFile | null | "denied">(photo: 
 
 /** Asks where the photo of the pet comes from (camera or gallery) and gives it to use, made smaller (#254). */
 export function askPetPhoto(use: (photo: LocalFile | null | "denied") => void): void {
+  // On the web the file picker of the browser already offers the camera on a phone (#263).
+  if (Platform.OS === "web") {
+    void pickPhoto().then(shrinkPhoto).then(use);
+    return;
+  }
   Alert.alert("Foto do pet", undefined, [
     { text: "Câmera", onPress: () => void takePhoto().then(shrinkPhoto).then(use) },
     { text: "Galeria", onPress: () => void pickPhoto().then(shrinkPhoto).then(use) },

@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getNoseprint, type Noseprint } from "../../src/api/biometrics";
@@ -17,6 +17,7 @@ import { useSession } from "../../src/session/SessionContext";
 import { Icon, ProfileArt } from "../../src/ui/Icon";
 import { ErrorText } from "../../src/ui/Text";
 import { colors, fonts, radius, space } from "../../src/ui/theme";
+import { ask } from "../../src/ui/ask";
 
 const chipColors: Record<Chip["tone"], string> = { ok: colors.success, warn: colors.link, late: colors.dangerText };
 
@@ -57,7 +58,7 @@ export default function PetProfile() {
   );
 
   function confirmResolve(open: Report) {
-    Alert.alert("Pet encontrado", `${pet?.name ?? "O pet"} voltou para casa? A ocorrência sai do mural.`, [
+    ask("Pet encontrado", `${pet?.name ?? "O pet"} voltou para casa? A ocorrência sai do mural.`, [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Sim, voltou",
@@ -111,7 +112,7 @@ export default function PetProfile() {
           accessibilityLabel="Mais opções"
           style={[local.round, local.heroRight, { top: 24 + insets.top }]}
           onPress={() =>
-            Alert.alert(pet.name, undefined, [
+            ask(pet.name, undefined, [
               { text: "Editar dados", onPress: () => router.push({ pathname: "/pets/edit/[id]", params: { id: pet.id } }) },
               { text: "Carteirinha", onPress: () => router.push({ pathname: "/share/[petId]", params: { petId: pet.id, petName: pet.name } }) },
               { text: "Cancelar", style: "cancel" },

@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { failureMessage, SESSION_FAILURE } from "../../../src/api/http";
 import { deletePet, getPet, type LocalFile, type Pet, type PetInput } from "../../../src/api/pets";
@@ -11,6 +11,7 @@ import { filePart } from "../../../src/pets/pickPhoto";
 import { savePet } from "../../../src/pets/save";
 import { styles } from "../../../src/screens/styles";
 import { useSession } from "../../../src/session/SessionContext";
+import { ask } from "../../../src/ui/ask";
 
 /** Changes or deletes a pet of the owner. */
 export default function EditPet() {
@@ -60,7 +61,7 @@ export default function EditPet() {
   }
 
   function confirmDelete() {
-    Alert.alert("Excluir pet", `Excluir ${pet?.name ?? "este pet"}?`, [
+    ask("Excluir pet", `Excluir ${pet?.name ?? "este pet"}?`, [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Excluir",
