@@ -212,14 +212,6 @@ export default function Home() {
                 <Muted>Registre o peso numa consulta ou numa anotação para ver o gráfico.</Muted>
               )}
             </View>
-            {/* A lost report is rare: a quiet line at the end, away from Carteirinha and Ver agenda (#243). */}
-            <Pressable testID="report-lost-link" accessibilityRole="button" style={local.lostRow} onPress={() => router.push({ pathname: "/reports/lost", params: { petId: pet.id, petName: pet.name } })}>
-              <Icon name="alert" size={18} color={colors.textMuted} />
-              <Text style={local.lostText}>
-                {pet.name} sumiu? <Text style={local.lostStrong}>Avisar desaparecimento</Text>
-              </Text>
-              <Icon name="chevronRight" size={18} color={colors.textMuted} />
-            </Pressable>
           </View>
         )}
       </ScrollView>
@@ -236,6 +228,11 @@ export default function Home() {
           visible={anotar}
           petName={pet.name}
           onClose={() => setAnotar(false)}
+          // The way to report the pet as lost from the home (#257), with a confirmation in the sheet.
+          onLost={() => {
+            setAnotar(false);
+            router.push({ pathname: "/reports/lost", params: { petId: pet.id, petName: pet.name } });
+          }}
           onPick={(type, preset) => {
             setAnotar(false);
             router.push({ pathname: "/health/event", params: { petId: pet.id, petName: pet.name, type, ...(preset ? { preset } : {}) } });
@@ -287,9 +284,6 @@ const local = StyleSheet.create({
   identity: { alignItems: "center", flexDirection: "row", gap: 12, paddingHorizontal: 4 },
   nameRow: { alignItems: "center", flexDirection: "row", gap: 8 },
   badge: { alignItems: "center", backgroundColor: colors.success, borderRadius: 11, height: 22, justifyContent: "center", width: 22 },
-  lostRow: { alignItems: "center", flexDirection: "row", gap: 10, minHeight: 48, paddingHorizontal: 4 },
-  lostText: { color: colors.textSecondary, flex: 1, fontFamily: fonts.body, fontSize: 14 },
-  lostStrong: { color: colors.dangerText, fontFamily: fonts.bodyBold },
   sectionHead: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   careRow: { alignItems: "center", backgroundColor: colors.surface, borderRadius: radius.card, flexDirection: "row", gap: 14, padding: 8, paddingRight: 12 },
   tile: { alignItems: "center", backgroundColor: colors.primary, borderRadius: 14, height: 52, justifyContent: "center", width: 50 },
