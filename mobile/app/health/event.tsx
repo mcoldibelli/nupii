@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -26,6 +26,7 @@ import { Field as Input } from "../../src/ui/Field";
 import { Icon } from "../../src/ui/Icon";
 import { ErrorText, Label } from "../../src/ui/Text";
 import { colors, fonts, radius, space } from "../../src/ui/theme";
+import { ask } from "../../src/ui/ask";
 
 /** The titles of the form of each category, as "Nova vacina" and "Dose de antipulgas" in the canvas. */
 const titles: Record<Category, [string, string]> = {
@@ -127,7 +128,7 @@ export default function HealthEventForm() {
   }
 
   function confirmDelete() {
-    Alert.alert("Apagar evento", "Apagar este evento e os anexos dele?", [
+    ask("Apagar evento", "Apagar este evento e os anexos dele?", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Apagar",

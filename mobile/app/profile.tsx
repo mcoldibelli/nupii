@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { changePassword } from "../src/auth/firebase";
@@ -12,6 +12,7 @@ import { Icon, type IconName } from "../src/ui/Icon";
 import { TabBar } from "../src/ui/TabBar";
 import { ErrorText } from "../src/ui/Text";
 import { colors, fonts, radius, space } from "../src/ui/theme";
+import { ask } from "../src/ui/ask";
 
 /** The profile of the owner (RF-06), the change of the password (RF-07) and the delete of the account (RF-08). */
 export default function Profile() {
@@ -54,7 +55,7 @@ export default function Profile() {
   }
 
   function confirmDelete() {
-    Alert.alert("Excluir a conta?", "Os seus pets, a saúde deles e os cadastros dos focinhos são apagados. Não dá para desfazer.", [
+    ask("Excluir a conta?", "Os seus pets, a saúde deles e os cadastros dos focinhos são apagados. Não dá para desfazer.", [
       { text: "Cancelar", style: "cancel" },
       { text: "Excluir", style: "destructive", onPress: () => void run(() => deleteAccount(deletePassword), "Conta excluída.") },
     ]);
