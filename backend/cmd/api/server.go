@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"runtime/debug"
 	"slices"
 	"time"
@@ -280,7 +281,8 @@ func (v tokenVerifier) VerifyIDToken(
 // newHandler returns the HTTP handler of the API: the routes of the
 // contract for operations, with the request log around them. A route that
 // is not public needs an ID token that verifier accepts. The origins of
-// webOrigins can call the routes with a token from a browser. All the error
+// webOrigins can call the routes with a token from a browser. A request from
+// one of trustedProxies takes the client address of X-Forwarded-For. All the error
 // responses use the Error format of the contract.
 func newHandler(
 	logger *slog.Logger,
@@ -288,6 +290,7 @@ func newHandler(
 	verifier identity.TokenVerifier,
 	accounts identity.AccountChecker,
 	webOrigins []string,
+	trustedProxies []netip.Prefix,
 ) http.Handler {
 	invalidRequest := func(w http.ResponseWriter, r *http.Request, err error) {
 		httpx.WriteError(r.Context(), logger, w,
@@ -325,7 +328,10 @@ func newHandler(
 		ErrorHandlerFunc: invalidRequest,
 	})
 
-	return httpx.RequestLog(logger)(recoverPanic(logger, answerPreflight(mux, webOrigins, routes)))
+	// ClientAddress runs first: the log and the rate limit see the address
+	// of the client behind the proxy (ADR 0029, item 6).
+	return httpx.ClientAddress(trustedProxies)(
+		httpx.RequestLog(logger)(recoverPanic(logger, answerPreflight(mux, webOrigins, routes))))
 }
 
 // recoverPanic answers with the internal error of the contract when next

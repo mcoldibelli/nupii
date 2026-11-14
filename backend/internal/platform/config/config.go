@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"net/url"
 	"strconv"
 	"strings"
@@ -59,6 +60,11 @@ type Config struct {
 	// "https://app.nupii.com.br". A browser page of one of them can call
 	// the routes with a token (ADR 0029, item 8).
 	WebOrigins []string
+
+	// TrustedProxies are the networks of the proxies whose X-Forwarded-For
+	// gives the address of the client (ADR 0029, item 6). Empty: the API
+	// uses the address of the connection.
+	TrustedProxies []netip.Prefix
 }
 
 // Load reads the configuration with getenv and validates it. The caller
@@ -138,6 +144,15 @@ func Load(getenv func(string) string) (Config, error) {
 				return Config{}, fmt.Errorf("WEB_ORIGINS %q: %w", origin, err)
 			}
 			cfg.WebOrigins = append(cfg.WebOrigins, origin)
+		}
+	}
+	if raw := getenv("TRUSTED_PROXIES"); raw != "" {
+		for value := range strings.SplitSeq(raw, ",") {
+			prefix, err := netip.ParsePrefix(strings.TrimSpace(value))
+			if err != nil {
+				return Config{}, fmt.Errorf("TRUSTED_PROXIES %q: a network as 172.31.0.0/16: %w", value, err)
+			}
+			cfg.TrustedProxies = append(cfg.TrustedProxies, prefix)
 		}
 	}
 	return cfg, nil

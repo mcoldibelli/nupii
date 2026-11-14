@@ -8,25 +8,43 @@ As fatias 0, 1, 2 e 3 do [roteiro](docs/roteiro.md) estão prontas. O ambiente l
 
 ## Como testar o app
 
-Um comando sobe o ambiente local e outro abre o app no emulador Android:
+Dois passos, em dois terminais. No passo 1 você escolhe **um** modo:
 
 ```bash
-./dev.sh firebase   # ou ./dev.sh emulador
-./dev.sh app
+# 1. Sobe a API, o banco, o S3, a inferência e o emulador do Firebase
+./dev.sh firebase   # sua conta real do Firebase (projeto nupii-own)
+./dev.sh emulador   # ou: contas de teste, que somem quando o container reinicia
+
+# 2. Abre o app
+./dev.sh app        # emulador Android
+./dev.sh web        # ou: navegador, em http://localhost:8081
 ```
+
+O passo 2 lê o modo da API que está rodando e configura o Firebase do app com ele (#261). O app e a API nunca ficam em modos diferentes. Para trocar de modo, rode o passo 1 de novo com o outro modo e reinicie o passo 2. Na primeira vez depois de uma troca, o Expo monta o pacote do zero, e isso demora mais.
 
 | Modo | Login | Arquivos que o comando confere |
 |---|---|---|
-| `emulador` | Emulador do Firebase Authentication (contas de teste, somem quando o container reinicia) | `deploy/.env`, `mobile/.env` com `EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_URL` preenchido (o `mobile/.env.example` já vem assim) |
-| `firebase` | Projeto real do Firebase | `deploy/.env`, `backend/.env` com `FIREBASE_PROJECT_ID` e `GOOGLE_APPLICATION_CREDENTIALS`, e `mobile/.env` com `EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_URL` vazio. Os dois arquivos vêm do `./deploy/firebase-setup.sh` |
+| `emulador` | Emulador do Firebase Authentication (contas de teste) | `deploy/.env` e `mobile/.env` |
+| `firebase` | Projeto real do Firebase | `deploy/.env`, `backend/.env` com `FIREBASE_PROJECT_ID` e `GOOGLE_APPLICATION_CREDENTIALS`, e `mobile/.env` com a configuração do projeto real. Os dois arquivos vêm do `./deploy/firebase-setup.sh` |
 
-O comando para com uma mensagem quando falta um arquivo, um valor, os pesos do modelo, ou quando outro programa usa a porta 8080 (por exemplo, um `go run` da API). Ele avisa quando o app e a API usam modos diferentes do Firebase.
+O comando para com uma mensagem quando falta um arquivo, um valor, os pesos do modelo, quando a API não está rodando no passo 2, ou quando outro programa usa a porta 8080 (por exemplo, um `go run` da API).
 
-Para abrir no navegador os links que o app cria (carteirinha, mural, achado), suba a web pública com `./dev.sh web`: ela responde em `http://localhost:8081`, o endereço desses links no ambiente local.
+A web (`./dev.sh web`) responde em `http://localhost:8081`, o endereço dos links que o app cria (carteirinha, mural, achado) no ambiente local.
 
 Outros comandos: `./dev.sh status`, `./dev.sh logs [serviço]` e `./dev.sh stop`. O `./dev.sh app` usa o primeiro emulador Android criado (ou o da variável `AVD`) e o Expo na porta 8099 (ou a da variável `EXPO_PORT`).
 
 Os passos detalhados de cada parte estão abaixo e nos READMEs do [backend](backend/README.md) e do [mobile](mobile/README.md).
+
+## Como publicar
+
+A publicação vai para a VPS ([ADR 0029](docs/adr/0029-publicacao-na-vps.md)), a partir do `main`, com um comando:
+
+```bash
+git checkout main && git pull
+./deploy/publish.sh
+```
+
+O script envia o código, os pesos do modelo e a chave da conta de serviço pela conexão `ssh` (host `vps` do `~/.ssh/config`), monta a web com os endereços de produção e sobe o compose `nupii-self` (`deploy/compose.prod.yaml`). Na primeira vez, ele cria o `/opt/nupii-self/.env` com segredos aleatórios. Os blocos do Caddy ficam em `deploy/Caddyfile.nupii-self` e entram no Caddyfile da VPS uma vez só.
 
 ## Como executar
 

@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { HealthEventType } from "../api/health";
+import { Button } from "../ui/Button";
 import { Icon, type IconName } from "../ui/Icon";
 import { colors, fonts, radius, space } from "../ui/theme";
 import { presetTypes, type Preset } from "./form";
@@ -18,20 +20,67 @@ const options: { label: string; line: string; icon: IconName; color: string; typ
   { label: "Peso", line: "anote o peso de hoje", icon: "weight", color: colors.success, type: "note", preset: "weight" },
 ];
 
-/** The sheet "O que você quer anotar?" (Saude-Mobile-Registrar artboard), in the health screen and in the home. */
-export function AnotarSheet({ visible, petName, onClose, onPick }: { visible: boolean; petName: string; onClose: () => void; onPick: (type: HealthEventType, preset?: Exclude<Preset, "again">) => void }) {
+/**
+ * The sheet "O que você quer anotar?" (Saude-Mobile-Registrar artboard), in the health screen and in the home.
+ * With onLost (the home), it also has the "Emergência" item to report the pet as lost (#257). The sheet opens
+ * often, so the item asks for a confirmation inside the sheet before onLost.
+ */
+export function AnotarSheet({
+  visible,
+  petName,
+  onClose,
+  onPick,
+  onLost,
+}: {
+  visible: boolean;
+  petName: string;
+  onClose: () => void;
+  onPick: (type: HealthEventType, preset?: Exclude<Preset, "again">) => void;
+  onLost?: () => void;
+}) {
   const insets = useSafeAreaInsets();
+  const [confirming, setConfirming] = useState(false);
+  const close = () => {
+    setConfirming(false);
+    onClose();
+  };
   return (
-  <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-    <Pressable testID="registrar-close-overlay" accessibilityLabel="Fechar" style={local.overlay} onPress={onClose} />
+  <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
+    <Pressable testID="registrar-close-overlay" accessibilityLabel="Fechar" style={local.overlay} onPress={close} />
     <View style={[local.sheet, { paddingBottom: insets.bottom + space.xl }]}>
       <View style={local.handle} />
+      {confirming && onLost ? (
+        <View testID="lost-confirm" style={{ gap: space.lg }}>
+          <View style={local.confirmIcon}>
+            <Icon name="pin" size={26} color={colors.dangerText} />
+          </View>
+          <View style={{ gap: 6 }}>
+            <Text style={local.sheetTitle} accessibilityRole="header">
+              {petName} sumiu?
+            </Text>
+            <Text style={local.confirmText}>Você marca no mapa o último lugar onde viu {petName} e publica no mural. Quem tem o app perto do ponto recebe um alerta.</Text>
+          </View>
+          <View style={{ gap: 10 }}>
+            <Button
+              testID="lost-confirm-yes"
+              label="Sim, avisar desaparecimento"
+              variant="danger"
+              onPress={() => {
+                setConfirming(false);
+                onLost();
+              }}
+            />
+            <Button testID="lost-confirm-no" label="Cancelar" variant="soft" size="md" onPress={() => setConfirming(false)} />
+          </View>
+        </View>
+      ) : (
+      <>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={local.sheetTitle}>O que você quer anotar?</Text>
           <Text style={local.itemLine}>Fica no histórico de {petName} e gera lembretes</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Fechar" style={local.close} onPress={onClose}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Fechar" style={local.close} onPress={close}>
           <Icon name="close" size={16} strokeWidth={2.4} />
         </Pressable>
       </View>
@@ -52,6 +101,23 @@ export function AnotarSheet({ visible, petName, onClose, onPick }: { visible: bo
           </Pressable>
         ))}
       </View>
+      {onLost && (
+        <View style={{ gap: 8 }}>
+          <Text style={local.overline}>EMERGÊNCIA</Text>
+          <Pressable testID="option-lost" accessibilityRole="button" style={local.lost} onPress={() => setConfirming(true)}>
+            <View style={local.lostIcon}>
+              <Icon name="pin" size={19} color={colors.dangerText} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={[local.itemTitle, { color: colors.dangerText }]}>{petName} sumiu</Text>
+              <Text style={local.optionLine}>avisar no mural e para quem está perto</Text>
+            </View>
+            <Icon name="chevronRight" size={18} color={colors.textMuted} />
+          </Pressable>
+        </View>
+      )}
+      </>
+      )}
     </View>
   </Modal>
   );
@@ -69,4 +135,9 @@ const local = StyleSheet.create({
   optionLine: { fontFamily: fonts.body, fontSize: 13, color: colors.textMuted },
   itemTitle: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
   itemLine: { fontFamily: fonts.body, fontSize: 13, color: colors.textMuted },
+  overline: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 0.6, color: colors.textMuted },
+  lost: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 20, borderWidth: 1.5, borderColor: colors.dangerBorder },
+  lostIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.dangerSoft, alignItems: "center", justifyContent: "center" },
+  confirmIcon: { width: 56, height: 56, borderRadius: 18, backgroundColor: colors.dangerSoft, alignItems: "center", justifyContent: "center" },
+  confirmText: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.textSecondary },
 });

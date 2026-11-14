@@ -1,6 +1,7 @@
 import { failureMessage } from "../api/http";
 import type { Report, ReportDetails } from "../api/reports";
 import { parseDate } from "../pets/form";
+import { timeAgo } from "./board";
 
 export type DetailsForm = { place: string; description: string };
 
@@ -33,6 +34,13 @@ export function toDetails(form: DetailsForm): DetailsResult {
 /** Returns the open lost report of the pet, among the reports of the owner (RN-68). */
 export function openLostReportOf(reports: Report[], petId: string): Report | undefined {
   return reports.find((report) => report.type === "lost" && report.status === "open" && report.petId === petId);
+}
+
+/** The line of the lost banner of the home (#259): "ontem · 2 avistamentos". */
+export function lostLine(report: { occurredAt: string; sightings: unknown[] }, now: Date = new Date()): string {
+  const count = report.sightings.length;
+  const sightings = count === 0 ? "nenhum avistamento ainda" : count === 1 ? "1 avistamento" : `${count} avistamentos`;
+  return `${timeAgo(report.occurredAt, now)} · ${sightings}`;
 }
 
 /** Texts for the failures of the report operations, by error code. */

@@ -9,11 +9,14 @@ import { listNotifications, setMyLocation } from "../src/api/alerts";
 import { listHealthEvents, listUpcomingCare, type UpcomingCare } from "../src/api/health";
 import { failureMessage, SESSION_FAILURE } from "../src/api/http";
 import { listPets, type Pet } from "../src/api/pets";
+import { listMyReports, resolveReport, type Report } from "../src/api/reports";
 import { apiUrl } from "../src/config";
 import { AnotarSheet } from "../src/health/AnotarSheet";
 import { careLine, dateTile } from "../src/health/care";
 import { noseprintBadges, petSubtitle, pickPet, unreadCount, weightTrend } from "../src/home/home";
+import { LostBanner } from "../src/home/LostBanner";
 import { PetSwitcher } from "../src/home/PetSwitcher";
+import { openLostReportOf, reportFailureMessage } from "../src/reports/form";
 import { useSelectedPet } from "../src/pets/SelectedPetContext";
 import { useSession } from "../src/session/SessionContext";
 import { Button } from "../src/ui/Button";
@@ -41,6 +44,9 @@ export default function Home() {
   // The quick access to a new health record (Saude-Mobile-Registrar sheet).
   const [anotar, setAnotar] = useState(false);
   const [loads, setLoads] = useState(0);
+  // The reports of the owner, for the lost banner of the chosen pet (#259).
+  const [reports, setReports] = useState<Report[]>([]);
+  const [resolving, setResolving] = useState(false);
   const pet = pickPet(pets ?? [], savedId);
 
   const load = useCallback(async () => {
@@ -49,7 +55,10 @@ export default function Home() {
       setError(SESSION_FAILURE);
       return;
     }
-    const [result, upcoming, notifications] = await Promise.all([listPets(apiUrl, token), listUpcomingCare(apiUrl, token), listNotifications(apiUrl, token)]);
+    const [result, upcoming, notifications, mine] = await Promise.all([listPets(apiUrl, token), listUpcomingCare(apiUrl, token), listNotifications(apiUrl, token), listMyReports(apiUrl, token)]);
+    if (mine.ok) {
+      setReports(mine.value);
+    }
     if (upcoming.ok) {
       setCare(upcoming.value);
     }
@@ -105,6 +114,22 @@ export default function Home() {
 
   const next = pet === null ? undefined : care.find((item) => item.petId === pet.id);
   const trend = weightTrend(weights);
+  const lost = pet === null ? undefined : openLostReportOf(reports, pet.id);
+
+  // "<pet> voltou" in the lost banner, after its confirmation (#259).
+  async function resolveLost(report: Report) {
+    setResolving(true);
+    const token = await idToken();
+    const result = token === null ? null : await resolveReport(apiUrl, token, report.id);
+    setResolving(false);
+    if (result === null) {
+      setError(SESSION_FAILURE);
+    } else if (result.ok) {
+      setReports((current) => current.filter((item) => item.id !== report.id));
+    } else {
+      setError(reportFailureMessage(result));
+    }
+  }
 
   return (
     <View style={local.page}>
@@ -133,6 +158,16 @@ export default function Home() {
         </View>
 
         {error !== null && <ErrorText testID="pet-list-error">{error}</ErrorText>}
+
+        {pet !== null && lost !== undefined && (
+          <LostBanner
+            petName={pet.name}
+            report={lost}
+            busy={resolving}
+            onOpen={() => router.push({ pathname: "/reports/[id]", params: { id: lost.id } })}
+            onResolve={() => void resolveLost(lost)}
+          />
+        )}
 
         {pets !== null && pet === null && (
           <View style={{ gap: space.md }}>
@@ -212,14 +247,6 @@ export default function Home() {
                 <Muted>Registre o peso numa consulta ou numa anotação para ver o gráfico.</Muted>
               )}
             </View>
-            {/* A lost report is rare: a quiet line at the end, away from Carteirinha and Ver agenda (#243). */}
-            <Pressable testID="report-lost-link" accessibilityRole="button" style={local.lostRow} onPress={() => router.push({ pathname: "/reports/lost", params: { petId: pet.id, petName: pet.name } })}>
-              <Icon name="alert" size={18} color={colors.textMuted} />
-              <Text style={local.lostText}>
-                {pet.name} sumiu? <Text style={local.lostStrong}>Avisar desaparecimento</Text>
-              </Text>
-              <Icon name="chevronRight" size={18} color={colors.textMuted} />
-            </Pressable>
           </View>
         )}
       </ScrollView>
@@ -236,6 +263,12 @@ export default function Home() {
           visible={anotar}
           petName={pet.name}
           onClose={() => setAnotar(false)}
+          // The way to report the pet as lost from the home (#257), with a confirmation in the sheet.
+          // With an open lost report, the banner has the actions and the sheet has no Emergência item.
+          onLost={lost !== undefined ? undefined : () => {
+            setAnotar(false);
+            router.push({ pathname: "/reports/lost", params: { petId: pet.id, petName: pet.name } });
+          }}
           onPick={(type, preset) => {
             setAnotar(false);
             router.push({ pathname: "/health/event", params: { petId: pet.id, petName: pet.name, type, ...(preset ? { preset } : {}) } });
@@ -287,9 +320,6 @@ const local = StyleSheet.create({
   identity: { alignItems: "center", flexDirection: "row", gap: 12, paddingHorizontal: 4 },
   nameRow: { alignItems: "center", flexDirection: "row", gap: 8 },
   badge: { alignItems: "center", backgroundColor: colors.success, borderRadius: 11, height: 22, justifyContent: "center", width: 22 },
-  lostRow: { alignItems: "center", flexDirection: "row", gap: 10, minHeight: 48, paddingHorizontal: 4 },
-  lostText: { color: colors.textSecondary, flex: 1, fontFamily: fonts.body, fontSize: 14 },
-  lostStrong: { color: colors.dangerText, fontFamily: fonts.bodyBold },
   sectionHead: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   careRow: { alignItems: "center", backgroundColor: colors.surface, borderRadius: radius.card, flexDirection: "row", gap: 14, padding: 8, paddingRight: 12 },
   tile: { alignItems: "center", backgroundColor: colors.primary, borderRadius: 14, height: 52, justifyContent: "center", width: 50 },

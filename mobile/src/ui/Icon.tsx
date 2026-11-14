@@ -89,6 +89,12 @@ const icons = {
     </>
   ),
   pencil: <Path d="M4 20h4L19 9l-4-4L4 16z" />,
+  upload: (
+    <>
+      <Path d="M12 16V4M7 9l5-5 5 5" />
+      <Path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+    </>
+  ),
   camera: (
     <>
       <Path d="M4 8h3l2-3h6l2 3h3v11H4z" />

@@ -62,23 +62,44 @@ check_common() {
   check_env mobile/.env EXPO_PUBLIC_API_URL EXPO_PUBLIC_FIREBASE_PROJECT_ID EXPO_PUBLIC_FIREBASE_API_KEY
 }
 
-# The app and the API must use the same Firebase: the emulator or the real project.
-check_app_mode() {
-  local mode=$1 emulator
-  emulator=$(env_value mobile/.env EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_URL)
-  if [[ $mode == emulador && -z $emulator ]]; then
-    echo "Aviso: mobile/.env usa o projeto real do Firebase, e a API usa o emulador."
-    echo "       O login do app não vai funcionar. Use ./dev.sh firebase, ou o mobile/.env.example."
-  elif [[ $mode == firebase && -n $emulator ]]; then
-    echo "Aviso: mobile/.env usa o emulador do Firebase, e a API usa o projeto real."
-    echo "       Esvazie EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_URL e use a configuração do projeto real."
+# The Firebase mode of the API that is running: emulador or firebase.
+api_mode() {
+  local id
+  id=$(docker ps -q --filter "name=^nupii-local-api-1$" --filter status=running)
+  [[ -n $id ]] || fail "a API não está rodando. Suba antes: ./dev.sh firebase (sua conta real) ou ./dev.sh emulador (contas de teste)."
+  if docker inspect "$id" --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -q '^FIREBASE_AUTH_EMULATOR_HOST=.'; then
+    echo emulador
+  else
+    echo firebase
+  fi
+}
+
+# The app and the web take the Firebase mode of the API that is running, so
+# the two never differ (#261). $1 is this machine as the app sees it: 10.0.2.2
+# in the Android emulator, localhost in the browser. Run it in mobile/.
+use_api_mode() {
+  local mode
+  mode=$(api_mode)
+  if [[ $mode == emulador ]]; then
+    export EXPO_PUBLIC_FIREBASE_PROJECT_ID=demo-nupii EXPO_PUBLIC_FIREBASE_API_KEY=local-emulator \
+      EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_URL="http://$1:9099"
+  else
+    [[ $(env_value .env EXPO_PUBLIC_FIREBASE_PROJECT_ID) != demo-* ]] ||
+      fail "a API usa o projeto real, e mobile/.env não tem a configuração dele. Execute ./deploy/firebase-setup.sh"
+    export EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_URL=
+  fi
+  echo "Firebase: modo $mode, o mesmo da API."
+  # The variables go into the bundle, so a new mode needs a new bundle.
+  if [[ $(cat .expo/nupii-firebase-mode 2>/dev/null || true) != "$mode" ]]; then
+    mkdir -p .expo
+    echo "$mode" >.expo/nupii-firebase-mode
+    expo_flags+=(--clear)
   fi
 }
 
 up_emulator() {
   check_common
   "${compose[@]}" -f deploy/compose.yaml up -d --build --wait
-  check_app_mode emulador
   done_message emulador
 }
 
@@ -92,18 +113,21 @@ up_firebase() {
   [[ -f $GOOGLE_APPLICATION_CREDENTIALS ]] ||
     fail "a chave da conta de serviço não existe em $GOOGLE_APPLICATION_CREDENTIALS. Execute ./deploy/firebase-setup.sh"
   "${compose[@]}" -f deploy/compose.yaml -f deploy/compose.firebase.yaml up -d --build --wait
-  check_app_mode firebase
   done_message firebase
 }
 
 done_message() {
   echo
   echo "Ambiente no modo $1. API: http://localhost:8080/v1/health"
-  echo "Para abrir o app no emulador Android: ./dev.sh app"
+  echo "Agora, em outro terminal: ./dev.sh app (Android) ou ./dev.sh web (navegador)."
+  echo "Os dois usam o modo $1 sozinhos."
 }
 
 # The Android emulator (if no device is connected) and the Expo server.
 app() {
+  cd mobile
+  expo_flags=()
+  use_api_mode 10.0.2.2
   local sdk=${ANDROID_HOME:-$HOME/Library/Android/sdk}
   export PATH="$PATH:$sdk/emulator:$sdk/platform-tools"
   if ! adb devices | grep -q 'device$'; then
@@ -113,28 +137,24 @@ app() {
     emulator -avd "$avd" >/dev/null 2>&1 &
     adb wait-for-device
   fi
-  cd mobile
   [[ -d node_modules ]] || npm install
   # Without CI=1: CI=1 turns off the file watching of Metro.
   unset CI
-  exec npx expo start --port "${EXPO_PORT:-8099}" --android
+  exec npx expo start --port "${EXPO_PORT:-8099}" --android ${expo_flags[@]+"${expo_flags[@]}"}
 }
 
-# The public web (/card, /reports, /found) in the browser of this machine, at
-# localhost:8081: the address of the links that the app makes. The browser
-# reaches the API and the Authentication emulator at localhost, not at the
-# address of the Android emulator (10.0.2.2), so this run changes them.
+# The web (public pages and the area with an account) in the browser of this
+# machine, at localhost:8081: the address of the links that the app makes.
+# The browser reaches the API and the Authentication emulator at localhost,
+# not at the address of the Android emulator (10.0.2.2).
 web() {
   cd mobile
+  expo_flags=()
+  use_api_mode localhost
   [[ -d node_modules ]] || npm install
   unset CI
   export EXPO_PUBLIC_API_URL=http://localhost:8080 EXPO_PUBLIC_WEB_URL=http://localhost:8081
-  local emulator
-  emulator=$(env_value .env EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_URL)
-  if [[ -n $emulator ]]; then
-    export EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_URL=${emulator//10.0.2.2/localhost}
-  fi
-  exec npx expo start --web --port 8081
+  exec npx expo start --web --port 8081 ${expo_flags[@]+"${expo_flags[@]}"}
 }
 
 case "${1:-}" in
@@ -149,10 +169,18 @@ case "${1:-}" in
     cat <<'USAGE'
 Uso: ./dev.sh <comando>
 
-  emulador   sobe a API, o banco, o S3, a inferência e o emulador do Firebase Authentication
-  firebase   sobe o mesmo ambiente, com a API no projeto real do Firebase (backend/.env)
-  app        abre o emulador Android e o app no Expo
-  web        abre a web pública (carteirinha, mural, achei) em http://localhost:8081
+Dois passos, em dois terminais:
+
+  1. Suba o ambiente (escolha UM modo):
+       ./dev.sh firebase   sua conta real do Firebase (projeto nupii-own)
+       ./dev.sh emulador   contas de teste, que somem quando o container reinicia
+  2. Abra o app:
+       ./dev.sh app        emulador Android
+       ./dev.sh web        navegador, em http://localhost:8081
+     O app e a web usam sozinhos o modo do passo 1. Para trocar de modo,
+     rode o passo 1 de novo com o outro modo e reinicie o passo 2.
+
+Outros comandos:
   status     mostra o estado de cada serviço
   logs [s]   mostra o log dos serviços (ou só do serviço s, por exemplo api)
   stop       para tudo; os dados ficam nos volumes
