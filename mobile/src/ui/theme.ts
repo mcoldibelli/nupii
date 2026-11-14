@@ -26,6 +26,8 @@ export const colors = {
   // The light red of the emergency item (#257): a background and a border, never text.
   dangerSoft: "#FBE9E7",
   dangerBorder: "#F2C6C0",
+  // The second line of text on the red lost banner (#259).
+  onDanger: "#FFE3DF",
   success: "#1F6B3A",
 } as const;
 
