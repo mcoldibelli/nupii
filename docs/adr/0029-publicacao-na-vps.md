@@ -84,3 +84,10 @@ Fatos do código nesta data:
 ## Verificação posterior
 
 Data: 2026-11-13. A cópia de segurança (itens 17 e 18) fica no backlog ([issue #155](https://github.com/mcoldibelli/nupii/issues/155)) até a publicação ter usuários reais. O plano dos dois itens continua.
+
+Data: 2026-11-14. A preparação da #151 ajustou dois itens:
+
+- Item 3: a VPS não acessa o GitHub (o repositório é privado, e a VPS não tem o `gh`). O `deploy/publish.sh` envia o código do commit publicado (`git archive`), os pesos do modelo e a chave da conta de serviço pela conexão `ssh`, e a VPS constrói as imagens. O commit publicado é o do `main`.
+- Item 5: o `deploy/publish.sh` cria o `/opt/nupii-self/.env` na primeira publicação, com segredos aleatórios gerados na própria VPS (`openssl rand`). Nenhum segredo passa pela máquina de quem publica, além da chave da conta de serviço.
+- Item 7: o proxy confiável é o gateway da rede do compose, fixado em `172.31.90.0/24` (`TRUSTED_PROXIES=172.31.90.1/32`). A #151 confere o valor pelo limite de RN-43: 11 POSTs públicos do mesmo endereço recebem 429, e o de outro endereço não.
+

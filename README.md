@@ -35,6 +35,17 @@ Outros comandos: `./dev.sh status`, `./dev.sh logs [serviço]` e `./dev.sh stop`
 
 Os passos detalhados de cada parte estão abaixo e nos READMEs do [backend](backend/README.md) e do [mobile](mobile/README.md).
 
+## Como publicar
+
+A publicação vai para a VPS ([ADR 0029](docs/adr/0029-publicacao-na-vps.md)), a partir do `main`, com um comando:
+
+```bash
+git checkout main && git pull
+./deploy/publish.sh
+```
+
+O script envia o código, os pesos do modelo e a chave da conta de serviço pela conexão `ssh` (host `vps` do `~/.ssh/config`), monta a web com os endereços de produção e sobe o compose `nupii-self` (`deploy/compose.prod.yaml`). Na primeira vez, ele cria o `/opt/nupii-self/.env` com segredos aleatórios. Os blocos do Caddy ficam em `deploy/Caddyfile.nupii-self` e entram no Caddyfile da VPS uma vez só.
+
 ## Como executar
 
 Requisitos: Docker com o Compose, e o GitHub CLI (`gh`) com acesso ao repositório. Para desenvolver a API: Go 1.26 ou mais novo.
