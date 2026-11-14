@@ -86,3 +86,17 @@ export function parsePick(message: string): MapPoint | null {
     return null;
   }
 }
+
+/**
+ * What the WebView does with a navigation of the map page (#246). The page
+ * itself loads as about:blank and stays. A link of the page, as the Leaflet
+ * link of the attribution, opens in the browser of the device: another site
+ * in the WebView would get the message bridge of the map. Any other address
+ * is blocked.
+ */
+export function mapNavigation(url: string): "allow" | "browser" | "block" {
+  if (url === "about:blank") {
+    return "allow";
+  }
+  return /^https?:\/\//.test(url) ? "browser" : "block";
+}

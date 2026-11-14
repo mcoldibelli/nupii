@@ -12,12 +12,14 @@ RETURNING id, owner_id, name, species, breed, sex, size, birth_date, weight_kg, 
     vet_name, vet_clinic, vet_phone, created_at, updated_at, deleted_at, photo_key;
 
 -- name: ListPets :many
--- The pets of an owner that are not deleted, in name order.
-SELECT id, owner_id, name, species, breed, sex, size, birth_date, weight_kg, neutered,
-    vet_name, vet_clinic, vet_phone, created_at, updated_at, deleted_at, photo_key
+-- The pets of an owner that are not deleted, in name order, and if each
+-- one has a noseprint. The read of noseprints (module biometrics) is in the
+-- list of reads between modules of docs/arquitetura.md.
+SELECT sqlc.embed(pets),
+    EXISTS (SELECT 1 FROM noseprints AS n WHERE n.pet_id = pets.id) AS has_noseprint
 FROM pets
 WHERE owner_id = sqlc.arg(owner_id) AND deleted_at IS NULL
-ORDER BY lower(name), id;
+ORDER BY lower(pets.name), pets.id;
 
 -- name: GetPet :one
 -- A pet of another owner, or a deleted pet, gives no row.

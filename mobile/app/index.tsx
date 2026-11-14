@@ -6,14 +6,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { devicePosition, locationAllowed } from "../src/alerts/deviceLocation";
 import { sendLocation } from "../src/alerts/location";
 import { listNotifications, setMyLocation } from "../src/api/alerts";
-import { getNoseprint } from "../src/api/biometrics";
 import { listHealthEvents, listUpcomingCare, type UpcomingCare } from "../src/api/health";
 import { failureMessage, SESSION_FAILURE } from "../src/api/http";
 import { listPets, type Pet } from "../src/api/pets";
 import { apiUrl } from "../src/config";
 import { AnotarSheet } from "../src/health/AnotarSheet";
 import { careLine, dateTile } from "../src/health/care";
-import { petSubtitle, pickPet, unreadCount, weightTrend } from "../src/home/home";
+import { noseprintBadges, petSubtitle, pickPet, unreadCount, weightTrend } from "../src/home/home";
 import { PetSwitcher } from "../src/home/PetSwitcher";
 import { useSelectedPet } from "../src/pets/SelectedPetContext";
 import { useSession } from "../src/session/SessionContext";
@@ -70,9 +69,7 @@ export default function Home() {
       router.push({ pathname: "/pets/new", params: { first: "1" } });
     }
     // The noseprint badge of each dog, for the home and the pet switcher.
-    const dogs = result.value.filter((item) => item.species === "dog");
-    const found = await Promise.all(dogs.map((item) => getNoseprint(apiUrl, token, item.id)));
-    setNoseprints(Object.fromEntries(dogs.map((item, i) => [item.id, found[i].ok && found[i].value !== null])));
+    setNoseprints(noseprintBadges(result.value));
   }, [idToken]);
 
   useFocusEffect(
@@ -174,14 +171,6 @@ export default function Home() {
               </View>
               <Button testID="open-card" label="Carteirinha" icon="card" variant="dark" size="md" stretch={false} onPress={() => router.push({ pathname: "/share/[petId]", params: { petId: pet.id, petName: pet.name } })} />
             </View>
-            <Pressable testID="report-lost-link" accessibilityRole="button" style={local.lostRow} onPress={() => router.push({ pathname: "/reports/lost", params: { petId: pet.id, petName: pet.name } })}>
-              <Icon name="alert" size={20} color={colors.danger} />
-              <Text style={local.lostText}>
-                {pet.name} sumiu? <Text style={local.lostStrong}>Avisar desaparecimento</Text>
-              </Text>
-              <Icon name="chevronRight" size={18} color={colors.textMuted} />
-            </Pressable>
-
             <View style={local.sectionHead}>
               <Heading>Próximo cuidado</Heading>
               <Button testID="open-health" label="Ver agenda" icon="calendar" variant="dark" size="sm" stretch={false} onPress={() => router.push({ pathname: "/health/[petId]", params: { petId: pet.id, petName: pet.name } })} />
@@ -223,6 +212,14 @@ export default function Home() {
                 <Muted>Registre o peso numa consulta ou numa anotação para ver o gráfico.</Muted>
               )}
             </View>
+            {/* A lost report is rare: a quiet line at the end, away from Carteirinha and Ver agenda (#243). */}
+            <Pressable testID="report-lost-link" accessibilityRole="button" style={local.lostRow} onPress={() => router.push({ pathname: "/reports/lost", params: { petId: pet.id, petName: pet.name } })}>
+              <Icon name="alert" size={18} color={colors.textMuted} />
+              <Text style={local.lostText}>
+                {pet.name} sumiu? <Text style={local.lostStrong}>Avisar desaparecimento</Text>
+              </Text>
+              <Icon name="chevronRight" size={18} color={colors.textMuted} />
+            </Pressable>
           </View>
         )}
       </ScrollView>
@@ -290,8 +287,8 @@ const local = StyleSheet.create({
   identity: { alignItems: "center", flexDirection: "row", gap: 12, paddingHorizontal: 4 },
   nameRow: { alignItems: "center", flexDirection: "row", gap: 8 },
   badge: { alignItems: "center", backgroundColor: colors.success, borderRadius: 11, height: 22, justifyContent: "center", width: 22 },
-  lostRow: { alignItems: "center", borderColor: colors.borderStrong, borderRadius: 16, borderWidth: 1.5, flexDirection: "row", gap: 12, minHeight: 48, paddingHorizontal: 16 },
-  lostText: { color: colors.ink, flex: 1, fontFamily: fonts.body, fontSize: 15 },
+  lostRow: { alignItems: "center", flexDirection: "row", gap: 10, minHeight: 48, paddingHorizontal: 4 },
+  lostText: { color: colors.textSecondary, flex: 1, fontFamily: fonts.body, fontSize: 14 },
   lostStrong: { color: colors.dangerText, fontFamily: fonts.bodyBold },
   sectionHead: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   careRow: { alignItems: "center", backgroundColor: colors.surface, borderRadius: radius.card, flexDirection: "row", gap: 14, padding: 8, paddingRight: 12 },

@@ -27,7 +27,7 @@ A construção segue fatias verticais. Uma fatia vai do banco até a tela e term
 | 9 | Conta e LGPD | Perfil, telas de trocar senha e esqueci a senha (pelo Firebase), excluir conta com anonimização, limpeza diária dos dados vencidos. | Uma conta excluída some da identificação e do mural, e o usuário dela não existe mais no Firebase. A tarefa de limpeza apaga um registro com data forçada para 31 dias atrás. |
 | 9b | Interface | O visual do canvas de design nas telas que já existem: tema, componentes, barra de navegação, ícone e tela de abertura ([ADR 0030](adr/0030-visual-do-app.md)). | Cada tela do app e da web pública usa os componentes do tema. Os pares de cor do tema passam no contraste AA. |
 | 9c | Telas do canvas | O layout de cada tela do canvas de design nas telas do app, com os comportamentos que a API já permite, e o backend que faltar. | Cada tela, posta lado a lado com o artboard do canvas, tem o mesmo layout. Cada comportamento do canvas funciona com a API. |
-| 10 | Publicação | Login com Google, build do app, publicação da API e da web. | O app instalado em um aparelho real usa a API publicada. |
+| 10 | Publicação | Login com Google, build do app, publicação da API e da web, observabilidade ([ADR 0032](adr/0032-observabilidade-lgtm.md)). | O app instalado em um aparelho real usa a API publicada. |
 | 11 | Documentação final | Casos de uso, diagrama de domínio e modelo de dados (DER), escritos a partir do sistema pronto. | Cada caso de uso aponta para os RF que ele cobre. O DER tem as mesmas tabelas e relações das migrations. O README lista os três documentos. |
 
 ## Por que esta ordem
@@ -53,5 +53,5 @@ A versão sem detector no aparelho é o padrão da fatia 4. O detector no aparel
 
 | Decisão | Fatia |
 |---|---|
-| Biblioteca de push no app ([ADR 0024](adr/0024-push-no-app.md)) | 10 |
-| Onde a API, a web e a inferência são publicadas | 10 |
+| Biblioteca de push no app ([ADR 0024](adr/0024-push-no-app.md)): `expo-notifications` ([ADR 0029](adr/0029-publicacao-na-vps.md)) | 10 |
+| Onde a API, a web e a inferência são publicadas: na VPS ([ADR 0029](adr/0029-publicacao-na-vps.md)) | 10 |

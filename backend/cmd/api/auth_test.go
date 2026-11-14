@@ -21,7 +21,7 @@ func TestProtectedRouteWithoutAValidTokenGetsUnauthenticated(t *testing.T) {
 	verifier := fakeVerifier{identities: map[string]identity.Identity{
 		"valid-token": {UID: "uid-1", Email: "tutor@example.com"},
 	}}
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), verifier, noDeletedAccounts{})
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), verifier, noDeletedAccounts{}, nil)
 	tests := []struct {
 		name          string
 		authorization string
@@ -62,7 +62,7 @@ func TestProtectedRouteWithoutAValidTokenGetsUnauthenticated(t *testing.T) {
 func TestVerifierFailureGetsInternalError(t *testing.T) {
 	const detail = "dial tcp 10.0.0.9:443: i/o timeout"
 	verifier := fakeVerifier{err: errors.New(detail)}
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), verifier, noDeletedAccounts{})
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), verifier, noDeletedAccounts{}, nil)
 	req := httptest.NewRequest(http.MethodGet, "/v1/me", nil)
 	req.Header.Set("Authorization", "Bearer any-token")
 	rec := httptest.NewRecorder()
@@ -79,7 +79,7 @@ func TestVerifierFailureGetsInternalError(t *testing.T) {
 }
 
 func TestPublicRouteNeedsNoToken(t *testing.T) {
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{})
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, nil)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/health", nil))
@@ -119,7 +119,7 @@ func TestRequestBodyOverTheLimitGetsInvalidRequest(t *testing.T) {
 	verifier := fakeVerifier{identities: map[string]identity.Identity{
 		"valid-token": {UID: "uid-1", Email: "tutor@example.com"},
 	}}
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), verifier, noDeletedAccounts{})
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), verifier, noDeletedAccounts{}, nil)
 	body := `{"name": "` + strings.Repeat("a", _maxBodyBytes) + `", "acceptedTermsVersion": "x"}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/me", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -143,7 +143,7 @@ func TestRequestBodyOverTheLimitGetsInvalidRequest(t *testing.T) {
 // The public web page runs in a browser, at another origin. The browser
 // gives the answer to the page only with this header.
 func TestOnlyPublicRoutesAllowOtherOrigins(t *testing.T) {
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{})
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, nil)
 	tests := []struct {
 		method string
 		path   string
@@ -171,7 +171,7 @@ func TestOnlyPublicRoutesAllowOtherOrigins(t *testing.T) {
 // The public web page sends JSON to a public route of another origin. The
 // browser first sends a preflight request with the method OPTIONS.
 func TestPreflightOfPublicRoutes(t *testing.T) {
-	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{})
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, nil)
 	const sightings = "/v1/reports/0195f3c8-7a55-7c1e-9d2a-0d1c2b3a4f5e/sightings"
 	tests := []struct {
 		name       string
@@ -204,6 +204,84 @@ func TestPreflightOfPublicRoutes(t *testing.T) {
 				header.Get("Access-Control-Allow-Methods") != tt.method ||
 				header.Get("Access-Control-Allow-Headers") != "Content-Type" {
 				t.Errorf("headers = %v, want the origin *, the method and Content-Type", header)
+			}
+		})
+	}
+}
+
+// ADR 0029, item 8: the web with an account calls the routes with a token
+// from another origin. Only the origins of WEB_ORIGINS get the answer.
+func TestWebOriginsReachRoutesWithAToken(t *testing.T) {
+	const web = "https://app.nupii.com.br"
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, []string{web})
+	tests := []struct {
+		name       string
+		origin     string
+		path       string
+		wantOrigin string
+	}{
+		// Without a token the answer is 401, and the page must read it.
+		{name: "allowed origin", origin: web, path: "/v1/me", wantOrigin: web},
+		{name: "other origin", origin: "https://evil.example", path: "/v1/me", wantOrigin: ""},
+		{name: "public route keeps *", origin: web, path: "/v1/health", wantOrigin: "*"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			req.Header.Set("Origin", tt.origin)
+			rec := httptest.NewRecorder()
+
+			handler.ServeHTTP(rec, req)
+
+			if got := rec.Header().Get("Access-Control-Allow-Origin"); got != tt.wantOrigin {
+				t.Errorf("Access-Control-Allow-Origin = %q, want %q", got, tt.wantOrigin)
+			}
+			if tt.wantOrigin == web && rec.Header().Get("Vary") != "Origin" {
+				t.Errorf("Vary = %q, want Origin", rec.Header().Get("Vary"))
+			}
+		})
+	}
+}
+
+// The browser sends a preflight before a request with the Authorization
+// header. An allowed origin gets it for a route with a token.
+func TestPreflightOfRoutesWithAToken(t *testing.T) {
+	const web = "https://app.nupii.com.br"
+	handler := newHandler(slog.New(slog.DiscardHandler), healthyServer(), fakeVerifier{}, noDeletedAccounts{}, []string{web})
+	tests := []struct {
+		name       string
+		origin     string
+		path       string
+		method     string
+		wantStatus int
+	}{
+		{name: "allowed origin", origin: web, path: "/v1/me", method: http.MethodGet, wantStatus: http.StatusNoContent},
+		{name: "other origin", origin: "https://evil.example", path: "/v1/me", method: http.MethodGet, wantStatus: http.StatusNotFound},
+		{name: "route that does not exist", origin: web, path: "/v1/unknown", method: http.MethodGet, wantStatus: http.StatusNotFound},
+		{name: "method that the route does not have", origin: web, path: "/v1/me", method: http.MethodPut, wantStatus: http.StatusNotFound},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodOptions, tt.path, nil)
+			req.Header.Set("Origin", tt.origin)
+			req.Header.Set("Access-Control-Request-Method", tt.method)
+			req.Header.Set("Access-Control-Request-Headers", "authorization")
+			rec := httptest.NewRecorder()
+
+			handler.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d", rec.Code, tt.wantStatus)
+			}
+			if tt.wantStatus != http.StatusNoContent {
+				return
+			}
+			header := rec.Header()
+			if header.Get("Access-Control-Allow-Origin") != web ||
+				header.Get("Access-Control-Allow-Methods") != tt.method ||
+				header.Get("Access-Control-Allow-Headers") != "Authorization, Content-Type" ||
+				header.Get("Vary") != "Origin" {
+				t.Errorf("headers = %v, want the origin, the method, Authorization and Vary", header)
 			}
 		})
 	}

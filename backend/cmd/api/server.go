@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime/debug"
+	"slices"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -186,23 +187,29 @@ func isRateLimited(r *http.Request) bool {
 }
 
 // allowOtherOrigins lets a web page of another origin read the answer of a
-// public route: the public web page calls the API from the browser. A
-// public route has no credential, so every origin is accepted. The other
-// routes get no header, and the browser keeps their answers from other
-// origins.
-func allowOtherOrigins(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if isPublic(r) {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-		}
-		next.ServeHTTP(w, r)
-	})
+// route. A public route has no credential, so every origin is accepted. A
+// route with a token accepts only the origins of webOrigins: the web with an
+// account (ADR 0029, item 8). The other answers get no header, and the
+// browser keeps them from other origins.
+func allowOtherOrigins(webOrigins []string) api.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if isPublic(r) {
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+			} else if origin := r.Header.Get("Origin"); slices.Contains(webOrigins, origin) {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Vary", "Origin")
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // answerPreflight answers the preflight request that a browser sends before
-// a request to another origin with a JSON body. Only a public route gets
-// the answer that allows the request. mux finds the route of the request.
-func answerPreflight(mux *http.ServeMux, next http.Handler) http.Handler {
+// a request to another origin with a JSON body or a token. A public route
+// gets the answer for every origin. A route with a token gets it only for
+// the origins of webOrigins. mux finds the route of the request.
+func answerPreflight(mux *http.ServeMux, webOrigins []string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		method := r.Header.Get("Access-Control-Request-Method")
 		if r.Method != http.MethodOptions || method == "" {
@@ -212,13 +219,22 @@ func answerPreflight(mux *http.ServeMux, next http.Handler) http.Handler {
 		// The route that would get the real request.
 		real := r.Clone(r.Context())
 		real.Method = method
-		if _, real.Pattern = mux.Handler(real); !isPublic(real) {
+		_, real.Pattern = mux.Handler(real)
+		origin := r.Header.Get("Origin")
+		switch {
+		case isPublic(real):
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		// The pattern "/" gets the requests that no route of the contract gets.
+		case real.Pattern != "/" && slices.Contains(webOrigins, origin):
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+			w.Header().Set("Vary", "Origin")
+		default:
 			next.ServeHTTP(w, r)
 			return
 		}
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", method)
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 		w.WriteHeader(http.StatusNoContent)
 	})
 }
@@ -263,13 +279,15 @@ func (v tokenVerifier) VerifyIDToken(
 
 // newHandler returns the HTTP handler of the API: the routes of the
 // contract for operations, with the request log around them. A route that
-// is not public needs an ID token that verifier accepts. All the error
+// is not public needs an ID token that verifier accepts. The origins of
+// webOrigins can call the routes with a token from a browser. All the error
 // responses use the Error format of the contract.
 func newHandler(
 	logger *slog.Logger,
 	operations api.StrictServerInterface,
 	verifier identity.TokenVerifier,
 	accounts identity.AccountChecker,
+	webOrigins []string,
 ) http.Handler {
 	invalidRequest := func(w http.ResponseWriter, r *http.Request, err error) {
 		httpx.WriteError(r.Context(), logger, w,
@@ -301,13 +319,13 @@ func newHandler(
 			httpx.LimitBody(bodyLimit),
 			httpx.RateLimit(logger, _publicPostLimit, time.Minute, isRateLimited, time.Now),
 			identity.RequireIdentity(logger, verifier, accounts, isPublic),
-			allowOtherOrigins,
+			allowOtherOrigins(webOrigins),
 		},
 		// A parameter of the request could not be read.
 		ErrorHandlerFunc: invalidRequest,
 	})
 
-	return httpx.RequestLog(logger)(recoverPanic(logger, answerPreflight(mux, routes)))
+	return httpx.RequestLog(logger)(recoverPanic(logger, answerPreflight(mux, webOrigins, routes)))
 }
 
 // recoverPanic answers with the internal error of the contract when next

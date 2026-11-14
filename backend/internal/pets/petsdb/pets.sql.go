@@ -158,41 +158,49 @@ func (q *Queries) GetPet(ctx context.Context, arg GetPetParams) (Pet, error) {
 }
 
 const listPets = `-- name: ListPets :many
-SELECT id, owner_id, name, species, breed, sex, size, birth_date, weight_kg, neutered,
-    vet_name, vet_clinic, vet_phone, created_at, updated_at, deleted_at, photo_key
+SELECT pets.id, pets.owner_id, pets.name, pets.species, pets.breed, pets.sex, pets.size, pets.birth_date, pets.weight_kg, pets.neutered, pets.vet_name, pets.vet_clinic, pets.vet_phone, pets.created_at, pets.updated_at, pets.deleted_at, pets.photo_key,
+    EXISTS (SELECT 1 FROM noseprints AS n WHERE n.pet_id = pets.id) AS has_noseprint
 FROM pets
 WHERE owner_id = $1 AND deleted_at IS NULL
-ORDER BY lower(name), id
+ORDER BY lower(pets.name), pets.id
 `
 
-// The pets of an owner that are not deleted, in name order.
-func (q *Queries) ListPets(ctx context.Context, ownerID string) ([]Pet, error) {
+type ListPetsRow struct {
+	Pet          Pet
+	HasNoseprint bool
+}
+
+// The pets of an owner that are not deleted, in name order, and if each
+// one has a noseprint. The read of noseprints (module biometrics) is in the
+// list of reads between modules of docs/arquitetura.md.
+func (q *Queries) ListPets(ctx context.Context, ownerID string) ([]ListPetsRow, error) {
 	rows, err := q.db.Query(ctx, listPets, ownerID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Pet
+	var items []ListPetsRow
 	for rows.Next() {
-		var i Pet
+		var i ListPetsRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.OwnerID,
-			&i.Name,
-			&i.Species,
-			&i.Breed,
-			&i.Sex,
-			&i.Size,
-			&i.BirthDate,
-			&i.WeightKg,
-			&i.Neutered,
-			&i.VetName,
-			&i.VetClinic,
-			&i.VetPhone,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.DeletedAt,
-			&i.PhotoKey,
+			&i.Pet.ID,
+			&i.Pet.OwnerID,
+			&i.Pet.Name,
+			&i.Pet.Species,
+			&i.Pet.Breed,
+			&i.Pet.Sex,
+			&i.Pet.Size,
+			&i.Pet.BirthDate,
+			&i.Pet.WeightKg,
+			&i.Pet.Neutered,
+			&i.Pet.VetName,
+			&i.Pet.VetClinic,
+			&i.Pet.VetPhone,
+			&i.Pet.CreatedAt,
+			&i.Pet.UpdatedAt,
+			&i.Pet.DeletedAt,
+			&i.Pet.PhotoKey,
+			&i.HasNoseprint,
 		); err != nil {
 			return nil, err
 		}

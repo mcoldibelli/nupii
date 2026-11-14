@@ -87,6 +87,9 @@ type Pet struct {
 	// PhotoURL is a temporary URL of the profile photo, or nil when the
 	// pet has no photo.
 	PhotoURL *string
+	// HasNoseprint tells if the pet has a noseprint. Only List fills it;
+	// it is nil in the other results (#252).
+	HasNoseprint *bool
 }
 
 // OwnerFinder gives the owner that made a request. *identity.Service
@@ -174,10 +177,11 @@ func (s *Service) List(ctx context.Context) ([]Pet, error) {
 	}
 	pets := make([]Pet, 0, len(rows))
 	for _, row := range rows {
-		pet, err := s.pet(row)
+		pet, err := s.pet(row.Pet)
 		if err != nil {
 			return nil, err
 		}
+		pet.HasNoseprint = &row.HasNoseprint
 		pets = append(pets, pet)
 	}
 	return pets, nil

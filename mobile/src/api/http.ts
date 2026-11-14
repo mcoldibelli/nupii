@@ -20,12 +20,37 @@ export function failureMessage(result: { ok: false; code: string }): string {
   return `O servidor respondeu com um erro (${result.code}). Tente de novo.`;
 }
 
+// The time the app waits for the API (#246). Without a limit, an API that
+// stopped or a network that drops the packets leaves a screen loading forever.
+const _answerLimitMs = 20_000;
+// A photo or a PDF goes up on the mobile network, so an upload waits longer.
+const _uploadLimitMs = 120_000;
+
 /**
  * Sends a request and reads the JSON answer. The request has the ID token,
  * or no token when idToken is null: a public operation needs none. An
- * answer with the status 204 has no body. It does not throw.
+ * answer with the status 204 has no body. With no answer in the time limit,
+ * the result is a network failure. It does not throw.
  */
 export async function request<T>(
+  fetchFn: typeof fetch,
+  url: string,
+  idToken: string | null,
+  init: { method: string; headers?: Record<string, string>; body?: BodyInit },
+): Promise<ApiResult<T>> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  // ponytail: the late answer is ignored, not aborted; an AbortSignal frees the connection if it matters.
+  const limit = new Promise<ApiResult<T>>((resolve) => {
+    timer = setTimeout(() => resolve({ ok: false, code: "network" }), init.body instanceof FormData ? _uploadLimitMs : _answerLimitMs);
+  });
+  try {
+    return await Promise.race([send<T>(fetchFn, url, idToken, init), limit]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function send<T>(
   fetchFn: typeof fetch,
   url: string,
   idToken: string | null,

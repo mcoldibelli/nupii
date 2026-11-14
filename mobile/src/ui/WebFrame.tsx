@@ -9,7 +9,7 @@ import { colors, fonts, radius, space } from "./theme";
 import { useWide } from "./useWide";
 
 /** The logo and the name, as the header of the web artboards. */
-function Brand({ href = "/" }: { href?: Href }) {
+export function Brand({ href = "/" }: { href?: Href }) {
   return (
     <Pressable accessibilityRole="link" accessibilityLabel="Nupii, início" style={local.brand} onPress={() => router.push(href)}>
       <LogoMark size={28} />
@@ -115,6 +115,8 @@ function VisitorHeader() {
   );
 }
 
+const authPaths = ["/sign-in", "/forgot-password"];
+
 /**
  * The frame of the web layout (#231): on a wide screen, the sidebar for an
  * owner with a session, or the top header for a visitor, around the screen.
@@ -123,7 +125,9 @@ function VisitorHeader() {
 export function WebFrame({ children }: { children: ReactNode }) {
   const wide = useWide();
   const { state } = useSession();
-  if (!wide) {
+  const pathname = usePathname();
+  // The sign-in and the reset of the password have their own split page (Login-Web, Cadastro-Web, #232).
+  if (!wide || authPaths.includes(pathname)) {
     return <>{children}</>;
   }
   if (state.kind === "ready") {

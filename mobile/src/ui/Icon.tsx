@@ -181,27 +181,47 @@ export function LogoMark({ size = 28, color = colors.brand, eyes = colors.backgr
 }
 
 /** The dog of the sign-in header of the canvas. It is decoration. */
-export function Mascot({ width = 186 }: { width?: number }) {
+export function Mascot({ width = 186, caramel = false }: { width?: number; caramel?: boolean }) {
+  // The caramel dog of Cadastro-Web has other colors, plain eyes and a purple collar.
+  const fur = caramel ? { body: "#D88B3F", ears: "#A9622A", head: "#E39C52", collar: colors.accent } : { body: "#2B2730", ears: "#1E1B20", head: "#3A3540", collar: colors.brand };
   return (
     <Svg width={width} height={(width * 260) / 240} viewBox="0 0 240 260" aria-hidden>
-      <Path d="M44 260 C44 188 82 156 120 156 C158 156 196 188 196 260 Z" fill="#2B2730" />
+      <Path d="M44 260 C44 188 82 156 120 156 C158 156 196 188 196 260 Z" fill={fur.body} />
       <Path d="M94 260 C94 214 106 192 120 192 C134 192 146 214 146 260 Z" fill="#F7E8D4" />
-      <Path d="M64 82 C46 66 40 40 52 24 C72 30 90 50 98 70 Z" fill="#1E1B20" />
-      <Path d="M176 82 C194 66 200 40 188 24 C168 30 150 50 142 70 Z" fill="#1E1B20" />
-      <Ellipse cx="120" cy="108" rx="64" ry="58" fill="#3A3540" />
+      <Path d="M64 82 C46 66 40 40 52 24 C72 30 90 50 98 70 Z" fill={fur.ears} />
+      <Path d="M176 82 C194 66 200 40 188 24 C168 30 150 50 142 70 Z" fill={fur.ears} />
+      <Ellipse cx="120" cy="108" rx="64" ry="58" fill={fur.head} />
       <Path d="M120 54 C110 70 108 90 112 104 L128 104 C132 90 130 70 120 54 Z" fill="#F7E8D4" fillOpacity={0.85} />
       <Ellipse cx="120" cy="136" rx="34" ry="25" fill="#F7E8D4" />
-      <Circle cx="96" cy="98" r="9.5" fill="#FFFFFF" />
-      <Circle cx="96" cy="98" r="6.5" fill="#1E1B18" />
-      <Circle cx="144" cy="98" r="9.5" fill="#FFFFFF" />
-      <Circle cx="144" cy="98" r="6.5" fill="#1E1B18" />
+      {!caramel && <Circle cx="96" cy="98" r="9.5" fill="#FFFFFF" />}
+      <Circle cx="96" cy="98" r={caramel ? 7 : 6.5} fill="#1E1B18" />
+      {!caramel && <Circle cx="144" cy="98" r="9.5" fill="#FFFFFF" />}
+      <Circle cx="144" cy="98" r={caramel ? 7 : 6.5} fill="#1E1B18" />
       <Circle cx="98.5" cy="95.5" r="2.2" fill="#FFFFFF" />
       <Circle cx="146.5" cy="95.5" r="2.2" fill="#FFFFFF" />
       <Path d="M105 121 C105 113 135 113 135 121 C135 129 127 134 120 134 C113 134 105 129 105 121 Z" fill="#1E1B18" />
       <Path d="M114 148 C114 160 126 160 126 148 Z" fill="#E8636B" />
       <Path d="M120 134 V144 M120 144 C115 149 108 149 104 145 M120 144 C125 149 132 149 136 145" stroke="#1E1B18" strokeWidth={3} fill="none" strokeLinecap="round" />
-      <Path d="M76 170 C100 182 140 182 164 170 L162 184 C140 196 100 196 78 184 Z" fill={colors.brand} />
+      <Path d="M76 170 C100 182 140 182 164 170 L162 184 C140 196 100 196 78 184 Z" fill={fur.collar} />
       <Circle cx="120" cy="194" r="7.5" fill="#F2C14E" />
+    </Svg>
+  );
+}
+
+/** The circles, the line and the paw behind the side of Login-Web and Cadastro-Web (#232). */
+export function AuthSideArt() {
+  return (
+    <Svg viewBox="0 0 600 800" preserveAspectRatio="xMidYMax slice" style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }} aria-hidden>
+      <Circle cx="300" cy="860" r="380" fill="#FFFFFF" fillOpacity={0.08} />
+      <Circle cx="300" cy="860" r="270" fill="#FFFFFF" fillOpacity={0.08} />
+      <Path d="M-20 300 C 90 230, 170 360, 300 280 S 520 230, 640 300" stroke="#FFFFFF" strokeOpacity={0.25} strokeWidth={3} fill="none" strokeLinecap="round" />
+      <G fill="#FFFFFF" fillOpacity={0.2} transform="translate(510 170) rotate(18) scale(1.8)">
+        <Ellipse cx="0" cy="8" rx="9" ry="7.5" />
+        <Ellipse cx="-9" cy="-4" rx="3.6" ry="4.6" />
+        <Ellipse cx="-3" cy="-10" rx="3.6" ry="4.6" />
+        <Ellipse cx="4" cy="-10" rx="3.6" ry="4.6" />
+        <Ellipse cx="10" cy="-4" rx="3.6" ry="4.6" />
+      </G>
     </Svg>
   );
 }

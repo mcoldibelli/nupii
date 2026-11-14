@@ -95,6 +95,7 @@ O processo não sobe com um valor inválido. Ele escreve o erro na saída de err
 | `S3_REGION` | Não | `us-east-1` | Região usada na assinatura das requisições |
 | `S3_ACCESS_KEY_ID` | Sim | | Identificador da chave de acesso |
 | `S3_SECRET_ACCESS_KEY` | Sim | | Segredo da chave de acesso. Não fica no repositório e não é escrito no log |
+| `WEB_ORIGINS` | Não | | Origens da web com conta, separadas por vírgula, como `https://app.nupii.com.br`. Uma página dessas origens chama as rotas com token pelo navegador ([ADR 0029](../docs/adr/0029-publicacao-na-vps.md), item 8). Sem a variável, só as rotas públicas aceitam outra origem |
 | `FIREBASE_AUTH_EMULATOR_HOST` | Não | | Endereço `host:porta` do emulador do Authentication. Só no ambiente local e no CI. A API só aceita essa variável com um `FIREBASE_PROJECT_ID` que começa com `demo-` |
 
 ## Projeto real do Firebase

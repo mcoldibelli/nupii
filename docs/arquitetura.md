@@ -101,6 +101,7 @@ Leituras com `JOIN` entre módulos, conhecidas pelos requisitos:
 | Nome e foto de perfil dos candidatos | `biometrics` | `pets` | RN-62 |
 | Mural e ficha (visão `report_views`) | `reports` | `pets` (nome, espécie, foto, pet não excluído), `biometrics` (o pet tem cadastro) | RN-24, RN-72 |
 | Avisos de encontro do tutor | `biometrics` | `pets` (pets do tutor, não excluídos) | RN-66 |
+| Lista de pets com o selo do focinho | `pets` | `biometrics` (o pet tem cadastro, por `EXISTS` em `noseprints`) | #252 |
 | Próximos cuidados | `health` | `pets` (nome, pets do tutor, não excluídos) | RN-81 |
 | Carteirinha aberta pelo link | `health` | `pets` (dados e foto do pet, pet não excluído) | RN-41, RN-83 |
 | Exclusão da conta: os dados dos pets do tutor | `biometrics`, `health` | `pets` (os pets do tutor, por `owner_id`, sem escrita) | RN-84 |
@@ -168,8 +169,9 @@ Limites conhecidos da fila:
 - Um erro devolvido por uma operação, ou um panic em um handler, recebe 500 com o código `internal_error`. O detalhe do erro vai só para o log, com o identificador da requisição.
 - Rotas em inglês, com versão no caminho: `/v1/...`.
 - Endpoints públicos têm limite de tentativas por IP (RN-43). O IP é o endereço da conexão, e a rota é o padrão do contrato, não o caminho com os identificadores. Acima do limite, a resposta é 429 com o código `rate_limited`. Atrás de um proxy, o endereço da conexão é o do proxy: a fatia 10 decide de onde a API lê o endereço do cliente.
-- Uma rota pública responde com `Access-Control-Allow-Origin: *`, para a página pública ler a resposta de outra origem. As rotas com token não têm esse cabeçalho.
+- Uma rota pública responde com `Access-Control-Allow-Origin: *`, para a página pública ler a resposta de outra origem. Uma rota com token responde com a origem exata só para as origens de `WEB_ORIGINS`, a web com conta, e o preflight dela aceita o cabeçalho `Authorization` ([ADR 0029](adr/0029-publicacao-na-vps.md), item 8).
 - O mapa da web fica em um `iframe` com `sandbox="allow-scripts"`: os scripts do mapa rodam em uma origem própria, sem acesso à página. Por isso, na web, o mapa não começa na posição do aparelho, e o visitante toca o ponto.
+- No app, o WebView do mapa fica só na página do mapa (`about:blank`). Um link da página, como o link "Leaflet" da atribuição, abre no navegador do aparelho; outro endereço é bloqueado (`mapNavigation`, #246). Assim nenhum site de fora fica no WebView com a ponte de mensagens do mapa.
 - A API responde 204 à requisição `OPTIONS` de verificação que o navegador envia antes de um `POST` com JSON para uma rota pública. Uma rota com token recebe 404.
 - Autenticação: uma operação do contrato sem `security` é pública. Toda outra operação pede o ID token do Firebase no cabeçalho `Authorization: Bearer`. Sem token válido, a resposta é 401 com o código `unauthenticated` (RN-46). A conferência do token acontece antes da leitura do corpo.
 - O módulo `identity` depende da interface `TokenVerifier`. A implementação com o Firebase Admin SDK fica em `platform/firebase`, e `cmd/api` liga as duas.
@@ -227,7 +229,7 @@ Os arquivos de pesos ficam em uma release do repositório, com a tag `model-<ver
 - Go: Effective Go, Go Code Review Comments e o guia de estilo da Uber. `gofmt` e `go vet` em toda mudança.
 - Lint: um comando por projeto, usado no ambiente local e no CI. No backend é `./lint.sh` (`gofmt` e `go vet`). No app é `npm run lint` (conferência de tipos do TypeScript). Na inferência é `./lint.sh` (`ruff`).
 - Erros em Go: sempre com contexto e `%w`. Nenhum erro descartado.
-- Log: `log/slog` com saída JSON e um identificador por requisição.
+- Log: `log/slog` com saída JSON e um identificador por requisição. Na publicação, logs, traces e métricas vão para o Grafana ([ADR 0032](adr/0032-observabilidade-lgtm.md)).
 - Configuração: variáveis de ambiente, lidas uma vez em `main` e validadas na subida. O processo não sobe com configuração inválida.
 - Segredos: nenhuma senha, chave secreta ou token fica no repositório, em issue ou em PR. Onde há segredo, um arquivo `.env.example` versionado tem os nomes das variáveis, sem os valores secretos. Os valores ficam em um arquivo `.env`, que o `.gitignore` exclui. No CI, eles ficam nos secrets do GitHub Actions ou são gerados em cada execução.
 - TypeScript: modo `strict`.
@@ -337,7 +339,6 @@ Cada item entra quando o gatilho acontece.
 |---|---|
 | Broker de eventos (Kafka, NATS) | Um segundo serviço precisa reagir aos mesmos eventos |
 | Redis | Mais de uma instância da API (limite de tentativas compartilhado) |
-| Métricas e tracing (OpenTelemetry) | A primeira publicação com usuários reais |
 | Detector de focinho no aparelho | Depois da prova técnica descrita no [roteiro](roteiro.md) |
 | Login com Apple | Publicação na App Store |
 | Endpoints de administração | Uma tarefa de administração que se repete |

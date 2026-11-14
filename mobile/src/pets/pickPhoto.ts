@@ -1,9 +1,12 @@
-// The only file that imports the image picker and the file system of the device.
+// The only file that imports the image picker, the image manipulator (ADR 0033)
+// and the file system of the device.
 import { File } from "expo-file-system";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 
 import type { LocalFile } from "../api/pets";
+import { shrinkSize } from "./photoSize";
 
 /**
  * The quality for the photo of a nose: the picker does not compress the
@@ -59,11 +62,34 @@ export function filePart(file: LocalFile): Blob {
   return file.file ?? (new File(file.uri) as unknown as Blob);
 }
 
-/** Asks where the photo of the pet comes from (camera or gallery) and gives it to use. */
+/**
+ * Makes a profile photo or a found-dog photo smaller before the upload
+ * (#254): the larger side goes to 1600 px, in JPEG. A small photo, null
+ * and "denied" pass as they are. Never use it for a photo of a nose: a new
+ * compression can stop the detector from finding the nose.
+ */
+export async function shrinkPhoto<T extends LocalFile | null | "denied">(photo: T): Promise<T | LocalFile> {
+  if (photo === null || photo === "denied") {
+    return photo;
+  }
+  const context = ImageManipulator.manipulate(photo.uri);
+  const original = await context.renderAsync();
+  const size = shrinkSize(original.width, original.height);
+  if (size === null) {
+    return photo;
+  }
+  const image = await context.resize(size).renderAsync();
+  const saved = await image.saveAsync({ compress: 0.8, format: SaveFormat.JPEG });
+  // On the web the upload reads the content of the file, not the address.
+  const file = Platform.OS === "web" ? await (await fetch(saved.uri)).blob() : undefined;
+  return { uri: saved.uri, file, name: "photo.jpg" };
+}
+
+/** Asks where the photo of the pet comes from (camera or gallery) and gives it to use, made smaller (#254). */
 export function askPetPhoto(use: (photo: LocalFile | null | "denied") => void): void {
   Alert.alert("Foto do pet", undefined, [
-    { text: "Câmera", onPress: () => void takePhoto().then(use) },
-    { text: "Galeria", onPress: () => void pickPhoto().then(use) },
+    { text: "Câmera", onPress: () => void takePhoto().then(shrinkPhoto).then(use) },
+    { text: "Galeria", onPress: () => void pickPhoto().then(shrinkPhoto).then(use) },
     { text: "Cancelar", style: "cancel" },
   ]);
 }

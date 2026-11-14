@@ -47,7 +47,7 @@ Para usar o projeto real do Firebase no lugar do emulador, execute `./deploy/fir
 5. Focinho: na tela de editar de um cachorro, a ação "Focinho do pet" abre o cadastro do focinho, com a câmera ou a galeria. A tela mostra o motivo quando a foto é recusada.
 6. Avisos de encontro: a lista dos contatos de quem encontrou um pet do tutor.
 7. Mural: as ocorrências abertas de perdidos e achados. A ficha de uma ocorrência tem o mapa, os avistamentos e o formulário de um novo avistamento.
-8. Desaparecimento: na tela de editar pet, a ação "Registrar desaparecimento" abre o mapa para o tutor marcar o ponto. Com um desaparecimento aberto, a tela tem a ação "Marcar como encontrado".
+8. Desaparecimento: a linha "Avisar desaparecimento", no fim do início, e o botão do perfil do pet abrem o formulário com o mapa para o tutor marcar o ponto. Com um desaparecimento aberto, a tela tem a ação "Marcar como encontrado".
 9. Notificações: os alertas de pets desaparecidos perto do tutor, os avistamentos e os encontros de um pet do tutor. Tocar em uma notificação abre a ocorrência e marca a notificação como lida. O app envia a posição do aparelho quando a lista de pets abre ([ADR 0025](../docs/adr/0025-localizacao-no-app.md)). No emulador Android, envie um ponto de GPS com `adb emu geo fix <longitude> <latitude>` enquanto o app pede a posição.
 10. Saúde: na tela de editar pet, a ação "Saúde do pet" abre os eventos de saúde: vacina, consulta, medicação, exame e anotação. Cada evento tem um formulário com os campos do tipo, e os anexos (foto ou PDF). A tela inicial mostra os três próximos cuidados de vacina e de medicação.
 
@@ -67,7 +67,7 @@ Abra `http://localhost:8081/found` ou `http://localhost:8081/reports`. Para medi
 
 As fotos vêm do armazenamento por uma URL temporária. No emulador Android, o `deploy/.env` precisa de `S3_PUBLIC_ENDPOINT=http://10.0.2.2:8333`, para o aparelho alcançar o armazenamento da sua máquina.
 
-A sessão continua depois de fechar o app. As contas do emulador somem quando o container do emulador reinicia: nesse caso a API recusa a sessão antiga e o app volta para a tela de entrada.
+A sessão continua depois de fechar o app. Ela fica no armazenamento do app, e o Android não faz cópia de segurança dele (`android.allowBackup: false` no `app.json`, #246): a sessão não vai para o backup do Google nem para um `adb backup`. As contas do emulador somem quando o container do emulador reinicia: nesse caso a API recusa a sessão antiga e o app volta para a tela de entrada.
 
 ## Conta
 
@@ -153,6 +153,7 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `src/found/location.ts` | Posição do aparelho no navegador (RN-61), com testes |
 | `src/pets/form.ts` | Regras do formulário do pet (RN-48, RN-50, RN-51, RN-56), com testes |
 | `src/pets/save.ts` | Salva os dados do pet e depois envia a foto, com testes |
+| `src/pets/photoSize.ts` | O tamanho máximo das fotos de perfil e de achado, 1600 px no lado maior ([ADR 0033](../docs/adr/0033-reduzir-fotos-antes-do-envio.md)), com testes |
 | `src/pets/PetFormView.tsx` | O formulário de editar pet, com todos os dados do pet |
 | `src/pets/profile.ts` | Os cuidados e os dados do perfil do pet, com testes |
 | `src/pets/breeds.ts`, `src/pets/BreedPicker.tsx` | A lista de raças de cachorro com a busca (com testes) e o campo que abre a lista |
@@ -160,4 +161,4 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `src/screens/` | Telas de entrada e de primeiro acesso, e os estilos comuns |
 | `src/home/` | O início (RF-34): subtítulo do pet, pet escolhido, série do peso, notificações não lidas, com testes; a folha do seletor de pets |
 | `src/welcome/` | A apresentação da primeira abertura (RF-33): os quatro passos e a marca de já vista, com testes |
-| `src/ui/` | O visual do canvas de design ([ADR 0030](../docs/adr/0030-visual-do-app.md)): tema (cores, fontes, cantos, espaços) com o teste de contraste, ícones, logo e mascote em SVG, textos, botão, campo, cartão, abas, barra de navegação, a tela de carregamento e de falha (`StatusScreen`) o campo de data com calendário (`DateField`, com a grade do mês testada em `calendar.ts`), e o layout da web larga (`useWide`, `WebFrame`). O único lugar que importa `react-native-svg` |
+| `src/ui/` | O visual do canvas de design ([ADR 0030](../docs/adr/0030-visual-do-app.md)): tema (cores, fontes, cantos, espaços) com o teste de contraste, ícones, logo e mascote em SVG, textos, botão, campo, cartão, abas, barra de navegação, a tela de carregamento e de falha (`StatusScreen`) o campo de data com calendário (`DateField`, com a grade do mês testada em `calendar.ts`), e o layout da web larga (`useWide`, `WebFrame`, e a página dividida de entrar e criar conta, `AuthSplit`). O único lugar que importa `react-native-svg` |

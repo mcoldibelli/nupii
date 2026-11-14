@@ -8,7 +8,7 @@ import type { MapPoint } from "../map/mapHtml";
 import { MapView } from "../map/MapView";
 import { foundReportLink } from "./foundLink";
 import { REPORT_LIMITS, reportFailureMessage, toDetails } from "./form";
-import { askPetPhoto, filePart, pickPhoto } from "../pets/pickPhoto";
+import { askPetPhoto, filePart, pickPhoto, shrinkPhoto } from "../pets/pickPhoto";
 import { styles } from "../screens/styles";
 import { Icon } from "../ui/Icon";
 import { colors, fonts } from "../ui/theme";
@@ -35,7 +35,7 @@ export function PublishFound() {
       }
     };
     if (Platform.OS === "web") {
-      void pickPhoto().then(use);
+      void pickPhoto().then(shrinkPhoto).then(use);
     } else {
       askPetPhoto(use);
     }

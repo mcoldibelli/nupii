@@ -1,4 +1,4 @@
-import { petSubtitle, pickPet, unreadCount, weightTrend } from "./home";
+import { noseprintBadges, petSubtitle, pickPet, unreadCount, weightTrend } from "./home";
 
 const now = new Date(Date.UTC(2026, 10, 12, 12));
 const pet = { id: "p1", name: "Shakira", species: "dog", createdAt: "x" } as const;
@@ -38,5 +38,18 @@ describe("home", () => {
 
   it("counts the unread notifications", () => {
     expect(unreadCount([{ read: false }, { read: true }, { read: false }])).toBe(2);
+  });
+});
+
+describe("noseprintBadges (#252)", () => {
+  it("gives the noseprint badge of each dog from the list of pets, with no call per pet", () => {
+    const pets = [
+      { id: "a", species: "dog", hasNoseprint: true },
+      { id: "b", species: "dog", hasNoseprint: false },
+      { id: "c", species: "dog" },
+      { id: "d", species: "cat", hasNoseprint: true },
+    ] as const;
+
+    expect(noseprintBadges([...pets])).toEqual({ a: true, b: false, c: false });
   });
 });
