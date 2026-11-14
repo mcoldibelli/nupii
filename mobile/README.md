@@ -97,7 +97,7 @@ O Expo copia para o pacote do app toda variável que começa com `EXPO_PUBLIC_`.
 | `EXPO_PUBLIC_WEB_URL` | Sim | Endereço da web pública, para o link da carteirinha |
 | `EXPO_PUBLIC_FIREBASE_PROJECT_ID` | Sim | Projeto do Firebase. Com o emulador: `demo-nupii` |
 | `EXPO_PUBLIC_FIREBASE_API_KEY` | Sim | Chave do app no Firebase. Com o emulador, qualquer texto |
-| `EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_URL` | Não | Endereço do emulador do Authentication. Vazio para usar o projeto real |
+| `EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_URL` | Não | Endereço do emulador do Authentication. Vazio para usar o projeto real. O `./dev.sh app` e o `./dev.sh web` preenchem esta variável e as duas de cima pelo modo da API que está rodando (#261) |
 
 ## Tipos gerados do contrato
 
