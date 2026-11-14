@@ -1,4 +1,4 @@
-import { openLostReportOf, reportFailureMessage, reportTitle, toDetails, toOccurredAt } from "./form";
+import { lostLine, openLostReportOf, reportFailureMessage, reportTitle, toDetails, toOccurredAt } from "./form";
 
 describe("toDetails", () => {
   it("RN-70: removes the spaces around the texts, and an empty text has no value", () => {
@@ -82,5 +82,15 @@ describe("toOccurredAt", () => {
     ["ontem", "Informe a data no formato DD/MM/AAAA."],
   ])("RN-71: refuses %s", (text, message) => {
     expect(toOccurredAt(text, now)).toEqual({ ok: false, message });
+  });
+});
+
+describe("lostLine (#259)", () => {
+  const now = new Date("2026-11-14T12:00:00Z");
+
+  it("gives the time since the pet was lost and the sightings", () => {
+    expect(lostLine({ occurredAt: "2026-11-13T12:00:00Z", sightings: [{}, {}] }, now)).toBe("ontem · 2 avistamentos");
+    expect(lostLine({ occurredAt: "2026-11-14T09:00:00Z", sightings: [{}] }, now)).toBe("há 3 h · 1 avistamento");
+    expect(lostLine({ occurredAt: "2026-11-14T11:30:00Z", sightings: [] }, now)).toBe("há 30 min · nenhum avistamento ainda");
   });
 });

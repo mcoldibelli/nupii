@@ -27,6 +27,7 @@ describe("theme", () => {
     ["danger text on background", colors.dangerText, colors.background],
     ["danger text on the light red", colors.dangerText, colors.dangerSoft],
     ["white on danger", colors.onPrimary, colors.danger],
+    ["light text on danger", colors.onDanger, colors.danger],
     ["success on surface", colors.success, colors.surface],
     ["white on the accent", colors.onPrimary, colors.accent],
   ])("%s passes AA", (_, text, background) => {
