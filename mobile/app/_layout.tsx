@@ -1,5 +1,6 @@
 import { BricolageGrotesque_700Bold, BricolageGrotesque_800ExtraBold } from "@expo-google-fonts/bricolage-grotesque";
 import { Figtree_400Regular, Figtree_500Medium, Figtree_600SemiBold, Figtree_700Bold } from "@expo-google-fonts/figtree";
+import { Nunito_400Regular, Nunito_700Bold, Nunito_800ExtraBold } from "@expo-google-fonts/nunito";
 import { useFonts } from "expo-font";
 import { Stack, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
@@ -175,6 +176,10 @@ export default function RootLayout() {
     Figtree_500Medium,
     Figtree_600SemiBold,
     Figtree_700Bold,
+    // ADR 0035: the landing page.
+    Nunito_400Regular,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
   });
   // A font that fails to load does not block the app: the system font is used.
   if (!fontsLoaded && fontError === null) {
