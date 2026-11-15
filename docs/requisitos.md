@@ -19,7 +19,7 @@
 |---|---|---|---|
 | RF-01 | O tutor cria uma conta com e-mail e senha. No primeiro acesso ele informa o nome e aceita os termos de uso. | 1 | estável |
 | RF-02 | O tutor entra com e-mail e senha. A sessão continua depois de fechar o app. | 1 | estável |
-| RF-03 | O tutor entra com a conta Google. | 10 | rascunho |
+| RF-03 | O tutor entra com a conta Google, na web. O login com o Google no app Android ficou fora da v1: ele pede um build do app (#153, #154). | 10 | estável |
 | RF-04 | O tutor sai da conta. | 1 | estável |
 | RF-05 | O tutor redefine uma senha esquecida por um link que chega por e-mail. | 9 | estável |
 | RF-06 | O tutor vê e altera o próprio perfil: o nome. O e-mail aparece, mas não muda ([ADR 0028](adr/0028-exclusao-da-conta-e-limpeza.md)). | 9 | estável |
