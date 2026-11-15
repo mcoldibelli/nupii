@@ -1,13 +1,14 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { checkNoseprint, registerNoseprint } from "../../src/api/biometrics";
 import { SESSION_FAILURE } from "../../src/api/http";
 import type { LocalFile } from "../../src/api/pets";
 import { noseprintFailureMessage } from "../../src/biometrics/messages";
+import { NoseprintWide } from "../../src/biometrics/NoseprintWide";
 import { allGood, nextSlot, type Shot, type Shots } from "../../src/biometrics/shots";
 import { apiUrl } from "../../src/config";
 import { filePart, NOSE_PHOTO_QUALITY, pickPhoto, takePhoto } from "../../src/pets/pickPhoto";
@@ -17,6 +18,7 @@ import { Icon, NoseExample, type IconName } from "../../src/ui/Icon";
 import { StepHeader } from "../../src/ui/Surfaces";
 import { ErrorText } from "../../src/ui/Text";
 import { colors, fonts, radius, space } from "../../src/ui/theme";
+import { useWide } from "../../src/ui/useWide";
 
 type Step = { kind: "intro" } | { kind: "capture"; slot: 0 | 1 } | { kind: "review" };
 
@@ -40,6 +42,8 @@ export default function NoseprintScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [registered, setRegistered] = useState(0);
+  // The browser of a computer gets the Focinho-Web artboard (#272); a tablet keeps the camera flow.
+  const webWide = useWide() && Platform.OS === "web";
   const close = () => (router.canGoBack() ? router.back() : router.replace("/"));
   const setShot = (slot: 0 | 1, shot: Shot | null) =>
     setShots((current) => {
@@ -105,6 +109,25 @@ export default function NoseprintScreen() {
   }
 
   const page = [local.page, { paddingTop: insets.top + space.md, paddingBottom: insets.bottom + space.lg }];
+
+  if (webWide) {
+    return (
+      <NoseprintWide
+        petName={petName}
+        shots={shots}
+        busy={busy}
+        error={error}
+        onPhoto={(slot, file) => void check(slot, file)}
+        onRedo={(slot) => {
+          setShot(slot, null);
+          setRegistered((count) => Math.min(count, slot));
+        }}
+        onFinish={() => void finish()}
+        onBack={close}
+        onLater={close}
+      />
+    );
+  }
 
   if (step.kind === "capture") {
     const slot = step.slot;

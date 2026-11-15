@@ -157,6 +157,7 @@ O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app n
 | [0031](docs/adr/0031-copiar-para-a-area-de-transferencia.md) | Copiar o link da carteirinha com o expo-clipboard | aceito |
 | [0032](docs/adr/0032-observabilidade-lgtm.md) | Observabilidade na VPS com Grafana, Loki, Tempo, Prometheus e Alloy | aceito |
 | [0033](docs/adr/0033-reduzir-fotos-antes-do-envio.md) | Reduzir as fotos de perfil e de achado antes do envio, com o expo-image-manipulator | aceito |
+| [0034](docs/adr/0034-focinho-na-web.md) | Foto do focinho na web: recorte em PNG sem nova compressão, webcam e HEIC com a heic2any | aceito |
 
 ## Regras do projeto
 

@@ -1,0 +1,29 @@
+# ADR 0034: Foto do focinho na web, com recorte, webcam e HEIC
+
+Data: 2026-11-15. Estado: aceito. Este ADR aprova uma dependência no app: `heic2any` 0.0.4 (licença MIT), só na web.
+
+## Contexto
+
+O artboard Focinho-Web pede, no navegador do computador, uma foto antiga ou da webcam, recortada num quadrado só com o focinho, e aceita HEIC. O responsável pelo produto aprovou as quatro partes em 2026-11-14 (#233, #272).
+
+A foto do focinho não pode ter uma nova compressão: o detector pode deixar de achar o focinho (`mobile/src/pets/pickPhoto.ts`). A API aceita JPEG, PNG e WebP de até 8 MB (RN-59). O detector lê a foto em 640 px (`_DETECTOR_SIDE`) e o modelo de vetor em 224 px (`_EMBEDDER_SIDE`, `inference/app/nose.py`). Só o Safari abre HEIC; o Chrome e o Firefox não.
+
+## Decisão
+
+1. A página só existe na web com a tela larga (`Platform.OS === "web"` e 960 px ou mais). O app, também num tablet, continua com a câmera.
+2. O zoom e o quadrado mudam só a imagem na tela. O arquivo é o quadrado em pixels da foto, em PNG (sem perda), pixel a pixel até 1280 px de lado. Um recorte maior sai com 1280 px: o detector lê 640 px, então nada que o modelo usa se perde, e um PNG de 1280 × 1280 tem no máximo cerca de 4,9 MB, abaixo dos 8 MB de RN-59.
+3. Um recorte menor que 224 px (a entrada do modelo) não é aceito: o botão fica desligado e a marca explica.
+4. "Resolução ok" é conferido no navegador. "Só o focinho" e "Nítida" vêm da conferência da API (RN-85), depois do recorte.
+5. A webcam pede 1920 × 1080; o quadro vai em PNG para o recorte. A câmera para no "Cancelar", depois da foto e quando a página sai.
+6. Uma foto HEIC é convertida no navegador para PNG com a `heic2any`, carregada por `import()` só quando a foto é HEIC. A biblioteca cria um worker a partir de uma URL `blob:`: a CSP da web (#270) precisa de `worker-src blob:`.
+
+## Alternativas
+
+- Enviar a foto inteira, sem recorte. Tradeoff: nenhum código de recorte, mas a foto antiga de um cachorro inteiro não passa no detector (`image_framing`).
+- Recortar em JPEG. Tradeoff: arquivo menor, mas uma nova compressão da foto do focinho.
+- HEIC só no Safari. Tradeoff: nenhuma dependência, mas a foto do iPhone não entra pelo Chrome.
+
+## Consequências
+
+- O pedaço da `heic2any` tem 341 KB comprimidos e só carrega para uma foto HEIC. O pacote principal não mudou (294 KB comprimidos antes e depois); a tela do focinho passou de 5,6 KB para 8,3 KB.
+- Verificação (API local, foto real do conjunto de teste, que não sai da máquina por causa da licença): o recorte de 392 px foi gravado como PNG de 392 × 392; as duas fotos passaram na conferência e foram cadastradas; um recorte central da mesma foto feito por outra ferramenta (400 px, JPEG) achou o pet com 98,7% de semelhança.

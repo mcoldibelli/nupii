@@ -149,6 +149,8 @@ O gerador (`openapi-typescript`) é executado com `npx`, fora das dependências 
 | `src/api/owner.ts`, `src/api/pets.ts`, `src/api/biometrics.ts`, `src/api/found.ts` | Chamadas da API, com testes |
 | `src/biometrics/messages.ts` | Mensagens das recusas da foto do focinho, com testes |
 | `src/biometrics/shots.ts` | As 2 fotos do cadastro do focinho e o estado da conferência de cada uma, com testes |
+| `src/biometrics/crop.ts` | As contas do recorte do focinho na web (quadrado, zoom, 224 a 1280 px), com testes ([ADR 0034](../docs/adr/0034-focinho-na-web.md)) |
+| `src/biometrics/NoseprintWide.web.tsx` | O focinho na web larga (Focinho-Web): escolher, soltar ou webcam, recorte em PNG, HEIC |
 | `src/found/contact.ts` | Regras do contato de quem encontrou um cão (RN-63), com testes |
 | `src/found/location.ts` | Posição do aparelho no navegador (RN-61), com testes |
 | `src/pets/form.ts` | Regras do formulário do pet (RN-48, RN-50, RN-51, RN-56), com testes |
