@@ -1,4 +1,4 @@
-import { askInBrowser } from "./ask";
+import { askInBrowser, askOnWeb } from "./ask";
 
 /** A browser that answers the dialogs with the given values and keeps what it showed. */
 function browser(answers: { confirm?: boolean; prompt?: string | null }) {
@@ -56,5 +56,26 @@ describe("askInBrowser (#263)", () => {
       askInBrowser("Rex", undefined, [{ text: "Editar dados", onPress: edit }, { text: "Carteirinha" }], browser({ prompt: answer }).dialogs);
     }
     expect(edit).not.toHaveBeenCalled();
+  });
+});
+
+describe("askOnWeb (#313)", () => {
+  it("shows the dialog of the app when it is on the screen, and not the dialog of the browser", () => {
+    const host = jest.fn();
+    const { dialogs, shown } = browser({ confirm: true });
+    const buttons = [{ text: "Cancelar", style: "cancel" as const }, { text: "Excluir", style: "destructive" as const, onPress: jest.fn() }];
+
+    askOnWeb("Excluir pet", "Excluir Rex?", buttons, host, dialogs);
+
+    expect(host).toHaveBeenCalledWith({ title: "Excluir pet", message: "Excluir Rex?", buttons });
+    expect(shown).toEqual([]);
+  });
+
+  it("uses the dialog of the browser when the app has no dialog on the screen", () => {
+    const remove = jest.fn();
+
+    askOnWeb("Excluir pet", undefined, [{ text: "Excluir", onPress: remove }], null, browser({ confirm: true }).dialogs);
+
+    expect(remove).toHaveBeenCalled();
   });
 });
