@@ -41,6 +41,13 @@ export const fonts = {
   bodyBold: "Figtree_700Bold",
 } as const;
 
+/** The fonts of the landing page of the web (ADR 0035). */
+export const landingFonts = {
+  title: "Nunito_800ExtraBold",
+  body: "Nunito_400Regular",
+  bodyBold: "Nunito_700Bold",
+} as const;
+
 export const radius = { field: 18, card: 20, cardLarge: 26, pill: 999 } as const;
 
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28 } as const;
