@@ -1,0 +1,55 @@
+// Grafana Alloy, the collector of ADR 0032, item 2.
+
+// The logs of the containers of the project nupii-self, and only of them:
+// the Docker of the VPS also runs other systems.
+discovery.docker "nupii" {
+  host = "unix:///var/run/docker.sock"
+  filter {
+    name   = "label"
+    values = ["com.docker.compose.project=nupii-self"]
+  }
+}
+
+discovery.relabel "nupii" {
+  targets = []
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+}
+
+loki.source.docker "nupii" {
+  host           = "unix:///var/run/docker.sock"
+  targets        = discovery.docker.nupii.targets
+  relabel_rules  = discovery.relabel.nupii.rules
+  forward_to     = [loki.write.loki.receiver]
+}
+
+loki.write "loki" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// The traces and the metrics of the API (OTEL_EXPORTER_OTLP_ENDPOINT).
+otelcol.receiver.otlp "api" {
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+  output {
+    traces  = [otelcol.exporter.otlphttp.tempo.input]
+    metrics = [otelcol.exporter.otlphttp.prometheus.input]
+  }
+}
+
+otelcol.exporter.otlphttp "tempo" {
+  client {
+    endpoint = "http://tempo:4318"
+  }
+}
+
+otelcol.exporter.otlphttp "prometheus" {
+  client {
+    endpoint = "http://prometheus:9090/api/v1/otlp"
+  }
+}

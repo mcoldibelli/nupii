@@ -37,6 +37,8 @@ ssh "$host" "test -f $dir/.env || (umask 077 && printf '%s\n' \
   POSTGRES_USER=nupii POSTGRES_DB=nupii \"POSTGRES_PASSWORD=\$(openssl rand -hex 24)\" \
   S3_BUCKET=nupii \"S3_ACCESS_KEY_ID=\$(openssl rand -hex 12)\" \"S3_SECRET_ACCESS_KEY=\$(openssl rand -hex 24)\" \
   FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID > $dir/.env)"
+# A value that a later version needs is added to an old .env; the others stay.
+ssh "$host" "grep -q '^GRAFANA_ADMIN_PASSWORD=' $dir/.env || echo \"GRAFANA_ADMIN_PASSWORD=\$(openssl rand -hex 24)\" >> $dir/.env"
 
 echo "4/5 web"
 out=$(mktemp -d)
