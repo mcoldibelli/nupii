@@ -107,19 +107,21 @@ def test_detector_pixels_put_the_image_in_the_center_of_a_gray_square() -> None:
 
 
 class StubExtractor(nose.Extractor):
-    """An extractor without the networks, with a fixed answer of the detector."""
+    """An extractor without the networks, with a fixed answer of the detector:
+    a nose in the center of the photo, with the side and the confidence given."""
 
-    def __init__(self, confidence: float) -> None:
+    def __init__(self, confidence: float, side: float = 400) -> None:
         self._confidence = confidence
+        self._side = side
 
-    def nose_confidence(self, image: Image.Image) -> float:
-        return self._confidence
+    def nose_box(self, image: Image.Image) -> nose.NoseBox:
+        return nose.NoseBox(image.width / 2, image.height / 2, self._side, self._confidence)
 
     def embed(self, pixels: np.ndarray) -> np.ndarray:
         return np.zeros(nose.EMBEDDING_DIMENSIONS, dtype=np.float32)
 
 
-_PHOTO = png(Image.new("RGB", (32, 32)))
+_PHOTO = png(Image.new("RGB", (600, 600)))
 
 
 def test_rn20_refuses_a_quality_below_0_20(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -157,3 +159,60 @@ def test_rn20_the_quality_is_checked_before_the_framing(monkeypatch: pytest.Monk
 
     with pytest.raises(nose.LowQualityError):
         StubExtractor(confidence=0.0).extract(_PHOTO)
+
+
+@pytest.mark.parametrize(
+    ("box", "want"),
+    [
+        pytest.param(
+            nose.NoseBox(500, 400, 200, 1.0),
+            (350, 250, 650, 550),
+            id="the box times 1.5 around the nose",
+        ),
+        pytest.param(
+            nose.NoseBox(50, 60, 200, 1.0), (0, 0, 300, 300), id="moved inside the photo"
+        ),
+        pytest.param(
+            nose.NoseBox(500, 400, 1000, 1.0), (100, 0, 900, 800), id="at most the short side"
+        ),
+    ],
+)
+def test_rn21_the_crop_is_a_square_around_the_nose(box: nose.NoseBox, want: tuple) -> None:
+    image = Image.new("RGB", (1000, 800))
+
+    crop = nose.nose_crop(image, box)
+
+    assert crop.size == (want[2] - want[0], want[3] - want[1])
+    assert nose.crop_box(image, box) == want
+
+
+@pytest.mark.parametrize(("side", "accepted"), [(148, False), (150, True)])
+def test_rn21_refuses_a_nose_crop_smaller_than_224_pixels(
+    monkeypatch: pytest.MonkeyPatch, side: float, accepted: bool
+) -> None:
+    monkeypatch.setattr(nose, "quality", lambda pixels: 1.0)
+    extractor = StubExtractor(confidence=1.0, side=side)
+
+    if accepted:
+        vector, _ = extractor.extract(_PHOTO)
+        assert vector.shape == (512,)
+    else:
+        with pytest.raises(nose.NoNoseError, match="224"):
+            extractor.extract(_PHOTO)
+
+
+def test_rn19_the_vector_is_the_vector_of_the_nose_crop(extractor: nose.Extractor) -> None:
+    image = nose.open_image((SYNTHETIC / "17-texture-gray-large.png").read_bytes())
+    crop = nose.nose_crop(image, extractor.nose_box(image))
+
+    vector, quality = extractor.extract((SYNTHETIC / "17-texture-gray-large.png").read_bytes())
+
+    assert float(vector @ extractor.embed(nose.embedder_pixels(crop))) >= 0.99999
+    assert float(vector @ extractor.embed(nose.embedder_pixels(image))) < 0.99
+    assert quality == 1.0
+
+
+def test_rn21_a_photo_from_far_gets_the_framing_error(extractor: nose.Extractor) -> None:
+    # The detector finds the nose, but its crop has less than 224 pixels.
+    with pytest.raises(nose.NoNoseError, match="224"):
+        extractor.extract((SYNTHETIC / "11-texture-gray.png").read_bytes())

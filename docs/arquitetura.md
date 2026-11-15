@@ -209,7 +209,7 @@ Erros de `POST /v1/nose/embedding`, no mesmo formato da API (`error` e `message`
 | 413 | `image_too_large` | O corpo passa de 8 MB | RN-17 |
 | 400 | `image_invalid` | O conteúdo não é uma imagem que o serviço consegue ler, ou a imagem tem pixels demais | RN-17, RN-57 |
 | 422 | `image_low_quality` | A nitidez está abaixo do mínimo | RN-20 |
-| 422 | `image_framing` | O detector não achou um focinho | RN-21 |
+| 422 | `image_framing` | O detector não achou um focinho, ou o recorte do focinho tem menos de 224 px | RN-21 |
 
 A ordem das conferências é a ordem da tabela. Os outros erros usam o mesmo formato: 404 `not_found` para um caminho que não existe, 405 `method_not_allowed` para um método errado e 500 `internal_error` para uma falha do serviço.
 
@@ -303,7 +303,7 @@ O código usa o termo em inglês. A documentação e as telas usam o termo em po
 | focinho | nose | Região usada na biometria |
 | vetor | embedding | Lista de 512 números que representa um focinho |
 | nitidez | quality | Medida de foco da foto, de 0 a 1 |
-| enquadramento | framing | A foto tem um focinho que o detector acha |
+| enquadramento | framing | A foto tem um focinho que o detector acha, grande o bastante para o recorte (RN-21) |
 | pesos | weights | Arquivos do modelo treinado |
 | versão do modelo | model version | Rótulo gravado com cada vetor |
 | cadastro biométrico | noseprint | Foto do focinho com o vetor |

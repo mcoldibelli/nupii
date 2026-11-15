@@ -1,6 +1,9 @@
-"""From the bytes of a photo to the vector of a nose (RN-18 to RN-21)."""
+"""From the bytes of a photo to the vector of a nose (RN-18 to RN-21): the
+detector finds the nose in the photo, and the vector comes from the crop of
+the nose (#292)."""
 
 import io
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -12,6 +15,15 @@ from app import weights
 EMBEDDING_DIMENSIONS = 512  # RN-18
 MIN_QUALITY = 0.20  # RN-20
 MIN_NOSE_CONFIDENCE = 0.25  # RN-21
+# RN-21: the crop of the nose has at least the side that the embedder reads.
+MIN_NOSE_SIDE = 224
+# The crop is the box of the detector times this value. The photos of the
+# calibration of the model are the nose alone: this margin keeps all the nose
+# in the crop, and it gave the best result in the measure of #292.
+NOSE_MARGIN = 1.5
+# The label of the vectors (RN-10, RN-67). It is not the label of the weight
+# files: the same weights with another pre-processing give other vectors.
+VECTOR_VERSION = f"{weights.MODEL_VERSION}-crop"
 # RN-57: a imagem tem no máximo 50 milhões de pixels.
 MAX_PIXELS = 50_000_000
 
@@ -87,15 +99,47 @@ def detector_pixels(image: Image.Image) -> np.ndarray:
     The rounding of the position is the rounding of the training of the
     detector: another position changes the confidence.
     """
-    ratio = min(_DETECTOR_SIDE / image.width, _DETECTOR_SIDE / image.height)
+    ratio, left, top = _detector_place(image)
     # A very thin image keeps one pixel of width or of height.
     width = max(1, round(image.width * ratio))
     height = max(1, round(image.height * ratio))
     square = Image.new("RGB", (_DETECTOR_SIDE, _DETECTOR_SIDE), _PADDING_GRAY)
-    left = round((_DETECTOR_SIDE - width) / 2 - 0.1)
-    top = round((_DETECTOR_SIDE - height) / 2 - 0.1)
     square.paste(image.resize((width, height), Image.Resampling.BILINEAR), (left, top))
     return (np.asarray(square, dtype=np.float32) / 255.0).transpose(2, 0, 1)[None]
+
+
+def _detector_place(image: Image.Image) -> tuple[float, int, int]:
+    """Returns the scale of the image in the 640 square, and its left and top."""
+    ratio = min(_DETECTOR_SIDE / image.width, _DETECTOR_SIDE / image.height)
+    width = max(1, round(image.width * ratio))
+    height = max(1, round(image.height * ratio))
+    left = round((_DETECTOR_SIDE - width) / 2 - 0.1)
+    top = round((_DETECTOR_SIDE - height) / 2 - 0.1)
+    return ratio, left, top
+
+
+@dataclass(frozen=True)
+class NoseBox:
+    """The nose that the detector found, in pixels of the photo."""
+
+    center_x: float
+    center_y: float
+    side: float
+    confidence: float
+
+
+def crop_box(image: Image.Image, box: NoseBox) -> tuple[int, int, int, int]:
+    """Returns the square around the nose: the side of the box times
+    NOSE_MARGIN, at most the short side of the photo, moved inside the photo."""
+    side = min(box.side * NOSE_MARGIN, image.width, image.height)
+    left = min(max(box.center_x - side / 2, 0), image.width - side)
+    top = min(max(box.center_y - side / 2, 0), image.height - side)
+    return round(left), round(top), round(left + side), round(top + side)
+
+
+def nose_crop(image: Image.Image, box: NoseBox) -> Image.Image:
+    """Returns the crop of the nose, in the pixels of the photo (#292)."""
+    return image.crop(crop_box(image, box))
 
 
 def _normalized(vectors: np.ndarray) -> np.ndarray:
@@ -121,19 +165,42 @@ class Extractor:
         photo is refused. The quality is checked before the framing (RN-20).
         """
         image = open_image(data)
-        pixels = embedder_pixels(image)
-        sharpness = quality(pixels)
+        sharpness = quality(embedder_pixels(image))
         if sharpness < MIN_QUALITY:
             raise LowQualityError(f"quality {sharpness:.4f}")
-        if self.nose_confidence(image) < MIN_NOSE_CONFIDENCE:
+        box = self.nose_box(image)
+        if box.confidence < MIN_NOSE_CONFIDENCE:
             raise NoNoseError("the detector found no nose")
-        return self.embed(pixels), sharpness
+        # The vector comes from the nose, and not from the whole photo (#292).
+        crop = nose_crop(image, box)
+        if crop.width < MIN_NOSE_SIDE:
+            raise NoNoseError(
+                f"the crop of the nose has {crop.width} pixels, less than {MIN_NOSE_SIDE}"
+            )
+        return self.embed(embedder_pixels(crop)), sharpness
 
     def nose_confidence(self, image: Image.Image) -> float:
         """Returns the confidence of the detector that the image has a nose."""
-        # Row 4 of the output has the confidence of the only class, for each
-        # candidate box. The service needs only to know if a nose exists.
-        return float(_run(self._detector, detector_pixels(image))[0, 4].max())
+        return self.nose_box(image).confidence
+
+    def nose_box(self, image: Image.Image) -> NoseBox:
+        """Returns the box of the detector with the highest confidence, in
+        pixels of the photo."""
+        # The output has a column for each candidate box: the center x and y,
+        # the width and the height in the 640 square, and the confidence of
+        # the only class.
+        output = _run(self._detector, detector_pixels(image))[0]
+        best = int(output[4].argmax())
+        center_x, center_y, width, height, confidence = (
+            float(value) for value in output[:5, best]
+        )
+        ratio, left, top = _detector_place(image)
+        return NoseBox(
+            (center_x - left) / ratio,
+            (center_y - top) / ratio,
+            max(width, height) / ratio,
+            confidence,
+        )
 
     def embed(self, pixels: np.ndarray) -> np.ndarray:
         """Returns the vector of the image, with L2 norm 1 (RN-18, RN-19)."""
