@@ -311,13 +311,19 @@ export function WeightChart({ points, width }: { points: { date: string; kg: num
 
 /** The examples of the noseprint intro (Focinho-Intro artboard): the nose up close, or the dog far away. */
 export function NoseExample({ good, size }: { good: boolean; size: number }) {
+  // ADR 0036: the good photo is the face from close, the bad one is the dog from far.
   return good ? (
     <Svg width={size} height={size} viewBox="0 0 150 150" aria-hidden>
-      <Rect width="150" height="150" fill="#3A3F46" />
-      <Path d="M75 22c38 0 66 20 66 50 0 30-30 50-66 50S9 102 9 72C9 42 37 22 75 22z" fill="#2A2E33" />
-      <Path d="M45 56c10-5 22 1 23 13 1 10-7 17-17 16-10-1-16-9-15-18 1-5 4-9 9-11z" fill="#0D0E10" />
-      <Path d="M105 56c-10-5-22 1-23 13-1 10 7 17 17 16 10-1 16-9 15-18-1-5-4-9-9-11z" fill="#0D0E10" />
-      <Path d="M75 88v22" stroke="#0D0E10" strokeWidth={4} strokeLinecap="round" />
+      <Rect width="150" height="150" fill="#2A2622" />
+      <G transform="translate(-30 -40) scale(0.875)">
+        <Path d="M64 82 C46 66 40 40 52 24 C72 30 90 50 98 70 Z" fill="#A9622A" />
+        <Path d="M176 82 C194 66 200 40 188 24 C168 30 150 50 142 70 Z" fill="#A9622A" />
+        <Ellipse cx="120" cy="108" rx="64" ry="58" fill="#E39C52" />
+        <Ellipse cx="120" cy="136" rx="34" ry="25" fill="#F7E8D4" />
+        <Circle cx="96" cy="98" r="7" fill="#1E1B18" />
+        <Circle cx="144" cy="98" r="7" fill="#1E1B18" />
+        <Path d="M105 121 C105 113 135 113 135 121 C135 129 127 134 120 134 C113 134 105 129 105 121 Z" fill="#1E1B18" />
+      </G>
     </Svg>
   ) : (
     <Svg width={size} height={size} viewBox="0 0 150 150" aria-hidden>

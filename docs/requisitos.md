@@ -155,7 +155,7 @@ Limiares de correspondência forte (RN-15):
 | 200 | 0,788 |
 | 300 | 0,793 |
 
-Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Eles só valem para essa versão do modelo e para o pré-processamento de referência ([ADR 0007](adr/0007-inferencia-python-onnx.md)).
+Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Eles só valem para essa versão do modelo e para o pré-processamento de referência ([ADR 0007](adr/0007-inferencia-python-onnx.md)). Com o recorte do focinho, a medida do [ADR 0036](adr/0036-vetor-do-recorte-do-focinho.md) mostrou a mesma cauda de cães diferentes em 0,351, e os valores continuam.
 
 ### Serviço de inferência
 
@@ -163,9 +163,9 @@ Os valores de RN-13 e RN-15 vêm da calibração do modelo `tinyvit21m-s43`. Ele
 |---|---|---|---|
 | RN-17 | A entrada é uma imagem de até 8 MB (8 × 1.048.576 bytes). Uma imagem maior é recusada com 413 `image_too_large`. Um conteúdo que não é uma imagem é recusado com 400 `image_invalid`. | RF-11, RF-12 | estável |
 | RN-18 | A saída tem o vetor de 512 dimensões com norma L2 igual a 1, a versão do modelo e a nitidez com 4 casas decimais. | RF-11, RF-12 | estável |
-| RN-19 | O modelo é o TinyViT-21M, versão `tinyvit21m-s43`, em ONNX. O vetor final é a soma do vetor da imagem com o vetor do espelho horizontal, normalizada. | RF-11, RF-12 | estável |
+| RN-19 | O modelo é o TinyViT-21M, versão `tinyvit21m-s43`, em ONNX. O vetor sai do recorte do focinho (RN-21), não da foto inteira. O vetor final é a soma do vetor do recorte com o vetor do espelho horizontal, normalizada. O rótulo do vetor é `tinyvit21m-s43-crop` ([ADR 0036](adr/0036-vetor-do-recorte-do-focinho.md)). | RF-11, RF-12 | estável |
 | RN-20 | A nitidez é a variância do laplaciano dividida por 0,000832, com máximo de 1,0. A variância divide por N-1. Abaixo de 0,20 a foto é recusada com 422 `image_low_quality`. A nitidez é conferida antes do enquadramento. | RF-11, RF-12 | estável |
-| RN-21 | Um detector YOLO11n precisa achar um focinho na foto, com confiança de pelo menos 0,25. Sem focinho, a foto é recusada com 422 `image_framing`. | RF-11, RF-12 | estável |
+| RN-21 | Um detector YOLO11n precisa achar um focinho na foto inteira, com confiança de pelo menos 0,25. O recorte do focinho é um quadrado com o lado da caixa do detector × 1,5, dentro da foto. Sem focinho, ou com um recorte de menos de 224 px (foto de longe), a foto é recusada com 422 `image_framing` ([ADR 0036](adr/0036-vetor-do-recorte-do-focinho.md)). | RF-11, RF-12 | estável |
 | RN-22 | O SHA-256 dos arquivos de pesos é conferido na carga. Com um arquivo ausente ou diferente, o serviço não sobe. | RF-11, RF-12 | estável |
 | RN-23 | O serviço executa uma inferência por vez. | RF-11, RF-12 | estável |
 | RN-57 | A imagem tem no máximo 50 milhões de pixels. Uma imagem maior é recusada com 400 `image_invalid`, antes de os pixels serem lidos. | RF-11, RF-12 | estável |

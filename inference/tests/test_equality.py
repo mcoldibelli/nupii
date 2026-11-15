@@ -33,21 +33,17 @@ def _reference(name: str) -> list[dict]:
 
 
 def _check(extractor: nose.Extractor, directory: Path, want: dict) -> None:
-    """Applies the criterion of ADR 0019: the same decision of quality (RN-20,
-    limit 0.20) and of framing (RN-21, limit 0.25), and a cosine of at least
-    0.9999 for an image that is accepted."""
+    """Applies the criterion of ADR 0019 to the decisions: the same decision of
+    quality (RN-20, limit 0.20) and of framing (RN-21, limit 0.25), on the
+    whole photo, as the reference. The crop of the nose (#292) comes after
+    these steps and has its own tests in test_nose.py."""
     data = (directory / want["name"]).read_bytes()
     assert hashlib.sha256(data).hexdigest() == want["sha256"], "this is not the file of reference"
+    image = nose.open_image(data)
 
-    if want["quality"] < 0.20:
-        with pytest.raises(nose.LowQualityError):
-            extractor.extract(data)
-    elif want["nose_confidence"] < 0.25:
-        with pytest.raises(nose.NoNoseError):
-            extractor.extract(data)
-    else:
-        embedding, _ = extractor.extract(data)
-        assert float(embedding @ want["embedding"]) >= _MIN_COSINE
+    assert (nose.quality(nose.embedder_pixels(image)) < 0.20) == (want["quality"] < 0.20)
+    if want["quality"] >= 0.20:
+        assert (extractor.nose_confidence(image) < 0.25) == (want["nose_confidence"] < 0.25)
 
 
 def _check_vector(extractor: nose.Extractor, directory: Path, want: dict) -> None:

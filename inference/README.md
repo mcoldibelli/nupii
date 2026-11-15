@@ -48,7 +48,7 @@ Os testes usam os arquivos de pesos reais. Sem os arquivos em `models`, eles fal
 
 O teste de igualdade tem dois conjuntos de imagens ([ADR 0019](../docs/adr/0019-dados-do-teste-de-igualdade.md)):
 
-- As 16 imagens geradas de `tests/data/synthetic` entram em toda execução do `pytest`.
+- As 17 imagens geradas de `tests/data/synthetic` entram em toda execução do `pytest`. A `17-texture-gray-large.png` é a imagem aceita (ADR 0036) e fica fora dos valores de referência.
 - As 60 fotos reais de focinho não ficam no repositório. Quem tem as fotos executa o teste com o diretório delas:
 
   ```bash
@@ -78,7 +78,7 @@ O lint é o `ruff`: conferências estáticas e formato. Para corrigir o formato:
 | Caminho | O que tem |
 |---|---|
 | `app/main.py` | A interface HTTP: caminhos, erros, uma inferência por vez (RN-23) e uma linha de log por requisição (RNF-07) |
-| `app/nose.py` | Da foto ao vetor: abertura da imagem, nitidez (RN-20), detector (RN-21) e vetor (RN-18, RN-19) |
+| `app/nose.py` | Da foto ao vetor: abertura da imagem, nitidez (RN-20), detector e recorte do focinho (RN-21) e vetor do recorte (RN-18, RN-19) |
 | `app/weights.py` | Nomes, versão e SHA-256 dos arquivos de pesos (RN-22) |
 | `download_weights.sh` | Baixa os arquivos de pesos e confere o SHA-256 |
 | `Dockerfile` | A imagem do serviço, sem os arquivos de pesos |

@@ -33,7 +33,7 @@ describe("foundFailureMessage", () => {
   it.each([
     ["rate_limited", "Muitas tentativas em pouco tempo. Espere um minuto e tente de novo."],
     ["identification_not_found", "Esta busca não existe mais. Envie a foto de novo."],
-    ["image_framing", "Não achamos um focinho na foto. Chegue mais perto, com o focinho no centro."],
+    ["image_framing", "Não achamos o focinho, ou ele ficou pequeno na foto. Chegue mais perto do rosto, de frente, com o focinho no centro."],
   ])("has a text for %s", (code, text) => {
     expect(foundFailureMessage({ ok: false, code })).toBe(text);
   });

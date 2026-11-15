@@ -27,15 +27,15 @@ def post(client: TestClient, data: bytes) -> httpx.Response:
 
 
 def test_rn18_gives_the_vector_the_model_version_and_the_quality(client: TestClient) -> None:
-    # The only synthetic image that the detector accepts.
-    response = post(client, (SYNTHETIC / "11-texture-gray.png").read_bytes())
+    # The synthetic image that the detector accepts, large enough for the crop of the nose.
+    response = post(client, (SYNTHETIC / "17-texture-gray-large.png").read_bytes())
 
     assert response.status_code == 200, response.text
     body = response.json()
     assert set(body) == {"embedding", "modelVersion", "quality"}
     assert len(body["embedding"]) == 512
     assert np.linalg.norm(body["embedding"]) == pytest.approx(1.0, abs=1e-5)
-    assert body["modelVersion"] == "tinyvit21m-s43"
+    assert body["modelVersion"] == "tinyvit21m-s43-crop"
     assert body["quality"] == 1.0
 
 
@@ -47,6 +47,7 @@ def test_rn18_gives_the_vector_the_model_version_and_the_quality(client: TestCli
         # the quality is checked first.
         pytest.param("15-texture-blurred.jpg", 422, "image_low_quality", id="RN-20 comes first"),
         pytest.param("01-noise.png", 422, "image_framing", id="RN-21 no nose"),
+        pytest.param("11-texture-gray.png", 422, "image_framing", id="RN-21 nose too small"),
     ],
 )
 def test_refuses_a_photo_that_the_biometrics_cannot_use(
@@ -80,7 +81,7 @@ def test_model_info(client: TestClient) -> None:
     response = client.get("/v1/model-info")
 
     assert response.status_code == 200
-    assert response.json() == {"modelVersion": "tinyvit21m-s43", "dimensions": 512}
+    assert response.json() == {"modelVersion": "tinyvit21m-s43-crop", "dimensions": 512}
 
 
 def test_health(client: TestClient) -> None:

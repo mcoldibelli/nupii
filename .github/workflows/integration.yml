@@ -46,7 +46,7 @@ jobs:
       - name: Call the inference service
         run: |
           curl --fail --silent --show-error http://127.0.0.1:8000/health
-          curl --fail --silent --show-error --data-binary @inference/tests/data/synthetic/11-texture-gray.png \
+          curl --fail --silent --show-error --data-binary @inference/tests/data/synthetic/17-texture-gray-large.png \
             http://127.0.0.1:8000/v1/nose/embedding | grep -q '"embedding":\['
       - name: Integration tests
         working-directory: backend

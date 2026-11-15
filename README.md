@@ -71,7 +71,7 @@ O CI roda os mesmos testes em cada PR (`.github/workflows/`).
 
 ## Publicação
 
-A publicação vai para uma VPS com `./deploy/publish.sh`, a partir do `main`. O processo está no [ADR 0029](docs/adr/0029-publicacao-na-vps.md), e a observabilidade (Grafana) no [ADR 0032](docs/adr/0032-observabilidade-lgtm.md).
+A publicação vai para uma VPS com `./deploy/publish.sh`, a partir do `main`. O processo está no [ADR 0029](docs/adr/0029-publicacao-na-vps.md), e a observabilidade no [ADR 0032](docs/adr/0032-observabilidade-lgtm.md). O Grafana é de uso interno e abre só por túnel SSH: `ssh -L 3000:127.0.0.1:8092 vps`, depois `http://localhost:3000`, com o usuário `admin` e a senha `GRAFANA_ADMIN_PASSWORD` do `/opt/nupii-self/.env`.
 
 ## Regras do projeto
 
@@ -83,7 +83,7 @@ A publicação vai para uma VPS com `./deploy/publish.sh`, a partir do `main`. O
 ## Decisões de arquitetura
 
 <details>
-<summary>Índice dos ADRs (0001 a 0035)</summary>
+<summary>Índice dos ADRs (0001 a 0037)</summary>
 
 | ADR | Decisão | Estado |
 |---|---|---|
@@ -122,5 +122,7 @@ A publicação vai para uma VPS com `./deploy/publish.sh`, a partir do `main`. O
 | [0033](docs/adr/0033-reduzir-fotos-antes-do-envio.md) | Reduzir as fotos de perfil e de achado antes do envio, com o expo-image-manipulator | aceito |
 | [0034](docs/adr/0034-focinho-na-web.md) | Foto do focinho na web: recorte em PNG sem nova compressão, webcam e HEIC com a heic2any | aceito |
 | [0035](docs/adr/0035-nunito-na-landing.md) | Fonte Nunito na landing, com o @expo-google-fonts/nunito | aceito |
+| [0036](docs/adr/0036-vetor-do-recorte-do-focinho.md) | Vetor do focinho a partir do recorte do focinho, não da foto inteira | aceito |
+| [0037](docs/adr/0037-camera-ao-vivo-no-app.md) | Câmera ao vivo no cadastro do focinho, com o expo-camera | aceito |
 
 </details>

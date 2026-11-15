@@ -3,7 +3,7 @@ import { formatDateTime, mapUrl, noseprintFailureMessage, phoneUrl, qualityLabel
 describe("noseprintFailureMessage", () => {
   it.each([
     ["image_low_quality", "A foto ficou sem nitidez. Tire outra foto, com mais luz e com o aparelho parado."],
-    ["image_framing", "Não achamos um focinho na foto. Chegue mais perto, com o focinho no centro."],
+    ["image_framing", "Não achamos o focinho, ou ele ficou pequeno na foto. Chegue mais perto do rosto, de frente, com o focinho no centro."],
     ["species_not_supported", "Só um cachorro tem cadastro de focinho."],
     ["unavailable", "O serviço de identificação não respondeu. Tente de novo em alguns minutos."],
     ["invalid_request", "A foto precisa ser uma imagem JPEG, PNG ou WebP de até 8 MB."],

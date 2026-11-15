@@ -29,7 +29,7 @@ const STAGE_HEIGHT = 340;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
 const isHeic = (file: File) => /image\/hei[cf]/.test(file.type) || /\.hei[cf]$/i.test(file.name);
 
-const rules = ["Foto com o focinho nítido, sem reflexo de flash", `O recorte precisa ter pelo menos ${MIN_CROP_SIDE} px`, "JPG, PNG, WebP ou HEIC"];
+const rules = ["O rosto de frente, com o focinho nítido, sem reflexo de flash", `O recorte do rosto precisa ter pelo menos ${MIN_CROP_SIDE} px`, "JPG, PNG, WebP ou HEIC"];
 
 /**
  * The noseprint step on the browser of a computer (Focinho-Web artboard, #272,
@@ -90,7 +90,7 @@ export function NoseprintWide({ petName, shots, busy, error, onPhoto, onRedo, on
           <Text style={local.title} accessibilityRole="header">
             Agora, o focinho
           </Text>
-          <Text style={local.lead}>2 fotos bem de perto, só do focinho. Use fotos que você já tem ou a câmera.</Text>
+          <Text style={local.lead}>2 fotos do rosto, de frente e bem de perto. O app recorta o focinho. Use fotos que você já tem ou a câmera.</Text>
         </View>
 
         <View style={local.columns}>
@@ -101,7 +101,7 @@ export function NoseprintWide({ petName, shots, busy, error, onPhoto, onRedo, on
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={local.slotTitle}>Foto {index + 1}</Text>
                   <Text testID={`slot-${index + 1}-state`} style={[local.slotState, shot?.state === "good" && { color: colors.success }, shot?.state === "refused" && { color: colors.dangerText }]}>
-                    {shot === null ? (slot === index ? "Agora" : "Falta") : shot.state === "refused" ? shot.message : shot.state === "good" ? "Só o focinho e nítida" : "Conferindo..."}
+                    {shot === null ? (slot === index ? "Agora" : "Falta") : shot.state === "refused" ? shot.message : shot.state === "good" ? "Focinho achado, foto nítida" : "Conferindo..."}
                   </Text>
                 </View>
                 {shot !== null && (
@@ -127,7 +127,7 @@ export function NoseprintWide({ petName, shots, busy, error, onPhoto, onRedo, on
                   <View style={[local.example, { borderColor: ok ? colors.success : colors.danger }]}>
                     <NoseExample good={ok} size={180} />
                   </View>
-                  <Text style={[local.exampleText, { color: ok ? colors.success : colors.dangerText }]}>{ok ? "Assim: só o focinho" : "Não: de longe"}</Text>
+                  <Text style={[local.exampleText, { color: ok ? colors.success : colors.dangerText }]}>{ok ? "Assim: o rosto de perto" : "Não: de longe"}</Text>
                 </View>
               ))}
             </View>
@@ -146,7 +146,7 @@ export function NoseprintWide({ petName, shots, busy, error, onPhoto, onRedo, on
               <View style={local.ready}>
                 <Text style={local.readyTitle}>{done ? "Tudo certo com as 2 fotos" : refused ? "Troque a foto que não passou" : "Conferindo as fotos..."}</Text>
                 <View style={{ flexDirection: "row", gap: 12 }}>
-                  {shots.map((shot, index) => shot && <Image key={index} accessibilityLabel={`Recorte ${index + 1} do focinho`} source={{ uri: shot.uri }} style={local.readyImage} />)}
+                  {shots.map((shot, index) => shot && <Image key={index} accessibilityLabel={`Recorte ${index + 1} do rosto`} source={{ uri: shot.uri }} style={local.readyImage} />)}
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                   <Icon name="lock" size={18} color={colors.textMuted} />
@@ -176,8 +176,8 @@ export function NoseprintWide({ petName, shots, busy, error, onPhoto, onRedo, on
                 <View style={local.dropIcon}>
                   <Icon name="upload" size={28} color={colors.brand} strokeWidth={2} />
                 </View>
-                <Text style={local.readyTitle}>Arraste fotos do focinho aqui</Text>
-                <Text style={[local.rule, { textAlign: "center" }]}>Pode ser uma foto antiga. Depois você recorta só a área do focinho.</Text>
+                <Text style={local.readyTitle}>Arraste fotos do rosto aqui</Text>
+                <Text style={[local.rule, { textAlign: "center" }]}>Pode ser uma foto antiga, com o rosto de frente. Depois você ajusta o quadrado em volta do rosto.</Text>
                 <View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
                   <Button testID="nose-choose" label="Escolher do computador" icon="image" variant="dark" size="md" stretch={false} onPress={() => fileInput.current?.click()} />
                   <Button testID="nose-webcam" label="Usar a webcam" icon="camera" variant="outline" size="md" stretch={false} onPress={() => setStage({ kind: "webcam" })} />
@@ -230,7 +230,8 @@ function Cropper({ url, image, slot, onUse, onCancel }: { url: string; image: Si
   }, []);
   useEffect(() => {
     if (width > 0 && square === null) {
-      const size = Math.round(Math.min(width, STAGE_HEIGHT) * 0.6);
+      // The face fills most of a good photo (ADR 0036).
+      const size = Math.round(Math.min(width, STAGE_HEIGHT) * 0.9);
       setSquare({ x: Math.round((width - size) / 2), y: Math.round((STAGE_HEIGHT - size) / 2), size });
     }
   }, [width, square]);
@@ -286,8 +287,8 @@ function Cropper({ url, image, slot, onUse, onCancel }: { url: string; image: Si
   return (
     <View style={{ gap: 12 }}>
       <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-        <Text style={local.cropTitle}>Recorte o focinho · Foto {slot + 1}</Text>
-        <Text style={local.rule}>Arraste e redimensione o quadrado</Text>
+        <Text style={local.cropTitle}>Recorte o rosto · Foto {slot + 1}</Text>
+        <Text style={local.rule}>Deixe o rosto inteiro dentro do quadrado</Text>
       </View>
       <div ref={box} data-testid="nose-stage" style={{ position: "relative", height: STAGE_HEIGHT, borderRadius: 24, background: "#111", overflow: "hidden", touchAction: "none" }}>
         <img ref={picture} src={url} alt="Foto enviada do cachorro" draggable={false} style={{ position: "absolute", left: view.left, top: view.top, width: image.width * view.scale, height: image.height * view.scale, userSelect: "none" }} />

@@ -36,17 +36,15 @@ function localFile(asset: ImagePicker.ImagePickerAsset): LocalFile {
  * Opens the camera of the device for the photo of a nose. Returns the photo, null when the owner
  * cancels, or "denied" when the app has no permission to use the camera.
  */
-export async function takePhoto(square = false): Promise<LocalFile | null | "denied"> {
+export async function takePhoto(): Promise<LocalFile | null | "denied"> {
   const permission = await ImagePicker.requestCameraPermissionsAsync();
   if (!permission.granted) {
     return "denied";
   }
   // The camera compresses the photo one time, from the sensor. This is not
-  // a new compression of a file, and quality 1 gives a file that can pass
-  // the 8 MB of RN-59.
-  // A square crop keeps only what is inside the square, as the guide of the
-  // noseprint capture says (Focinho-Captura artboard).
-  const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.9, allowsEditing: square, aspect: [1, 1] });
+  // a new compression of a file, and quality 0.9 gives a file that can pass
+  // the 8 MB of RN-59. No crop: the service crops the nose (ADR 0036).
+  const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.9 });
   if (result.canceled || result.assets.length === 0) {
     return null;
   }

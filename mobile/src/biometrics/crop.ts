@@ -9,8 +9,12 @@ export type Square = { x: number; y: number; size: number };
 export type View = { scale: number; left: number; top: number };
 export type Corner = "tl" | "tr" | "bl" | "br";
 
-/** The model reads the nose at 224 px: a smaller crop would be enlarged. */
-export const MIN_CROP_SIDE = 224;
+/**
+ * The crop is the face (ADR 0036): the service finds the nose in it and needs
+ * a nose crop of 224 px. In the face crops of #292 the nose crop was from 24%
+ * to 37% of the side: 224 / 0.24 is about 930, so the face crop has at least 960 px.
+ */
+export const MIN_CROP_SIDE = 960;
 /** The detector reads at most 640 px, so 1280 px keeps all it uses, and a PNG of that size stays under the 8 MB of RN-59. */
 export const MAX_CROP_SIDE = 1280;
 /** The smallest square on the stage, to keep the corners usable. */

@@ -36,8 +36,3 @@ app.nupii.com.br {
 	try_files {path} {path}.html /index.html
 	file_server
 }
-
-grafana.nupii.com.br {
-	# ADR 0032, item 7: Grafana with its own login; the port is only on 127.0.0.1.
-	reverse_proxy 127.0.0.1:8092
-}

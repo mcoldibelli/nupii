@@ -53,7 +53,7 @@ export default function Found() {
 
   async function choosePhoto(next: "scan" = "scan", gallery = false) {
     // In the app the camera opens with a square crop; the web and a refused camera use the gallery.
-    const taken = gallery || Platform.OS === "web" ? "denied" : await takePhoto(true);
+    const taken = gallery || Platform.OS === "web" ? "denied" : await takePhoto();
     const picked = taken === "denied" ? await pickPhoto(NOSE_PHOTO_QUALITY) : taken;
     if (picked !== null) {
       setMode(next);
@@ -137,7 +137,7 @@ export default function Found() {
             <Text style={local.section2}>Como funciona</Text>
             <View style={{ flexDirection: "row", gap: 12 }}>
               {[
-                { n: "1", color: colors.brand, title: "Foto do focinho", text: "Bem de perto, com o focinho no centro da foto." },
+                { n: "1", color: colors.brand, title: "Foto do focinho", text: "O rosto do cachorro de frente, bem de perto, com o focinho no centro." },
                 { n: "2", color: colors.accent, title: "Veja os parecidos", text: "Os cachorros cadastrados mais parecidos, com foto. Nunca dados do tutor." },
                 { n: "3", color: colors.success, title: "Avise o tutor", text: "Se for ele, o tutor recebe o seu contato na hora." },
               ].map((step) => (

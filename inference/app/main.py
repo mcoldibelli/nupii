@@ -19,7 +19,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
-from app import nose, weights
+from app import nose
 
 # RN-17: a entrada é uma imagem de até 8 MB.
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
@@ -112,7 +112,7 @@ def create_app(load_extractor: Callable[[], nose.Extractor] = _load_extractor) -
 
     @app.get("/v1/model-info")
     async def model_info() -> dict[str, str | int]:
-        return {"modelVersion": weights.MODEL_VERSION, "dimensions": nose.EMBEDDING_DIMENSIONS}
+        return {"modelVersion": nose.VECTOR_VERSION, "dimensions": nose.EMBEDDING_DIMENSIONS}
 
     @app.post("/v1/nose/embedding")
     async def embedding(request: Request) -> Response:
@@ -136,7 +136,7 @@ def create_app(load_extractor: Callable[[], nose.Extractor] = _load_extractor) -
         return JSONResponse(
             {
                 "embedding": vector.tolist(),
-                "modelVersion": weights.MODEL_VERSION,
+                "modelVersion": nose.VECTOR_VERSION,
                 # RN-18: a nitidez tem 4 casas decimais.
                 "quality": round(quality, 4),
             }
