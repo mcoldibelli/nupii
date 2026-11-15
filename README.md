@@ -117,6 +117,9 @@ O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app n
 | [docs/visao.md](docs/visao.md) | Problema, usuários, escopo e o que fica fora do escopo. |
 | [docs/requisitos.md](docs/requisitos.md) | Requisitos funcionais (RF), regras de negócio (RN) e requisitos não funcionais (RNF), com identificador. |
 | [docs/arquitetura.md](docs/arquitetura.md) | Partes do sistema, módulos, tarefas, dados, convenções, testes e glossário. |
+| [docs/casos-de-uso.md](docs/casos-de-uso.md) | Casos de uso, com os atores e os RF que cada um cobre. |
+| [docs/dominio.md](docs/dominio.md) | Diagrama de domínio: os conceitos e as relações. |
+| [docs/modelo-de-dados.md](docs/modelo-de-dados.md) | Modelo de dados (DER) das tabelas das migrations, com as restrições únicas. |
 | [docs/roteiro.md](docs/roteiro.md) | Ordem de construção em fatias verticais, com o critério de pronto de cada uma. |
 | [docs/adr/](docs/adr/) | Uma decisão de arquitetura por arquivo. |
 
