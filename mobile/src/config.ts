@@ -11,6 +11,8 @@ export const webUrl = process.env.EXPO_PUBLIC_WEB_URL ?? "";
 export const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY ?? "",
   projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID ?? "",
+  // The window of the login with Google on the web opens on this domain (RF-03).
+  authDomain: `${process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID ?? ""}.firebaseapp.com`,
 };
 
 /** Address of the Authentication emulator, or empty to use the real project. */

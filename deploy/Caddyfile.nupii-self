@@ -25,10 +25,12 @@ app.nupii.com.br {
 		# the console and blocks nothing. The map page (srcdoc iframe) uses the
 		# same policy: Leaflet from unpkg, the tiles of OpenStreetMap and its
 		# inline script by hash (MAP_SCRIPT_HASH in mobile/src/map/mapHtml.ts).
+		# The login with Google (#153) loads apis.google.com and the iframe of
+		# the auth domain of Firebase.
 		# heic2any starts a worker from a blob: URL (ADR 0034). The worker uses
 		# new Function (libheif): without 'unsafe-eval' an enforced policy stops
 		# the HEIC conversion. Decision open in #270 before the policy is enforced.
-		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' https://unpkg.com 'sha256-UBT6dm6TilJSBon1wuhw/gM46v2tIVIsiwOOa31M7S0='; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https://media.nupii.com.br https://tile.openstreetmap.org https://unpkg.com; font-src 'self' data:; connect-src 'self' blob: data: https://api.nupii.com.br https://media.nupii.com.br https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; worker-src 'self' blob:; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' https://unpkg.com https://apis.google.com 'sha256-UBT6dm6TilJSBon1wuhw/gM46v2tIVIsiwOOa31M7S0='; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https://media.nupii.com.br https://tile.openstreetmap.org https://unpkg.com; font-src 'self' data:; connect-src 'self' blob: data: https://api.nupii.com.br https://media.nupii.com.br https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; worker-src 'self' blob:; frame-src https://nupii-own.firebaseapp.com; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 	}
 	# One page for every route of the app (Expo Router on the web).
 	try_files {path} {path}.html /index.html

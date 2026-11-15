@@ -6,8 +6,10 @@ import {
   createUserWithEmailAndPassword,
   EmailAuthProvider,
   getAuth,
+  GoogleAuthProvider,
   getReactNativePersistence,
   initializeAuth,
+  linkWithCredential,
   onAuthStateChanged,
   reauthenticateWithCredential,
   sendPasswordResetEmail,
@@ -15,12 +17,14 @@ import {
   signOut,
   updatePassword,
   type Auth,
+  type AuthCredential,
 } from "firebase/auth";
 
 import { Platform } from "react-native";
 
 import { authEmulatorUrl, firebaseConfig } from "../config";
-import { authMessage, resetMessage } from "./messages";
+import { authMessage, googleMessage, resetMessage } from "./messages";
+import { reauthenticateWithPopup, signInWithPopup } from "./popup";
 
 let instance: Auth | null = null;
 
@@ -79,9 +83,50 @@ async function messageOf(action: () => Promise<unknown>): Promise<string | null>
   }
 }
 
-/** Signs in. Returns null, or the message of the failure. */
+/** The Google credential of an e-mail that already has a password (ADR 0029, item 12). */
+let pendingGoogle: AuthCredential | null = null;
+
+/**
+ * Signs in. Returns null, or the message of the failure. After a login with
+ * Google refused for an e-mail with a password, this login links Google to
+ * the account (ADR 0029, item 12).
+ */
 export function signIn(email: string, password: string): Promise<string | null> {
-  return messageOf(() => signInWithEmailAndPassword(auth(), email.trim(), password));
+  return messageOf(async () => {
+    const { user } = await signInWithEmailAndPassword(auth(), email.trim(), password);
+    if (pendingGoogle !== null) {
+      const credential = pendingGoogle;
+      pendingGoogle = null;
+      await linkWithCredential(user, credential);
+    }
+  });
+}
+
+/**
+ * Signs in with Google in a window of the browser (RF-03, ADR 0029, item 11).
+ * Returns the message of the failure, or null; and the e-mail of the account
+ * when that e-mail already has a password, for the login that links Google.
+ */
+export async function signInWithGoogle(): Promise<{ message: string | null; email?: string }> {
+  try {
+    await signInWithPopup(auth(), new GoogleAuthProvider());
+    return { message: null };
+  } catch (error) {
+    if (!(error instanceof FirebaseError)) {
+      return { message: authMessage("") };
+    }
+    if (error.code === "auth/account-exists-with-different-credential") {
+      pendingGoogle = GoogleAuthProvider.credentialFromError(error);
+      const email = error.customData?.email;
+      return { message: googleMessage(error.code), email: typeof email === "string" ? email : undefined };
+    }
+    return { message: googleMessage(error.code) };
+  }
+}
+
+/** True when the account that is signed in has a password, and not only Google. */
+export function hasPassword(): boolean {
+  return auth().currentUser?.providerData.some((provider) => provider.providerId === "password") ?? false;
 }
 
 /** Creates the account and signs in. Returns null, or the message of the failure. */
@@ -108,11 +153,19 @@ export async function sendPasswordReset(email: string): Promise<string | null> {
   }
 }
 
-/** Signs in again with the password of the account. Firebase asks for it before a sensitive change. */
+/**
+ * Signs in again with the password of the account. Firebase asks for it
+ * before a sensitive change. An account with only Google signs in again in
+ * the window of Google, and the password is not used (ADR 0029, item 13).
+ */
 async function reauthenticate(password: string): Promise<void> {
   const user = auth().currentUser;
   if (user === null || user.email === null) {
     throw new FirebaseError("auth/no-current-user", "no account is signed in");
+  }
+  if (!hasPassword()) {
+    await reauthenticateWithPopup(user, new GoogleAuthProvider());
+    return;
   }
   await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
 }
