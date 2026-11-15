@@ -15,7 +15,7 @@ A foto do focinho não pode ter uma nova compressão: o detector pode deixar de 
 3. Um recorte menor que 224 px (a entrada do modelo) não é aceito: o botão fica desligado e a marca explica.
 4. "Resolução ok" é conferido no navegador. "Só o focinho" e "Nítida" vêm da conferência da API (RN-85), depois do recorte.
 5. A webcam pede 1920 × 1080; o quadro vai em PNG para o recorte. A câmera para no "Cancelar", depois da foto e quando a página sai.
-6. Uma foto HEIC é convertida no navegador para PNG com a `heic2any`, carregada por `import()` só quando a foto é HEIC. A biblioteca cria um worker a partir de uma URL `blob:`: a CSP da web (#270) precisa de `worker-src blob:`.
+6. Uma foto HEIC é convertida no navegador para PNG com a `heic2any`, carregada por `import()` só quando a foto é HEIC. A biblioteca cria um worker a partir de uma URL `blob:`: a CSP da web (#270) precisa de `worker-src blob:`. O worker usa `new Function` (libheif): com a CSP valendo, a conversão só funciona com `'unsafe-eval'` em `script-src`. A política começa como Report-Only, e a escolha entre `'unsafe-eval'` e tirar o HEIC do Chrome e do Firefox fica na #270.
 
 ## Alternativas
 

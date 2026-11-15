@@ -21,6 +21,14 @@ app.nupii.com.br {
 		Referrer-Policy strict-origin-when-cross-origin
 		X-Frame-Options DENY
 		Strict-Transport-Security "max-age=31536000"
+		# CSP (#270). It starts as Report-Only: the browser shows each block in
+		# the console and blocks nothing. The map page (srcdoc iframe) uses the
+		# same policy: Leaflet from unpkg, the tiles of OpenStreetMap and its
+		# inline script by hash (MAP_SCRIPT_HASH in mobile/src/map/mapHtml.ts).
+		# heic2any starts a worker from a blob: URL (ADR 0034). The worker uses
+		# new Function (libheif): without 'unsafe-eval' an enforced policy stops
+		# the HEIC conversion. Decision open in #270 before the policy is enforced.
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' https://unpkg.com 'sha256-UBT6dm6TilJSBon1wuhw/gM46v2tIVIsiwOOa31M7S0='; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https://media.nupii.com.br https://tile.openstreetmap.org https://unpkg.com; font-src 'self' data:; connect-src 'self' blob: data: https://api.nupii.com.br https://media.nupii.com.br https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; worker-src 'self' blob:; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 	}
 	# One page for every route of the app (Expo Router on the web).
 	try_files {path} {path}.html /index.html

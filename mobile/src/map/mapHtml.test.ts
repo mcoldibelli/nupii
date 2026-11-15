@@ -1,4 +1,32 @@
-import { DEFAULT_CENTER, mapHtml, mapNavigation, parsePick } from "./mapHtml";
+/// <reference types="node" />
+// The test reads the Caddyfile and hashes the map script: Node APIs only in this test.
+import { createHash } from "crypto";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+import { DEFAULT_CENTER, MAP_SCRIPT_HASH, mapHtml, mapNavigation, parsePick } from "./mapHtml";
+
+/** The inline scripts that the browser runs: not the JSON data block. */
+function runScripts(html: string): string[] {
+  return [...html.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*application\/json)[^>]*>([\s\S]*?)<\/script>/g)].map((match) => match[1]);
+}
+
+describe("the map under the CSP of the web (#270)", () => {
+  it("runs one inline script, the same for any marker, with the hash of the CSP", () => {
+    const a = runScripts(mapHtml({ markers: [] }));
+    const b = runScripts(mapHtml({ markers: [{ latitude: 1, longitude: 2, label: "Rex", kind: "main" }], pickable: true }));
+
+    expect(a).toHaveLength(1);
+    expect(b).toEqual(a);
+    expect(`sha256-${createHash("sha256").update(a[0]).digest("base64")}`).toBe(MAP_SCRIPT_HASH);
+  });
+
+  it("is allowed by the CSP of app.nupii.com.br", () => {
+    const caddyfile = readFileSync(join(__dirname, "../../../deploy/Caddyfile.nupii-self"), "utf8");
+
+    expect(caddyfile).toContain(`'${MAP_SCRIPT_HASH}'`);
+  });
+});
 
 describe("mapHtml", () => {
   it("loads Leaflet 1.9.4 with the hash of the file (ADR 0023)", () => {

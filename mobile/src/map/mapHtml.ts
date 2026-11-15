@@ -20,6 +20,8 @@ const LEAFLET = "https://unpkg.com/leaflet@1.9.4/dist";
 // SHA-256 of the files of Leaflet 1.9.4: the browser refuses another file.
 const LEAFLET_JS_HASH = "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";
 const LEAFLET_CSS_HASH = "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=";
+/** SHA-256 of MAP_SCRIPT, in the script-src of the CSP of app.nupii.com.br (deploy/Caddyfile.nupii-self). */
+export const MAP_SCRIPT_HASH = "sha256-UBT6dm6TilJSBon1wuhw/gM46v2tIVIsiwOOa31M7S0=";
 
 /** Returns the HTML of the map page. */
 export function mapHtml({ markers, pickable = false }: MapOptions): string {
@@ -39,8 +41,16 @@ export function mapHtml({ markers, pickable = false }: MapOptions): string {
 <link rel="stylesheet" href="${LEAFLET}/leaflet.css" integrity="${LEAFLET_CSS_HASH}" crossorigin="">
 <script src="${LEAFLET}/leaflet.js" integrity="${LEAFLET_JS_HASH}" crossorigin=""></script>
 <style>html,body,#map{height:100%;margin:0}</style>
-</head><body><div id="map"></div><script>
-var config = ${config};
+</head><body><div id="map"></div><script type="application/json" id="config">${config}</script><script>${MAP_SCRIPT}</script></body></html>`;
+}
+
+/**
+ * The script of the map page. It does not change with the markers, which come
+ * in the JSON block: the CSP of the web allows it by its hash (#270). The srcdoc
+ * iframe of the web uses the CSP of the page.
+ */
+const MAP_SCRIPT = `
+var config = JSON.parse(document.getElementById("config").textContent);
 function send(message) {
   var text = JSON.stringify(message);
   if (window.ReactNativeWebView) { window.ReactNativeWebView.postMessage(text); } else { window.parent.postMessage(text, "*"); }
@@ -67,8 +77,7 @@ if (config.pickable) {
     send({ type: "pick", latitude: e.latlng.lat, longitude: e.latlng.lng });
   });
 }
-</script></body></html>`;
-}
+`;
 
 /** Reads the message of the page. Returns the chosen point, or null for another message. */
 export function parsePick(message: string): MapPoint | null {
