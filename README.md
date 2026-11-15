@@ -120,7 +120,7 @@ A publicação vai para uma VPS com `./deploy/publish.sh`, a partir do `main`. O
 | [0031](docs/adr/0031-copiar-para-a-area-de-transferencia.md) | Copiar o link da carteirinha com o expo-clipboard | aceito |
 | [0032](docs/adr/0032-observabilidade-lgtm.md) | Observabilidade na VPS com Grafana, Loki, Tempo, Prometheus e Alloy | aceito |
 | [0033](docs/adr/0033-reduzir-fotos-antes-do-envio.md) | Reduzir as fotos de perfil e de achado antes do envio, com o expo-image-manipulator | aceito |
-| [0034](docs/adr/0034-focinho-na-web.md) | Foto do focinho na web: recorte em PNG sem nova compressão, webcam e HEIC com a heic2any | aceito |
+| [0034](docs/adr/0034-focinho-na-web.md) | Foto do focinho na web: recorte em PNG sem nova compressão e webcam (HEIC só no Safari, desde o #270) | aceito |
 | [0035](docs/adr/0035-nunito-na-landing.md) | Fonte Nunito em todo o app, com o @expo-google-fonts/nunito | aceito |
 | [0036](docs/adr/0036-vetor-do-recorte-do-focinho.md) | Vetor do focinho a partir do recorte do focinho, não da foto inteira | aceito |
 | [0037](docs/adr/0037-camera-ao-vivo-no-app.md) | Câmera ao vivo no cadastro do focinho, com o expo-camera | aceito |

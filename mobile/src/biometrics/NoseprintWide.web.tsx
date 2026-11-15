@@ -29,7 +29,7 @@ const STAGE_HEIGHT = 340;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
 const isHeic = (file: File) => /image\/hei[cf]/.test(file.type) || /\.hei[cf]$/i.test(file.name);
 
-const rules = ["O rosto de frente, com o focinho nítido, sem reflexo de flash", `O recorte do rosto precisa ter pelo menos ${MIN_CROP_SIDE} px`, "JPG, PNG, WebP ou HEIC"];
+const rules = ["O rosto de frente, com o focinho nítido, sem reflexo de flash", `O recorte do rosto precisa ter pelo menos ${MIN_CROP_SIDE} px`, "JPG, PNG ou WebP (HEIC só no Safari)"];
 
 /**
  * The noseprint step on the browser of a computer (Focinho-Web artboard, #272,
@@ -48,19 +48,21 @@ export function NoseprintWide({ petName, shots, busy, error, onPhoto, onRedo, on
 
   async function useFile(file: File) {
     setProblem(null);
-    let image: Blob = file;
-    if (isHeic(file)) {
-      // ADR 0034: the converter is large, so it loads only for a HEIC photo.
-      const { default: heic2any } = await import("heic2any");
-      image = (await heic2any({ blob: file, toType: "image/png" })) as Blob;
-    } else if (!ACCEPTED.includes(file.type)) {
-      setProblem("Use uma foto JPG, PNG, WebP ou HEIC.");
+    if (!isHeic(file) && !ACCEPTED.includes(file.type)) {
+      setProblem("Use uma foto JPG, PNG ou WebP.");
       return;
     }
-    const url = URL.createObjectURL(image);
+    // #270: no converter of HEIC (it needs eval, which the CSP refuses). The
+    // browser opens the photo itself: Safari opens HEIC, the others do not.
+    const url = URL.createObjectURL(file);
     const element = new window.Image();
     element.onload = () => setStage({ kind: "crop", url, image: { width: element.naturalWidth, height: element.naturalHeight } });
-    element.onerror = () => setProblem("Não foi possível abrir esta foto.");
+    element.onerror = () =>
+      setProblem(
+        isHeic(file)
+          ? "Este navegador não abre fotos HEIC. Envie a foto em JPG ou PNG, ou use o Safari."
+          : "Não foi possível abrir esta foto.",
+      );
     element.src = url;
   }
 
