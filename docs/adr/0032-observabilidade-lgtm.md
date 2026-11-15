@@ -29,6 +29,9 @@ A VPS tem 2 CPU e 7,8 GB de RAM e também roda outro sistema. A imagem `grafana/
 6. Retenção: 7 dias para logs e traces, 30 dias para métricas. Os logs podem ter dados pessoais, e 7 dias fica dentro do prazo de 30 dias de RN-42.
 7. O Grafana não tem endereço na internet: ele é de uso interno. A porta fica só em `127.0.0.1` (8092), sem bloco no Caddy, e o acesso é por túnel SSH: `ssh -L 3000:127.0.0.1:8092 vps` e `http://localhost:3000` (#293; antes era `https://grafana.nupii.com.br`, com a tela de login aberta para a internet). O login do Grafana fica ligado, sem acesso anônimo e sem cadastro aberto. A senha do administrador fica no `.env` da VPS. Loki, Tempo, Prometheus e Alloy não têm porta fora da rede do compose.
 
+8. As métricas HTTP têm a rota (`http.route`, por exemplo `/v1/pets/{petId}`), que o `RequestLog` põe no labeler do `otelhttp` depois do roteamento (#303). O painel "Nupii API" mostra a latência e os erros por rota, a latência da inferência e as fotos recusadas (422).
+9. Os números do negócio e da fila de tarefas vêm do Postgres, por uma fonte "Nupii DB" no Grafana (#303). A migration 00017 cria o schema `metrics`, só com views de contagem (contas, pets, focinhos por versão do vetor, identificações, ocorrências e notificações por dia, tarefas por tipo e estado), sem nome, e-mail, telefone, ponto ou foto. O papel `metrics_reader` lê só esse schema, com no máximo 3 conexões. O `deploy/publish.sh` cria o papel e define a senha (`GRAFANA_DB_PASSWORD` do `.env`, criada na primeira vez) com `deploy/postgres/metrics-reader.sql`.
+
 ## Alternativas
 
 - `grafana/otel-lgtm` num container só. Tradeoff: menos configuração, mas o próprio projeto diz que não serve para produção.

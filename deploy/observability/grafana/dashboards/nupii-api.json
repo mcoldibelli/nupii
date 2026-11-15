@@ -9,12 +9,24 @@
   "refresh": "1m",
   "panels": [
     {
-      "id": 1,
+      "type": "row",
+      "title": "API",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [],
+      "id": 1
+    },
+    {
       "type": "timeseries",
       "title": "Requisições por segundo",
       "gridPos": {
         "x": 0,
-        "y": 0,
+        "y": 1,
         "w": 12,
         "h": 8
       },
@@ -34,15 +46,15 @@
           "expr": "sum by (http_response_status_code) (rate(http_server_request_duration_seconds_count{job=\"nupii-api\"}[5m]))",
           "legendFormat": "{{http_response_status_code}}"
         }
-      ]
+      ],
+      "id": 2
     },
     {
-      "id": 2,
       "type": "timeseries",
       "title": "Latência p95",
       "gridPos": {
         "x": 12,
-        "y": 0,
+        "y": 1,
         "w": 12,
         "h": 8
       },
@@ -62,15 +74,451 @@
           "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{job=\"nupii-api\"}[5m])))",
           "legendFormat": "p95"
         }
-      ]
+      ],
+      "id": 3
     },
     {
-      "id": 3,
+      "type": "timeseries",
+      "title": "Latência p95 por rota",
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le, http_route) (rate(http_server_request_duration_seconds_bucket{job=\"nupii-api\"}[5m])))",
+          "legendFormat": "{{http_route}}"
+        }
+      ],
+      "id": 4
+    },
+    {
+      "type": "timeseries",
+      "title": "Erros (% das requisições)",
+      "gridPos": {
+        "x": 12,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"nupii-api\", http_response_status_code=~\"5..\"}[5m])) / sum(rate(http_server_request_duration_seconds_count{job=\"nupii-api\"}[5m]))",
+          "legendFormat": "5xx"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"nupii-api\", http_response_status_code=~\"4..\"}[5m])) / sum(rate(http_server_request_duration_seconds_count{job=\"nupii-api\"}[5m]))",
+          "legendFormat": "4xx"
+        }
+      ],
+      "id": 5
+    },
+    {
+      "type": "timeseries",
+      "title": "Inferência: latência p95 da chamada",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_client_request_duration_seconds_bucket{job=\"nupii-api\", server_address=\"inference\"}[5m])))",
+          "legendFormat": "p95"
+        }
+      ],
+      "id": 6
+    },
+    {
+      "type": "timeseries",
+      "title": "Fotos recusadas (422) por rota",
+      "gridPos": {
+        "x": 12,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (http_route) (increase(http_server_request_duration_seconds_count{job=\"nupii-api\", http_response_status_code=\"422\", http_route=~\"/v1/pets/.*/noseprints.*|/v1/identifications\"}[1h]))",
+          "legendFormat": "{{http_route}}"
+        }
+      ],
+      "id": 7
+    },
+    {
+      "type": "row",
+      "title": "Negócio",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [],
+      "id": 8
+    },
+    {
+      "type": "stat",
+      "title": "Totais",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 24,
+        "h": 5
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "nupii-db"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "nupii-db"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT owners AS \"Contas\", pets AS \"Pets\", pets_with_noseprint AS \"Pets com focinho\", open_lost AS \"Perdidos abertos\", open_found AS \"Achados abertos\", health_events AS \"Registros de saúde\", active_card_links AS \"Links de carteirinha ativos\" FROM metrics.totals"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      },
+      "id": 9
+    },
+    {
+      "type": "table",
+      "title": "Focinhos por versão do vetor",
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 8,
+        "h": 7
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "nupii-db"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "nupii-db"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT model_version AS \"Versão\", noseprints AS \"Focinhos\" FROM metrics.noseprints_by_version ORDER BY 1"
+        }
+      ],
+      "id": 10
+    },
+    {
+      "type": "timeseries",
+      "title": "Contas novas por dia",
+      "gridPos": {
+        "x": 8,
+        "y": 31,
+        "w": 16,
+        "h": 7
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "nupii-db"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "barAlignment": 0
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "nupii-db"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT day AS time, owners AS \"Contas novas\" FROM metrics.signups_daily WHERE $__timeFilter(day) ORDER BY 1"
+        }
+      ],
+      "timeFrom": "30d",
+      "id": 11
+    },
+    {
+      "type": "timeseries",
+      "title": "Identificações por dia",
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "nupii-db"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "nupii-db"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT day AS time, identifications AS \"Identificações\", confirmed AS \"Confirmadas\", without_candidate AS \"Sem candidato\" FROM metrics.identifications_daily WHERE $__timeFilter(day) ORDER BY 1"
+        }
+      ],
+      "timeFrom": "30d",
+      "id": 12
+    },
+    {
+      "type": "timeseries",
+      "title": "Ocorrências por dia",
+      "gridPos": {
+        "x": 12,
+        "y": 38,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "nupii-db"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "nupii-db"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT day AS time, CASE type WHEN 'lost' THEN 'Perdidos' ELSE 'Achados' END AS metric, reports AS value FROM metrics.reports_daily WHERE $__timeFilter(day) ORDER BY 1"
+        }
+      ],
+      "timeFrom": "30d",
+      "id": 13
+    },
+    {
+      "type": "timeseries",
+      "title": "Notificações por dia e estado do push",
+      "gridPos": {
+        "x": 0,
+        "y": 46,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "nupii-db"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "nupii-db"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT day AS time, push_status AS metric, sum(notifications) AS value FROM metrics.notifications_daily WHERE $__timeFilter(day) GROUP BY 1, 2 ORDER BY 1"
+        }
+      ],
+      "timeFrom": "30d",
+      "id": 14
+    },
+    {
+      "type": "row",
+      "title": "Fila de tarefas",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 54,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [],
+      "id": 15
+    },
+    {
+      "type": "stat",
+      "title": "Tarefas atrasadas e com erro",
+      "gridPos": {
+        "x": 0,
+        "y": 55,
+        "w": 8,
+        "h": 6
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "nupii-db"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "nupii-db"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT coalesce(sum(late), 0) AS \"Atrasadas (mais de 5 min)\", coalesce(sum(jobs) FILTER (WHERE status = 'failed'), 0) AS \"Com erro\", coalesce(sum(jobs) FILTER (WHERE status = 'pending'), 0) AS \"Pendentes\" FROM metrics.jobs"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      },
+      "id": 16
+    },
+    {
+      "type": "table",
+      "title": "Tarefas por tipo e estado",
+      "gridPos": {
+        "x": 8,
+        "y": 55,
+        "w": 16,
+        "h": 6
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "nupii-db"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "nupii-db"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT kind AS \"Tipo\", status AS \"Estado\", jobs AS \"Tarefas\", late AS \"Atrasadas\", max_attempts AS \"Mais tentativas\" FROM metrics.jobs ORDER BY 1, 2"
+        }
+      ],
+      "id": 17
+    },
+    {
       "type": "logs",
       "title": "Logs da API",
       "gridPos": {
         "x": 0,
-        "y": 8,
+        "y": 61,
         "w": 24,
         "h": 12
       },
@@ -83,7 +531,8 @@
           "refId": "A",
           "expr": "{service=\"api\"}"
         }
-      ]
+      ],
+      "id": 18
     }
   ]
 }

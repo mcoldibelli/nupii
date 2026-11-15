@@ -39,6 +39,7 @@ ssh "$host" "test -f $dir/.env || (umask 077 && printf '%s\n' \
   FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID > $dir/.env)"
 # A value that a later version needs is added to an old .env; the others stay.
 ssh "$host" "grep -q '^GRAFANA_ADMIN_PASSWORD=' $dir/.env || echo \"GRAFANA_ADMIN_PASSWORD=\$(openssl rand -hex 24)\" >> $dir/.env"
+ssh "$host" "grep -q '^GRAFANA_DB_PASSWORD=' $dir/.env || echo \"GRAFANA_DB_PASSWORD=\$(openssl rand -hex 24)\" >> $dir/.env"
 
 echo "4/5 web"
 out=$(mktemp -d)
@@ -60,4 +61,7 @@ rm -rf "$out"
 echo "5/5 serviços"
 ssh "$host" "cd $dir/src && docker compose -f deploy/compose.prod.yaml --env-file $dir/.env up -d --build --wait"
 ssh "$host" "curl -fsS http://127.0.0.1:8090/v1/health" && echo
+# The role of Grafana reads only the views of the schema metrics (#303). The
+# API applied the migrations when it started, so the views exist.
+ssh "$host" "cd $dir && set -a && . ./.env && set +a && docker exec -i nupii-self-db-1 psql -q -v ON_ERROR_STOP=1 -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -v pw=\"\$GRAFANA_DB_PASSWORD\" -v db=\"\$POSTGRES_DB\" -f - < src/deploy/postgres/metrics-reader.sql"
 echo "Publicado. Pelo Caddy: https://api.nupii.com.br e https://app.nupii.com.br"
