@@ -13,7 +13,7 @@ export function passwordLongEnough(password: string): boolean {
 }
 
 /** RN-44: returns the message of a password with less than 8 characters, or null. */
-function validatePassword(password: string): string | null {
+export function validatePassword(password: string): string | null {
   return password.length < MIN_PASSWORD_LENGTH ? `A senha precisa ter no mínimo ${MIN_PASSWORD_LENGTH} caracteres.` : null;
 }
 

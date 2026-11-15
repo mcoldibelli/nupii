@@ -220,6 +220,15 @@ step "Ative a primeira opção (e-mail e senha) e salve."
 note "Os nomes dos botões do console podem mudar. O caminho é Authentication > método de login."
 pause "O provedor de e-mail e senha está ativo?"
 
+# ── 1b. Link do e-mail de redefinição de senha (RF-05, #286) ───────────────
+stage "Firebase: o link do e-mail de redefinição abre a página do Nupii"
+open_url "https://console.firebase.google.com/project/${FIREBASE_PROJECT_ID}/authentication/emails"
+step "Em Authentication > Modelos, abra Redefinição de senha e clique no lápis."
+step "Clique em Personalizar URL de ação."
+step "Informe https://app.nupii.com.br/reset-password e salve."
+note "Sem esse passo, o link do e-mail abre a página padrão do Firebase, e não a do Nupii."
+pause "A URL de ação aponta para /reset-password?"
+
 # ── 2. App Web e chave do app ──────────────────────────────────────────────
 stage "Firebase: registrar o app e copiar a chave"
 ENV_FILE="mobile/.env"
