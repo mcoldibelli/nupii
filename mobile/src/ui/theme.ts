@@ -33,18 +33,11 @@ export const colors = {
 
 /** Font families, as loaded in app/_layout.tsx. */
 export const fonts = {
-  title: "BricolageGrotesque_800ExtraBold",
-  titleBold: "BricolageGrotesque_700Bold",
-  body: "Figtree_400Regular",
-  bodyMedium: "Figtree_500Medium",
-  bodySemibold: "Figtree_600SemiBold",
-  bodyBold: "Figtree_700Bold",
-} as const;
-
-/** The fonts of the landing page of the web (ADR 0035). */
-export const landingFonts = {
   title: "Nunito_800ExtraBold",
+  titleBold: "Nunito_700Bold",
   body: "Nunito_400Regular",
+  bodyMedium: "Nunito_500Medium",
+  bodySemibold: "Nunito_600SemiBold",
   bodyBold: "Nunito_700Bold",
 } as const;
 

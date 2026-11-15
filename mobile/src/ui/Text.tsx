@@ -2,7 +2,7 @@ import { Text as NativeText, type TextProps } from "react-native";
 
 import { colors, fonts } from "./theme";
 
-/** The title of a screen: Bricolage Grotesque 800, as in the canvas. */
+/** The title of a screen: Nunito 800 (ADR 0035). */
 export function Title({ style, ...props }: TextProps) {
   return <NativeText accessibilityRole="header" style={[{ fontFamily: fonts.title, fontSize: 28, letterSpacing: -0.8, color: colors.ink }, style]} {...props} />;
 }
