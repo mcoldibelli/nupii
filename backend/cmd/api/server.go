@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/mcoldibelli/nupii/backend/internal/alerts"
 	"github.com/mcoldibelli/nupii/backend/internal/api"
@@ -330,8 +331,15 @@ func newHandler(
 
 	// ClientAddress runs first: the log and the rate limit see the address
 	// of the client behind the proxy (ADR 0029, item 6).
-	return httpx.ClientAddress(trustedProxies)(
-		httpx.RequestLog(logger)(recoverPanic(logger, answerPreflight(mux, webOrigins, routes))))
+	// The span of the request (ADR 0032) wraps the request log, so the log
+	// lines have its trace_id. The API is public: a traceparent of a client
+	// is a link, not the parent. The health check of the container makes no span.
+	return httpx.ClientAddress(trustedProxies)(otelhttp.NewHandler(
+		httpx.RequestLog(logger)(recoverPanic(logger, answerPreflight(mux, webOrigins, routes))),
+		"http",
+		otelhttp.WithPublicEndpointFn(func(*http.Request) bool { return true }),
+		otelhttp.WithFilter(func(r *http.Request) bool { return r.URL.Path != "/v1/health" }),
+	))
 }
 
 // recoverPanic answers with the internal error of the contract when next

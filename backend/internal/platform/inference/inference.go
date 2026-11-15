@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 )
 
@@ -59,7 +61,9 @@ type Client struct {
 
 // New returns a client of the service at baseURL.
 func New(baseURL string) *Client {
-	return &Client{baseURL: baseURL, http: &http.Client{Timeout: _timeout}}
+	// Each call is a span of the trace of the request, and carries the
+	// trace to the service (ADR 0032, item 4).
+	return &Client{baseURL: baseURL, http: &http.Client{Timeout: _timeout, Transport: otelhttp.NewTransport(http.DefaultTransport)}}
 }
 
 // Embed returns the vector of the nose in image. It returns
