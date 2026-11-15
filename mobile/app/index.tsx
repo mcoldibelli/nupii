@@ -14,6 +14,7 @@ import { apiUrl } from "../src/config";
 import { AnotarSheet } from "../src/health/AnotarSheet";
 import { careLine, dateTile } from "../src/health/care";
 import { noseprintBadges, petSubtitle, pickPet, unreadCount, weightTrend } from "../src/home/home";
+import { HomeWide } from "../src/home/HomeWide";
 import { LostBanner } from "../src/home/LostBanner";
 import { PetSwitcher } from "../src/home/PetSwitcher";
 import { openLostReportOf, reportFailureMessage } from "../src/reports/form";
@@ -24,6 +25,7 @@ import { Icon, WeightChart } from "../src/ui/Icon";
 import { TabBar } from "../src/ui/TabBar";
 import { Body, ErrorText, Heading, Muted, Title } from "../src/ui/Text";
 import { colors, fonts, radius, space } from "../src/ui/theme";
+import { useWide } from "../src/ui/useWide";
 
 // The first-pet screen (AddPet-Primeiro) opens one time per run of the app.
 let firstPetOffered = false;
@@ -34,6 +36,8 @@ export default function Home() {
   const { savedId, select } = useSelectedPet();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  // The browser of a computer gets the Inicio-Web artboard (#233).
+  const wide = useWide();
   const [pets, setPets] = useState<Pet[] | null>(null);
   const [care, setCare] = useState<UpcomingCare[]>([]);
   const [unread, setUnread] = useState(0);
@@ -129,6 +133,44 @@ export default function Home() {
     } else {
       setError(reportFailureMessage(result));
     }
+  }
+
+
+  const anotarSheet = pet !== null && (
+    <AnotarSheet
+      visible={anotar}
+      petName={pet.name}
+      onClose={() => setAnotar(false)}
+      // The way to report the pet as lost from the home (#257), with a confirmation in the sheet.
+      // With an open lost report, the banner has the actions and the sheet has no Emergência item.
+      onLost={lost !== undefined ? undefined : () => {
+        setAnotar(false);
+        router.push({ pathname: "/reports/lost", params: { petId: pet.id, petName: pet.name } });
+      }}
+      onPick={(type, preset) => {
+        setAnotar(false);
+        router.push({ pathname: "/health/event", params: { petId: pet.id, petName: pet.name, type, ...(preset ? { preset } : {}) } });
+      }}
+    />
+  );
+
+  if (wide && pet !== null) {
+    return (
+      <View style={local.page}>
+        <HomeWide
+          pet={pet}
+          hasNoseprint={noseprints[pet.id] === true}
+          care={care}
+          unread={unread}
+          lost={lost}
+          resolving={resolving}
+          trend={trend}
+          onResolveLost={(report) => void resolveLost(report)}
+          onAdd={() => setAnotar(true)}
+        />
+        {anotarSheet}
+      </View>
+    );
   }
 
   return (
@@ -258,23 +300,7 @@ export default function Home() {
       )}
       </View>
       <TabBar />
-      {pet !== null && (
-        <AnotarSheet
-          visible={anotar}
-          petName={pet.name}
-          onClose={() => setAnotar(false)}
-          // The way to report the pet as lost from the home (#257), with a confirmation in the sheet.
-          // With an open lost report, the banner has the actions and the sheet has no Emergência item.
-          onLost={lost !== undefined ? undefined : () => {
-            setAnotar(false);
-            router.push({ pathname: "/reports/lost", params: { petId: pet.id, petName: pet.name } });
-          }}
-          onPick={(type, preset) => {
-            setAnotar(false);
-            router.push({ pathname: "/health/event", params: { petId: pet.id, petName: pet.name, type, ...(preset ? { preset } : {}) } });
-          }}
-        />
-      )}
+      {anotarSheet}
       <PetSwitcher
         visible={switcher}
         pets={pets ?? []}
