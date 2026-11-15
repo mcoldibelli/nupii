@@ -7,7 +7,7 @@ import { apiUrl } from "../src/config";
 import { timeAgo } from "../src/reports/board";
 import { Button } from "../src/ui/Button";
 import { Icon, LogoMark, Mascot, type IconName } from "../src/ui/Icon";
-import { colors, landingFonts, radius, space } from "../src/ui/theme";
+import { colors, fonts, radius, space } from "../src/ui/theme";
 import { useWide } from "../src/ui/useWide";
 
 const create: Href = { pathname: "/sign-in", params: { mode: "create" } };
@@ -47,7 +47,7 @@ export default function Landing() {
         <View style={[local.row, { alignItems: "center", gap: 8, paddingTop: space.lg }]}>
           <LogoMark size={28} />
           <Text style={[local.footerBrand, { flex: 1, fontSize: 24 }]}>nupii</Text>
-          <Button labelFont={landingFonts.bodyBold} testID="landing-sign-in" label="Entrar" variant="outline" size="sm" stretch={false} onPress={() => router.push("/sign-in")} />
+          <Button testID="landing-sign-in" label="Entrar" variant="outline" size="sm" stretch={false} onPress={() => router.push("/sign-in")} />
         </View>
       )}
       <View style={[row, { alignItems: "center", paddingVertical: wide ? 48 : 24 }]}>
@@ -57,8 +57,8 @@ export default function Landing() {
           </Text>
           <Text style={local.lead}>O focinho funciona como uma digital. Cadastre o do seu cachorro, cuide da saúde dele num só lugar e, se ele sumir, o bairro fica sabendo na hora.</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-            <Button labelFont={landingFonts.bodyBold} testID="landing-create" label="Cadastrar meu cachorro" trailingIcon="arrowRight" stretch={false} onPress={() => router.push(create)} />
-            <Button labelFont={landingFonts.bodyBold} testID="landing-found" label="Achei um cachorro" icon="scan" variant="outline" stretch={false} onPress={() => router.push("/found")} />
+            <Button testID="landing-create" label="Cadastrar meu cachorro" trailingIcon="arrowRight" stretch={false} onPress={() => router.push(create)} />
+            <Button testID="landing-found" label="Achei um cachorro" icon="scan" variant="outline" stretch={false} onPress={() => router.push("/found")} />
           </View>
         </View>
         <View style={{ flex: 1, alignItems: "center" }}>
@@ -138,7 +138,7 @@ export default function Landing() {
               </View>
             </View>
           ))}
-          <Button labelFont={landingFonts.bodyBold} label="Começar o histórico" variant="dark" trailingIcon="arrowRight" stretch={false} onPress={() => router.push(create)} />
+          <Button label="Começar o histórico" variant="dark" trailingIcon="arrowRight" stretch={false} onPress={() => router.push(create)} />
         </View>
         <View style={[local.demo, { flex: 1 }]} accessibilityLabel="Exemplo da tela de saúde">
           <Text style={local.featureTitle}>Saúde do seu cachorro</Text>
@@ -204,7 +204,7 @@ export default function Landing() {
             <Text style={local.h2}>Perdidos perto de você</Text>
             <Text style={local.muted}>O mural é aberto, sem precisar de conta</Text>
           </View>
-          <Button labelFont={landingFonts.bodyBold} label="Ver mural completo" variant="dark" size="sm" trailingIcon="arrowRight" stretch={false} onPress={() => router.push("/reports")} />
+          <Button label="Ver mural completo" variant="dark" size="sm" trailingIcon="arrowRight" stretch={false} onPress={() => router.push("/reports")} />
         </View>
         <View style={[local.row, { flexWrap: "wrap" }]}>
           {reports.length === 0 && <Text style={local.muted}>Nenhuma ocorrência aberta no mural agora.</Text>}
@@ -258,26 +258,26 @@ const local = StyleSheet.create({
   page: { width: "100%", maxWidth: 1280, alignSelf: "center", paddingHorizontal: 48, gap: 72, backgroundColor: colors.background },
   row: { flexDirection: "row", gap: 24 },
   column: { flexDirection: "column", gap: 24 },
-  hero: { fontFamily: landingFonts.title, fontSize: 84, lineHeight: 84, letterSpacing: -3, color: colors.ink },
-  lead: { fontFamily: landingFonts.body, fontSize: 18, lineHeight: 27, color: colors.textSecondary },
+  hero: { fontFamily: fonts.title, fontSize: 84, lineHeight: 84, letterSpacing: -3, color: colors.ink },
+  lead: { fontFamily: fonts.body, fontSize: 18, lineHeight: 27, color: colors.textSecondary },
   art: { position: "relative", alignItems: "center", justifyContent: "center" },
   circle: { backgroundColor: colors.brand, alignItems: "center", justifyContent: "flex-end", overflow: "hidden" },
   float: { position: "absolute", flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.background, shadowColor: colors.ink, shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 4 },
   floatIcon: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  floatTitle: { fontFamily: landingFonts.bodyBold, fontSize: 13, color: colors.ink },
-  floatText: { fontFamily: landingFonts.body, fontSize: 12, color: colors.textMuted },
-  h2: { fontFamily: landingFonts.title, fontSize: 36, letterSpacing: -1, color: colors.ink },
-  muted: { fontFamily: landingFonts.body, fontSize: 14, lineHeight: 20, color: colors.textMuted },
-  overline: { fontFamily: landingFonts.bodyBold, fontSize: 13, letterSpacing: 0.8, color: colors.accent },
+  floatTitle: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.ink },
+  floatText: { fontFamily: fonts.body, fontSize: 12, color: colors.textMuted },
+  h2: { fontFamily: fonts.title, fontSize: 36, letterSpacing: -1, color: colors.ink },
+  muted: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.textMuted },
+  overline: { fontFamily: fonts.bodyBold, fontSize: 13, letterSpacing: 0.8, color: colors.accent },
   step: { flex: 1, minHeight: 280, gap: 14, padding: 24, borderRadius: radius.cardLarge },
   stepNumber: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  stepNumberText: { fontFamily: landingFonts.title, fontSize: 17, color: colors.onPrimary },
-  stepTitle: { fontFamily: landingFonts.title, fontSize: 26, letterSpacing: -0.6 },
-  stepText: { fontFamily: landingFonts.body, fontSize: 15, lineHeight: 22 },
+  stepNumberText: { fontFamily: fonts.title, fontSize: 17, color: colors.onPrimary },
+  stepTitle: { fontFamily: fonts.title, fontSize: 26, letterSpacing: -0.6 },
+  stepText: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },
   tag: { minHeight: 30, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: "rgba(255,255,255,0.35)", justifyContent: "center" },
-  tagText: { fontFamily: landingFonts.bodyBold, fontSize: 13 },
+  tagText: { fontFamily: fonts.bodyBold, fontSize: 13 },
   featureIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  featureTitle: { fontFamily: landingFonts.bodyBold, fontSize: 15, color: colors.ink },
+  featureTitle: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
   demo: { gap: 12, padding: 20, borderRadius: radius.cardLarge, backgroundColor: colors.surface },
   demoOk: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 18, backgroundColor: colors.dark },
   demoRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 18, backgroundColor: colors.background },
@@ -289,11 +289,11 @@ const local = StyleSheet.create({
   post: { width: "23%", flexGrow: 1, gap: 8, padding: 10, borderRadius: 22, borderWidth: 1.5, borderColor: colors.border },
   postPhoto: { height: 160, borderRadius: 16, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   postTag: { alignSelf: "flex-start", minHeight: 24, paddingHorizontal: 8, borderRadius: radius.pill, justifyContent: "center" },
-  postTagText: { fontFamily: landingFonts.bodyBold, fontSize: 12, color: colors.onPrimary },
+  postTagText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.onPrimary },
   promise: { flex: 1, gap: 8, padding: 20, borderRadius: 22, borderWidth: 1.5, borderColor: colors.border },
   cta: { padding: 36, borderRadius: radius.cardLarge, backgroundColor: colors.brand },
   ctaButton: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 52, paddingHorizontal: 22, borderRadius: radius.pill, backgroundColor: colors.background },
-  footerBrand: { fontFamily: landingFonts.title, fontSize: 20, color: colors.ink },
+  footerBrand: { fontFamily: fonts.title, fontSize: 20, color: colors.ink },
   footerLink: { minHeight: 40, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.surface, justifyContent: "center" },
-  footerLinkText: { fontFamily: landingFonts.bodyBold, fontSize: 13, color: colors.ink },
+  footerLinkText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.ink },
 });

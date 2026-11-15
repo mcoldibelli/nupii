@@ -6,14 +6,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Alert, Platform } from "react-native";
 
 import type { LocalFile } from "../api/pets";
-import { shrinkSize } from "./photoSize";
-
-/**
- * The quality for the photo of a nose: the picker does not compress the
- * image again. A new compression changes the pixels, and the detector can
- * stop finding the nose in a small photo.
- */
-export const NOSE_PHOTO_QUALITY = 1;
+import { MAX_NOSE_PHOTO_SIDE, shrinkSize } from "./photoSize";
 
 /**
  * Opens the gallery of the device. Returns the chosen image, or null when
@@ -21,7 +14,13 @@ export const NOSE_PHOTO_QUALITY = 1;
  * picker makes, from 0 to 1.
  */
 export async function pickPhoto(quality = 0.8): Promise<LocalFile | null> {
-  const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality });
+  // On the iPhone a photo of the gallery is HEIC, and with quality 1 the picker
+  // gives the original file. "compatible" gives a JPEG, which the API accepts (#298).
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ["images"],
+    quality,
+    preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+  });
   if (result.canceled || result.assets.length === 0) {
     return null;
   }
@@ -63,24 +62,33 @@ export function filePart(file: LocalFile): Blob {
 /**
  * Makes a profile photo or a found-dog photo smaller before the upload
  * (#254): the larger side goes to 1600 px, in JPEG. A small photo, null
- * and "denied" pass as they are. Never use it for a photo of a nose: a new
- * compression can stop the detector from finding the nose.
+ * and "denied" pass as they are.
  */
-export async function shrinkPhoto<T extends LocalFile | null | "denied">(photo: T): Promise<T | LocalFile> {
+export async function shrinkPhoto<T extends LocalFile | null | "denied">(photo: T, maxSide?: number, compress = 0.8): Promise<T | LocalFile> {
   if (photo === null || photo === "denied") {
     return photo;
   }
   const context = ImageManipulator.manipulate(photo.uri);
   const original = await context.renderAsync();
-  const size = shrinkSize(original.width, original.height);
+  const size = shrinkSize(original.width, original.height, maxSide);
   if (size === null) {
     return photo;
   }
   const image = await context.resize(size).renderAsync();
-  const saved = await image.saveAsync({ compress: 0.8, format: SaveFormat.JPEG });
+  const saved = await image.saveAsync({ compress, format: SaveFormat.JPEG });
   // On the web the upload reads the content of the file, not the address.
   const file = Platform.OS === "web" ? await (await fetch(saved.uri)).blob() : undefined;
   return { uri: saved.uri, file, name: "photo.jpg" };
+}
+
+/**
+ * A photo of the face for the nose (#298, ADR 0036): at most 3000 px of the
+ * larger side, in JPEG 0.9. The service crops the nose, so the face photo can
+ * be compressed: a phone photo of 48 MP or a HEIC of the gallery would not
+ * pass the 8 MB of RN-59.
+ */
+export function nosePhoto<T extends LocalFile | null | "denied">(photo: T): Promise<T | LocalFile> {
+  return shrinkPhoto(photo, MAX_NOSE_PHOTO_SIDE, 0.9);
 }
 
 /** Asks where the photo of the pet comes from (camera or gallery) and gives it to use, made smaller (#254). */

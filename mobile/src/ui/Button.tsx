@@ -27,7 +27,6 @@ export function Button({
   busy = false,
   testID,
   stretch = true,
-  labelFont = fonts.bodyBold,
 }: {
   label: string;
   onPress: () => void;
@@ -39,8 +38,6 @@ export function Button({
   busy?: boolean;
   testID?: string;
   stretch?: boolean;
-  /** The font of the label; the landing page uses Nunito (ADR 0035). */
-  labelFont?: string;
 }) {
   // A disabled button is grey, as in the canvas (Cadastro-Mobile).
   const look = disabled ? { background: colors.border, color: colors.textDisabled } : looks[variant];
@@ -66,7 +63,7 @@ export function Button({
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
         {busy ? <ActivityIndicator color={look.color} /> : icon && <Icon name={icon} size={18} color={look.color} />}
-        <Text style={{ fontFamily: labelFont, fontSize: size === "sm" ? 14 : size === "md" ? 15 : 17, color: look.color }}>{label}</Text>
+        <Text style={{ fontFamily: fonts.bodyBold, fontSize: size === "sm" ? 14 : size === "md" ? 15 : 17, color: look.color }}>{label}</Text>
         {trailingIcon && <Icon name={trailingIcon} size={18} color={look.color} />}
       </View>
     </Pressable>

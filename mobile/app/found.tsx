@@ -8,7 +8,7 @@ import type { LocalFile } from "../src/api/pets";
 import { apiUrl } from "../src/config";
 import { CONTACT_LIMITS, foundFailureMessage, similarityLabel, toContact } from "../src/found/contact";
 import { currentLocation } from "../src/found/location";
-import { filePart, NOSE_PHOTO_QUALITY, pickPhoto, takePhoto } from "../src/pets/pickPhoto";
+import { filePart, nosePhoto, pickPhoto, takePhoto } from "../src/pets/pickPhoto";
 import { listBoard, type Report } from "../src/api/reports";
 import { timeAgo } from "../src/reports/board";
 import { PublishFound } from "../src/reports/PublishFound";
@@ -52,9 +52,9 @@ export default function Found() {
   const [showAll, setShowAll] = useState(false);
 
   async function choosePhoto(next: "scan" = "scan", gallery = false) {
-    // In the app the camera opens with a square crop; the web and a refused camera use the gallery.
+    // The camera of the system takes the face, with no crop (ADR 0036); the web and a refused camera use the gallery.
     const taken = gallery || Platform.OS === "web" ? "denied" : await takePhoto();
-    const picked = taken === "denied" ? await pickPhoto(NOSE_PHOTO_QUALITY) : taken;
+    const picked = await nosePhoto(taken === "denied" ? await pickPhoto(0.9) : taken);
     if (picked !== null) {
       setMode(next);
       setPhoto(picked);
