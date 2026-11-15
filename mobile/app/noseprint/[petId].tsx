@@ -12,7 +12,7 @@ import { noseprintFailureMessage } from "../../src/biometrics/messages";
 import { NoseprintWide } from "../../src/biometrics/NoseprintWide";
 import { allGood, nextSlot, type Shot, type Shots } from "../../src/biometrics/shots";
 import { apiUrl } from "../../src/config";
-import { filePart, NOSE_PHOTO_QUALITY, pickPhoto, takePhoto } from "../../src/pets/pickPhoto";
+import { filePart, nosePhoto, pickPhoto, takePhoto } from "../../src/pets/pickPhoto";
 import { useSession } from "../../src/session/SessionContext";
 import { Button } from "../../src/ui/Button";
 import { Icon, NoseExample, type IconName } from "../../src/ui/Icon";
@@ -100,7 +100,7 @@ export default function NoseprintScreen() {
 
   async function capture(slot: 0 | 1, fromGallery: boolean) {
     setError(null);
-    const file = fromGallery ? await pickPhoto(NOSE_PHOTO_QUALITY) : liveCamera ? await shoot() : await takePhoto();
+    const file = await nosePhoto(fromGallery ? await pickPhoto(0.9) : liveCamera ? await shoot() : await takePhoto());
     if (file === "denied") {
       setError("O app não tem permissão para usar a câmera. Escolha uma foto da galeria.");
       return;
