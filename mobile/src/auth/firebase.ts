@@ -45,6 +45,9 @@ function auth(): Auth {
       Platform.OS === "web"
         ? getAuth(app)
         : initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
+    // The e-mails of Firebase (the reset link of RF-05) and the Google window
+    // come in Portuguese, and not in the default language of the console.
+    instance.languageCode = "pt-BR";
     if (authEmulatorUrl !== "") {
       connectAuthEmulator(instance, authEmulatorUrl, { disableWarnings: true });
     }
