@@ -3,7 +3,7 @@ import { failureMessage } from "../api/http";
 /** Texts for the refusals of the photo of a nose, by error code. */
 const refusals: Record<string, string> = {
   image_low_quality: "A foto ficou sem nitidez. Tire outra foto, com mais luz e com o aparelho parado.",
-  image_framing: "Não achamos um focinho na foto. Chegue mais perto, com o focinho no centro.",
+  image_framing: "Não achamos o focinho, ou ele ficou pequeno na foto. Chegue mais perto do rosto, de frente, com o focinho no centro.",
   species_not_supported: "Só um cachorro tem cadastro de focinho.",
   unavailable: "O serviço de identificação não respondeu. Tente de novo em alguns minutos.",
   // RN-59: a foto do focinho é uma imagem JPEG, PNG ou WebP de até 8 MB.

@@ -83,7 +83,7 @@ A publicação vai para uma VPS com `./deploy/publish.sh`, a partir do `main`. O
 ## Decisões de arquitetura
 
 <details>
-<summary>Índice dos ADRs (0001 a 0036)</summary>
+<summary>Índice dos ADRs (0001 a 0037)</summary>
 
 | ADR | Decisão | Estado |
 |---|---|---|
@@ -123,5 +123,6 @@ A publicação vai para uma VPS com `./deploy/publish.sh`, a partir do `main`. O
 | [0034](docs/adr/0034-focinho-na-web.md) | Foto do focinho na web: recorte em PNG sem nova compressão, webcam e HEIC com a heic2any | aceito |
 | [0035](docs/adr/0035-nunito-na-landing.md) | Fonte Nunito na landing, com o @expo-google-fonts/nunito | aceito |
 | [0036](docs/adr/0036-vetor-do-recorte-do-focinho.md) | Vetor do focinho a partir do recorte do focinho, não da foto inteira | aceito |
+| [0037](docs/adr/0037-camera-ao-vivo-no-app.md) | Câmera ao vivo no cadastro do focinho, com o expo-camera | aceito |
 
 </details>

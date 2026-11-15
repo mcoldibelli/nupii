@@ -24,7 +24,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O Nupii usa a câmera para fotografar o rosto do seu cachorro e cadastrar o focinho."
+        }
+      ]
     ],
     "scheme": "nupii",
     "splash": {
