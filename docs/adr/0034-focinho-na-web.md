@@ -1,6 +1,6 @@
 # ADR 0034: Foto do focinho na web, com recorte, webcam e HEIC
 
-Data: 2026-11-15. Estado: aceito. Este ADR aprova uma dependência no app: `heic2any` 0.0.4 (licença MIT), só na web. Com o [ADR 0036](0036-vetor-do-recorte-do-focinho.md), o quadrado é do rosto, e não só do focinho: o serviço acha e recorta o focinho. O recorte mínimo passou de 224 px para 600 px, e o quadrado começa com 90% da área.
+Data: 2026-11-15. Estado: aceito. Este ADR aprova uma dependência no app: `heic2any` 0.0.4 (licença MIT), só na web. Com o [ADR 0036](0036-vetor-do-recorte-do-focinho.md), o quadrado é do rosto, e não só do focinho: o serviço acha e recorta o focinho. O recorte mínimo passou de 224 px para 960 px: nos recortes do rosto medidos no #292, o recorte do focinho ficou entre 24% e 37% do lado, e 224 / 0,24 dá cerca de 930 px. O quadrado começa com 90% da área. Com o caminho da web, as 10 fotos de rosto do #292 passam, e as 2 de longe são recusadas.
 
 ## Contexto
 

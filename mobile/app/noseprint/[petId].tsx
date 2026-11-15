@@ -73,6 +73,13 @@ export default function NoseprintScreen() {
     }
   }
 
+  // The camera is mounted again on each capture step: the shutter waits for it.
+  useEffect(() => {
+    if (step.kind !== "capture") {
+      setCameraReady(false);
+    }
+  }, [step.kind]);
+
   // The live camera asks for its permission when the capture step opens.
   useEffect(() => {
     if (liveCamera && step.kind === "capture" && permission !== null && !permission.granted && permission.canAskAgain) {
@@ -82,8 +89,13 @@ export default function NoseprintScreen() {
 
   /** The photo of the live camera. quality 0.9: one compression from the sensor, under the 8 MB of RN-59. */
   async function shoot(): Promise<LocalFile | null> {
-    const picture = await camera.current?.takePictureAsync({ quality: 0.9 });
-    return picture ? { uri: picture.uri } : null;
+    try {
+      const picture = await camera.current?.takePictureAsync({ quality: 0.9 });
+      return picture ? { uri: picture.uri } : null;
+    } catch {
+      setError("A câmera não tirou a foto. Tente de novo, ou escolha uma foto da galeria.");
+      return null;
+    }
   }
 
   async function capture(slot: 0 | 1, fromGallery: boolean) {
