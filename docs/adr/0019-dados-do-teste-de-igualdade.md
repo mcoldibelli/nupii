@@ -1,6 +1,6 @@
 # ADR 0019: Dados do teste de igualdade da inferência
 
-Data: 2026-11-11. Estado: aceito.
+Data: 2026-11-11. Estado: aceito. Com o [ADR 0036](0036-vetor-do-recorte-do-focinho.md), o teste confere as decisões e o vetor da foto inteira pelas funções que não mudaram; o recorte do focinho tem testes próprios, e a imagem `17-texture-gray-large.png` fica fora dos valores de referência.
 
 ## Contexto
 

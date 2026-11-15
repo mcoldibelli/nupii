@@ -1,6 +1,6 @@
 # ADR 0007: Inferência em serviço Python separado, sem torch
 
-Data: 2026-11-10. Estado: aceito.
+Data: 2026-11-10. Estado: aceito. O [ADR 0036](0036-vetor-do-recorte-do-focinho.md) muda a entrada do vetor: o recorte do focinho, e não a foto inteira.
 
 ## Contexto
 

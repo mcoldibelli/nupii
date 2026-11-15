@@ -215,8 +215,8 @@ func TestNoseprintWithTheInferenceService(t *testing.T) {
 		return data
 	}
 
-	// The only generated image that the detector accepts.
-	rec := testAPI.upload(http.MethodPost, "token-ana", path, image("11-texture-gray.png"))
+	// The generated image that the detector accepts, large enough for the crop of the nose (#292).
+	rec := testAPI.upload(http.MethodPost, "token-ana", path, image("17-texture-gray-large.png"))
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("accepted image: status = %d, want 201, body %s", rec.Code, rec.Body)
 	}
@@ -224,8 +224,8 @@ func TestNoseprintWithTheInferenceService(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil {
 		t.Fatalf("decode the noseprint: %v", err)
 	}
-	if created.ModelVersion != "tinyvit21m-s43" || created.Quality != 1 {
-		t.Errorf("noseprint = %+v, want the model version tinyvit21m-s43 and the quality 1", created)
+	if created.ModelVersion != "tinyvit21m-s43-crop" || created.Quality != 1 {
+		t.Errorf("noseprint = %+v, want the model version tinyvit21m-s43-crop and the quality 1", created)
 	}
 
 	rec = testAPI.upload(http.MethodPost, "token-ana", path, image("04-flat-gray.png"))
@@ -235,6 +235,11 @@ func TestNoseprintWithTheInferenceService(t *testing.T) {
 	rec = testAPI.upload(http.MethodPost, "token-ana", path, image("01-noise.png"))
 	if rec.Code != http.StatusUnprocessableEntity || decode[api.Error](t, rec).Error != api.ErrorCodeImageFraming {
 		t.Errorf("RN-21: status = %d, body %s, want 422 image_framing", rec.Code, rec.Body)
+	}
+	// The detector finds the nose, but the crop of the nose is too small: a photo from far.
+	rec = testAPI.upload(http.MethodPost, "token-ana", path, image("11-texture-gray.png"))
+	if rec.Code != http.StatusUnprocessableEntity || decode[api.Error](t, rec).Error != api.ErrorCodeImageFraming {
+		t.Errorf("RN-21, nose too small: status = %d, body %s, want 422 image_framing", rec.Code, rec.Body)
 	}
 }
 
