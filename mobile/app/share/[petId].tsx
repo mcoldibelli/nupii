@@ -53,6 +53,14 @@ export default function OwnerCard() {
   // "Baixar carteirinha" of the Saude-Web artboard: the browser prints the card, or saves it as PDF (#233).
   useEffect(() => {
     if (print === "1" && Platform.OS === "web" && card !== null) {
+      // On paper: no sidebar, no buttons, and the colors of the card (a
+      // browser leaves out the backgrounds by default, and the text is white).
+      if (document.getElementById("print-card-style") === null) {
+        const style = document.createElement("style");
+        style.id = "print-card-style";
+        style.textContent = '@media print { [id^="noprint"] { display: none !important; } * { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }';
+        document.head.appendChild(style);
+      }
       window.print();
     }
   }, [print, card]);
@@ -132,7 +140,7 @@ export default function OwnerCard() {
   return (
     <View style={local.page}>
       <ScrollView contentContainerStyle={[local.content, { paddingTop: insets.top + space.md }]}>
-        <View style={local.top}>
+        <View nativeID="noprint-top" style={local.top}>
           <Pressable testID="card-back" accessibilityRole="button" accessibilityLabel="Voltar" style={local.round} onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}>
             <Icon name="back" size={20} />
           </Pressable>
@@ -143,7 +151,7 @@ export default function OwnerCard() {
         {error !== null && <ErrorText testID="share-error">{error}</ErrorText>}
         {card === null ? <Text style={local.muted}>Carregando...</Text> : <HealthCardView card={card} noseprint={noseprint} qrText={created?.url} tutor={state.kind === "ready" ? shortName(state.owner.name) : undefined} />}
       </ScrollView>
-      <View style={[local.footer, { paddingBottom: insets.bottom + space.lg }]}>
+      <View nativeID="noprint-footer" style={[local.footer, { paddingBottom: insets.bottom + space.lg }]}>
         <Button testID="open-share-sheet" label="Compartilhar" icon="share" onPress={() => setSheet(true)} />
       </View>
 

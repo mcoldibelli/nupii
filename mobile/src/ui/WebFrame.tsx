@@ -135,7 +135,8 @@ export function WebFrame({ children }: { children: ReactNode }) {
   if (state.kind === "ready") {
     return (
       <View style={{ flex: 1, flexDirection: "row", backgroundColor: colors.background }}>
-        <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={{ flexGrow: 1 }}>
+        {/* "noprint": the printed card has no sidebar (Baixar carteirinha, #233). */}
+        <ScrollView nativeID="noprint-sidebar" style={{ flexGrow: 0 }} contentContainerStyle={{ flexGrow: 1 }}>
           <Sidebar />
         </ScrollView>
         <View style={{ flex: 1 }}>{children}</View>
