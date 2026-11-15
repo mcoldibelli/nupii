@@ -9,6 +9,39 @@ A aplicação está publicada em [app.nupii.com.br](https://app.nupii.com.br), e
 
 O app (Expo, Android e web) consome a API própria, escrita em Go. A API usa o PostgreSQL e chama um serviço de IA em Python, que transforma a foto do focinho num vetor. O Firebase Authentication cuida das contas e das senhas.
 
+## Como avaliar
+
+### Online (o caminho mais curto)
+
+Abra **https://app.nupii.com.br** no navegador do computador ou do celular. Use a conta de demonstração, que vai junto da entrega (a senha não fica neste repositório), ou crie uma conta nova em "Criar conta".
+
+| O que testar | Onde | Item do enunciado |
+|---|---|---|
+| Criar conta, entrar, sair, entrar com o Google, "Esqueci minha senha" | Tela inicial → Entrar / Criar conta | 2.4 |
+| Rotas protegidas: sem login, `/v1/pets` responde 401 | `curl -i https://api.nupii.com.br/v1/pets` | 2.1, 2.4 |
+| CRUD de pets: criar, ver, editar, excluir | "Adicionar pet" e o perfil do pet | 2.2, 2.3 |
+| CRUD da saúde: vacina, remédio, consulta, exame, anotação, com lembrete | Saúde → "Anotar cuidado" | 2.2, 2.3 |
+| Carteirinha com link e QR code, aberta sem login | Saúde → "Enviar carteirinha"; abra o link numa janela anônima | 2.1 |
+| Mural com mapa, aviso de pet perdido, achado e avistamento | Mural; a folha "+" do início | 2.1, 2.5 (mapa) |
+| Focinho: cadastro com foto do rosto e identificação de um cão | "Escanear um focinho"; "Achei um cachorro" | 2.5 (IA) |
+
+Com a localização permitida, o mural e os mapas abrem onde a pessoa está.
+
+### Na própria máquina
+
+Requisitos: Docker com o Compose, o GitHub CLI (`gh auth login`, para baixar os pesos do modelo) e Node.js 22.13 ou mais novo (o `dev.sh` instala as dependências do app na primeira vez).
+
+```bash
+git clone https://github.com/mcoldibelli/nupii.git && cd nupii
+cp deploy/.env.example deploy/.env      # preencha POSTGRES_PASSWORD e S3_SECRET_ACCESS_KEY (openssl rand -hex 24)
+cp mobile/.env.example mobile/.env
+./inference/download_weights.sh
+./dev.sh emulador     # API, PostgreSQL, S3, IA e o emulador de contas do Firebase
+./dev.sh web          # outro terminal: http://localhost:8081
+```
+
+O modo `emulador` não precisa de conta no Firebase: crie uma conta de teste na própria tela. A API responde em `http://localhost:8080`, e o contrato dos endpoints está em [`api/openapi.yaml`](api/openapi.yaml). Os testes automatizados estão em [Como testar](#como-testar).
+
 ## Entregáveis
 
 | Entregável | Onde está |
