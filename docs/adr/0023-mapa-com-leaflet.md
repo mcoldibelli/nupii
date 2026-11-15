@@ -61,3 +61,7 @@ Continua sem verificação: o mapa em um aparelho real e no iOS.
 
 
 Referências: [Leaflet](https://leafletjs.com/reference.html), [política de uso dos quadros do OpenStreetMap](https://operations.osmfoundation.org/policies/tiles/), [react-native-webview](https://github.com/react-native-webview/react-native-webview/blob/master/docs/Reference.md), [Expo, WebView](https://docs.expo.dev/versions/latest/sdk/webview/).
+
+## Mudança de 2026-11-15 (#306)
+
+O mapa abre na posição da pessoa. A tela pega a posição com o `expo-location` ([ADR 0025](0025-localizacao-no-app.md)) e passa ao mapa, que mostra um ponto "Você está aqui". A página do mapa não pede mais a posição pelo `navigator.geolocation`: na web ela roda num `iframe` com `sandbox`, e o navegador bloqueia a localização ali. Os mapas de escolher um ponto (desaparecimento, avistamento, achado) pedem a posição só quando aparecem (`PickMap`). Sem a permissão, o mapa abre como antes: no primeiro aviso, ou no centro padrão.

@@ -7,7 +7,7 @@ import { SESSION_FAILURE } from "../../src/api/http";
 import { reportLost } from "../../src/api/reports";
 import { apiUrl } from "../../src/config";
 import type { MapPoint } from "../../src/map/mapHtml";
-import { MapView } from "../../src/map/MapView";
+import { PickMap } from "../../src/map/PickMap";
 import { REPORT_LIMITS, reportFailureMessage, toDetails, toOccurredAt } from "../../src/reports/form";
 import { useSession } from "../../src/session/SessionContext";
 import { Button } from "../../src/ui/Button";
@@ -78,7 +78,7 @@ export default function NewLostReport() {
         <View style={{ gap: 6 }}>
           <Label>Onde foi visto pela última vez</Label>
           <View style={local.mapFrame}>
-            <MapView markers={[]} onPick={setPoint} style={local.map} />
+            <PickMap onPick={setPoint} style={local.map} />
           </View>
           <View testID="lost-point" style={local.pointRow}>
             <Icon name={point === null ? "pin" : "check"} size={16} strokeWidth={2.4} color={point === null ? colors.textMuted : colors.success} />

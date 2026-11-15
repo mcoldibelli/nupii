@@ -226,7 +226,7 @@ export default function Board() {
               )}
             </ScrollView>
             <View style={local.wideMap}>
-              <MapView style={{ flex: 1 }} markers={reports.map((report) => ({ latitude: report.latitude, longitude: report.longitude, label: `${cardText(report).tag}: ${cardText(report).name}`, kind: "main" }))} />
+              <MapView here={center ?? null} style={{ flex: 1 }} markers={reports.map((report) => ({ latitude: report.latitude, longitude: report.longitude, label: `${cardText(report).tag}: ${cardText(report).name}`, kind: "main" }))} />
             </View>
           </View>
         </View>
@@ -280,7 +280,7 @@ export default function Board() {
       ) : (
         <ScrollView contentContainerStyle={local.content}>
           {/* The map of ADR 0023. A tap on a marker shows the name of the report. */}
-          <MapView style={local.map} markers={reports.map((report) => ({ latitude: report.latitude, longitude: report.longitude, label: `${cardText(report).tag}: ${cardText(report).name}`, kind: "main" }))} />
+          <MapView here={center ?? null} style={local.map} markers={reports.map((report) => ({ latitude: report.latitude, longitude: report.longitude, label: `${cardText(report).tag}: ${cardText(report).name}`, kind: "main" }))} />
           {error !== null && <ErrorText testID="board-error">{error}</ErrorText>}
           {reports.map(card)}
         </ScrollView>

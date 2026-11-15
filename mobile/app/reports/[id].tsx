@@ -8,6 +8,7 @@ import { formatDateTime } from "../../src/biometrics/messages";
 import { apiUrl, webUrl } from "../../src/config";
 import type { MapMarker, MapPoint } from "../../src/map/mapHtml";
 import { MapView } from "../../src/map/MapView";
+import { PickMap } from "../../src/map/PickMap";
 import { codeFromHash } from "../../src/reports/foundLink";
 import { REPORT_LIMITS, reportFailureMessage, reportTitle, toDetails } from "../../src/reports/form";
 import { speciesLabels } from "../../src/pets/labels";
@@ -236,7 +237,7 @@ export default function ReportDetail() {
         <ScrollView style={local.modal} contentContainerStyle={[local.modalContent, { paddingBottom: insets.bottom + space.xl }]} keyboardShouldPersistTaps="handled">
           <Text style={local.modalTitle}>Onde você viu {report.petName ?? "o pet"}?</Text>
           <Text style={local.muted}>Toque no mapa. Sem o ponto, vale o local do desaparecimento.</Text>
-          <MapView markers={[]} onPick={setPoint} style={local.map} />
+          <PickMap onPick={setPoint} style={local.map} />
           <Text testID="sighting-point" style={local.muted}>
             {point === null ? "Nenhum ponto escolhido." : "Ponto escolhido."}
           </Text>
