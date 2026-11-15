@@ -1,5 +1,5 @@
-# Production on the VPS (ADR 0029): the API, the inference service, Postgres
-# and the S3 server. Run by deploy/publish.sh as the project nupii-self, with
+# Production on the VPS (ADR 0029): the API, the inference service, Postgres,
+# the S3 server and the observability of ADR 0032. Run by deploy/publish.sh as the project nupii-self, with
 # the values of /opt/nupii-self/.env (not versioned; see deploy/.env.prod.example).
 # The ports are only on 127.0.0.1: the Caddy of the host is the way in.
 name: nupii-self
@@ -26,6 +26,8 @@ services:
       WEB_ORIGINS: https://app.nupii.com.br
       # ADR 0029, item 6: Caddy reaches the API through the gateway of this network.
       TRUSTED_PROXIES: 172.31.90.1/32
+      # ADR 0032, item 3: traces and metrics to the collector.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
     volumes:
       - /opt/nupii-self/secrets/firebase.json:/run/secrets/firebase.json:ro
     ports:
@@ -91,6 +93,68 @@ services:
       timeout: 2s
       retries: 30
 
+  # ADR 0032: Grafana, Loki, Tempo, Prometheus and the collector Alloy. Only
+  # Grafana has a port, on 127.0.0.1, for the Caddy block of grafana.nupii.com.br.
+  grafana:
+    image: grafana/grafana:13.3.1
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?}
+      GF_SERVER_ROOT_URL: https://grafana.nupii.com.br
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:8092:3000"
+    # Grafana used 255 MiB when it started on the local test (#241).
+    mem_limit: 384m
+
+  loki:
+    image: grafana/loki:3.7.10
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes:
+      - ./observability/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki-data:/loki
+    mem_limit: 384m
+
+  tempo:
+    image: grafana/tempo:3.1.1
+    restart: unless-stopped
+    command: ["-target=all", "-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./observability/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    mem_limit: 384m
+
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yaml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-otlp-receiver
+    volumes:
+      - ./observability/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - prometheus-data:/prometheus
+    mem_limit: 256m
+
+  alloy:
+    image: grafana/alloy:v1.22.0
+    restart: unless-stopped
+    command: ["run", "/etc/alloy/config.alloy", "--storage.path=/var/lib/alloy/data"]
+    volumes:
+      - ./observability/config.alloy:/etc/alloy/config.alloy:ro
+      # Alloy reads the logs of the containers of nupii-self from Docker. The
+      # socket gives the Docker API of the host; :ro does not limit it (ADR 0032).
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    mem_limit: 192m
+
 networks:
   default:
     ipam:
@@ -101,3 +165,7 @@ networks:
 volumes:
   db-data:
   s3-data:
+  grafana-data:
+  loki-data:
+  tempo-data:
+  prometheus-data:

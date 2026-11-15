@@ -44,7 +44,7 @@ git checkout main && git pull
 ./deploy/publish.sh
 ```
 
-O script envia o código, os pesos do modelo e a chave da conta de serviço pela conexão `ssh` (host `vps` do `~/.ssh/config`), monta a web com os endereços de produção e sobe o compose `nupii-self` (`deploy/compose.prod.yaml`). Na primeira vez, ele cria o `/opt/nupii-self/.env` com segredos aleatórios. Os blocos do Caddy ficam em `deploy/Caddyfile.nupii-self` e entram no Caddyfile da VPS uma vez só.
+O script envia o código, os pesos do modelo e a chave da conta de serviço pela conexão `ssh` (host `vps` do `~/.ssh/config`), monta a web com os endereços de produção e sobe o compose `nupii-self` (`deploy/compose.prod.yaml`). Na primeira vez, ele cria o `/opt/nupii-self/.env` com segredos aleatórios. Os blocos do Caddy ficam em `deploy/Caddyfile.nupii-self` e entram no Caddyfile da VPS uma vez só. Logs, traces e métricas ficam no Grafana, em `https://grafana.nupii.com.br` ([ADR 0032](docs/adr/0032-observabilidade-lgtm.md)), com o usuário `admin` e a senha `GRAFANA_ADMIN_PASSWORD` do `/opt/nupii-self/.env`. O script acrescenta essa senha a um `.env` antigo e não muda os outros valores.
 
 ## Como executar
 
