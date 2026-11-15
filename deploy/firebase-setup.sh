@@ -226,6 +226,9 @@ open_url "https://console.firebase.google.com/project/${FIREBASE_PROJECT_ID}/aut
 step "Em Authentication > Modelos, abra Redefinição de senha e clique no lápis."
 step "Clique em Personalizar URL de ação."
 step "Informe https://app.nupii.com.br/reset-password e salve."
+step "No mesmo modelo, em Nome do remetente, informe Nupii e salve."
+step "Em Configurações do projeto > Geral, em Nome exibido ao público, informe Nupii e salve."
+note "O app pede o e-mail em português (pt-BR). O nome público substitui o project-<número> do texto."
 note "Sem esse passo, o link do e-mail abre a página padrão do Firebase, e não a do Nupii."
 pause "A URL de ação aponta para /reset-password?"
 
