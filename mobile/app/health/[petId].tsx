@@ -11,12 +11,14 @@ import { itemLine, itemStatus, lateCare, tabs, type Status } from "../../src/hea
 import { careLine } from "../../src/health/care";
 import { dateText, eventTitle, type Preset } from "../../src/health/form";
 import { AnotarSheet } from "../../src/health/AnotarSheet";
+import { HealthWide } from "../../src/health/HealthWide";
 import { noseprintBadges } from "../../src/home/home";
 import { PetSwitcher } from "../../src/home/PetSwitcher";
 import { useSelectedPet } from "../../src/pets/SelectedPetContext";
 import { useSession } from "../../src/session/SessionContext";
 import { Icon, type IconName } from "../../src/ui/Icon";
 import { TabBar } from "../../src/ui/TabBar";
+import { useWide } from "../../src/ui/useWide";
 import { ErrorText } from "../../src/ui/Text";
 import { colors, fonts, radius, space } from "../../src/ui/theme";
 
@@ -36,6 +38,7 @@ export default function Health() {
   const { idToken } = useSession();
   const { select } = useSelectedPet();
   const insets = useSafeAreaInsets();
+  const wide = useWide();
   const [events, setEvents] = useState<HealthEvent[] | null>(null);
   const [care, setCare] = useState<UpcomingCare[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
@@ -79,6 +82,28 @@ export default function Health() {
   const shown = (events ?? []).filter((event) => event.type === tab);
   const lateTypes = new Set(care.filter((item) => item.dueDate < today).map((item) => item.type));
   const current = tabs.find((item) => item.type === tab)!;
+
+  const anotarSheet = (
+    <AnotarSheet
+      visible={sheet}
+      petName={petName}
+      onClose={() => setSheet(false)}
+      onPick={(type, preset) => {
+        setSheet(false);
+        open(type, preset ? { preset } : {});
+      }}
+    />
+  );
+
+  // Saude-Web artboard (#233): the sidebar of the WebFrame already lists the pets.
+  if (wide) {
+    return (
+      <View style={local.page}>
+        <HealthWide petId={petId} petName={petName} pet={pet} events={events} care={care} tab={tab} error={error} onTab={setTab} onOpen={open} onAnotar={() => setSheet(true)} />
+        {anotarSheet}
+      </View>
+    );
+  }
 
   return (
     <View style={local.page}>
@@ -177,15 +202,7 @@ export default function Health() {
       </ScrollView>
       <TabBar />
 
-      <AnotarSheet
-        visible={sheet}
-        petName={petName}
-        onClose={() => setSheet(false)}
-        onPick={(type, preset) => {
-          setSheet(false);
-          open(type, preset ? { preset } : {});
-        }}
-      />
+      {anotarSheet}
 
       <PetSwitcher
         visible={switcher}

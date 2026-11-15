@@ -27,6 +27,7 @@ import { Icon } from "../../src/ui/Icon";
 import { ErrorText, Label } from "../../src/ui/Text";
 import { colors, fonts, radius, space } from "../../src/ui/theme";
 import { ask } from "../../src/ui/ask";
+import { useWide } from "../../src/ui/useWide";
 
 /** The titles of the form of each category, as "Nova vacina" and "Dose de antipulgas" in the canvas. */
 const titles: Record<Category, [string, string]> = {
@@ -47,6 +48,7 @@ export default function HealthEventForm() {
   const { petId, petName, eventId, preset, from } = params;
   const { idToken } = useSession();
   const insets = useSafeAreaInsets();
+  const wide = useWide();
   const type = params.type;
   const [values, setValues] = useState<Values>(() => (preset && preset !== "again" ? presetValues(preset, undefined) : emptyValues()));
   const [attachments, setAttachments] = useState<HealthAttachment[]>([]);
@@ -238,25 +240,57 @@ export default function HealthEventForm() {
     );
   };
 
+  const close = (
+    <Pressable testID="close-event" accessibilityRole="button" accessibilityLabel="Fechar" style={local.close} onPress={() => router.back()}>
+      <Icon name="close" size={18} strokeWidth={2.4} />
+    </Pressable>
+  );
+  const heading = (
+    <Text style={local.heading} accessibilityRole="header">
+      {titles[category][eventId === undefined ? 0 : 1]}
+    </Text>
+  );
+  // Saude-Web-Registrar: two columns on a wide screen; the long text, the switch and the choices use the whole line.
+  const half = (field: Field) => wide && field.kind !== "long" && field.kind !== "switch" && field.kind !== "choice";
+
   return (
-    <View style={local.page}>
-      <ScrollView contentContainerStyle={[local.content, { paddingTop: insets.top + space.md }]} keyboardShouldPersistTaps="handled">
-        <View style={local.top}>
-          <Pressable testID="close-event" accessibilityRole="button" accessibilityLabel="Fechar" style={local.close} onPress={() => router.back()}>
-            <Icon name="close" size={18} strokeWidth={2.4} />
-          </Pressable>
-          {petName ? (
-            <View style={local.petChip}>
-              <Text style={local.petName}>{petName}</Text>
+    <View style={wide ? local.backdrop : local.page}>
+      {wide && <Pressable accessibilityLabel="Fechar" style={StyleSheet.absoluteFill} onPress={() => router.back()} />}
+      <View style={wide ? local.dialog : { flex: 1 }}>
+      <ScrollView contentContainerStyle={[local.content, wide ? local.dialogContent : { paddingTop: insets.top + space.md }]} keyboardShouldPersistTaps="handled">
+        {wide ? (
+          <View style={local.top}>
+            <View style={{ flex: 1, gap: 2 }}>
+              {heading}
+              {petName ? <Text style={local.muted}>Fica no histórico de {petName} e gera lembretes</Text> : null}
             </View>
-          ) : null}
+            {close}
+          </View>
+        ) : (
+          <>
+            <View style={local.top}>
+              {close}
+              {petName ? (
+                <View style={local.petChip}>
+                  <Text style={local.petName}>{petName}</Text>
+                </View>
+              ) : null}
+            </View>
+            {heading}
+          </>
+        )}
+        <View style={wide ? local.fields : { gap: 14 }}>
+          <View style={wide ? local.half : undefined}>
+            {/* RN-76: a data do evento não é futura. */}
+            <DateField testID="field-date" label="Data" noFuture value={values.date} onChange={(value) => set("date", value)} />
+          </View>
+          {/* As in the canvas, the reminder closes the form on a wide screen. */}
+          {(wide ? [...categoryFields(category).filter((field) => field.kind !== "switch"), ...categoryFields(category).filter((field) => field.kind === "switch")] : categoryFields(category)).map((field) => (
+            <View key={field.key} style={wide ? (half(field) ? local.half : local.whole) : undefined}>
+              {input(field)}
+            </View>
+          ))}
         </View>
-        <Text style={local.heading} accessibilityRole="header">
-          {titles[category][eventId === undefined ? 0 : 1]}
-        </Text>
-        {/* RN-76: a data do evento não é futura. */}
-        <DateField testID="field-date" label="Data" noFuture value={values.date} onChange={(value) => set("date", value)} />
-        {categoryFields(category).map(input)}
         <Input testID="field-notes" label="Observações" multiline style={local.long} value={values.notes} onChangeText={(value) => set("notes", value)} />
 
         {eventId !== undefined && (
@@ -284,8 +318,16 @@ export default function HealthEventForm() {
         {error !== null && <ErrorText testID="event-error">{error}</ErrorText>}
         {eventId !== undefined && <Button testID="delete-event" label="Apagar evento" variant="soft" size="md" onPress={confirmDelete} />}
       </ScrollView>
-      <View style={[local.footer, { paddingBottom: insets.bottom + space.lg }]}>
-        <Button testID="save-event" label="Salvar" busy={busy} onPress={() => void save()} />
+      {wide ? (
+        <View style={local.dialogFooter}>
+          <Button label="Cancelar" variant="outline" size="md" stretch={false} onPress={() => router.back()} />
+          <Button testID="save-event" label="Salvar" size="md" stretch={false} busy={busy} onPress={() => void save()} />
+        </View>
+      ) : (
+        <View style={[local.footer, { paddingBottom: insets.bottom + space.lg }]}>
+          <Button testID="save-event" label="Salvar" busy={busy} onPress={() => void save()} />
+        </View>
+      )}
       </View>
     </View>
   );
@@ -312,4 +354,11 @@ const local = StyleSheet.create({
   link: { fontFamily: fonts.bodySemibold, fontSize: 15, color: colors.link },
   remove: { fontFamily: fonts.bodySemibold, fontSize: 15, color: colors.dangerText },
   footer: { paddingHorizontal: space.xl, paddingTop: space.md, backgroundColor: colors.background },
+  backdrop: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: "rgba(24, 22, 26, 0.45)" },
+  dialog: { width: "100%", maxWidth: 640, maxHeight: "100%", borderRadius: 28, backgroundColor: colors.background, overflow: "hidden" },
+  dialogContent: { paddingHorizontal: 24, paddingTop: 24 },
+  dialogFooter: { flexDirection: "row", justifyContent: "flex-end", gap: 10, padding: 16, paddingHorizontal: 24, borderTopWidth: 1, borderTopColor: colors.border },
+  fields: { flexDirection: "row", flexWrap: "wrap", columnGap: 14, rowGap: 14 },
+  half: { flexBasis: "48%" },
+  whole: { flexBasis: "100%" },
 });

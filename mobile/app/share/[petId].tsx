@@ -1,7 +1,7 @@
 import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Linking, Modal, Pressable, ScrollView, Share, StyleSheet, Switch, Text, View } from "react-native";
+import { Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Switch, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getNoseprint } from "../../src/api/biometrics";
@@ -34,7 +34,7 @@ function shortName(name: string): string {
 
 /** The health card of a pet for its owner (Carteirinha-Mobile artboard), and the links to share it (RF-30). */
 export default function OwnerCard() {
-  const { petId, petName } = useLocalSearchParams<{ petId: string; petName: string }>();
+  const { petId, petName, print } = useLocalSearchParams<{ petId: string; petName: string; print?: string }>();
   const { idToken, state } = useSession();
   const insets = useSafeAreaInsets();
   const [card, setCard] = useState<HealthCard | null>(null);
@@ -49,6 +49,13 @@ export default function OwnerCard() {
   const [busy, setBusy] = useState(false);
   // "Copiado" shows for 2 seconds after the copy of the link (ADR 0031).
   const [copied, setCopied] = useState(false);
+
+  // "Baixar carteirinha" of the Saude-Web artboard: the browser prints the card, or saves it as PDF (#233).
+  useEffect(() => {
+    if (print === "1" && Platform.OS === "web" && card !== null) {
+      window.print();
+    }
+  }, [print, card]);
 
   /** Calls the API with the ID token, and shows the failure. */
   const withToken = useCallback(

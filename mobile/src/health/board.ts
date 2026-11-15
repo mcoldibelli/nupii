@@ -61,3 +61,14 @@ export function itemLine(event: HealthEvent): string {
   const parts = [dateText(event.date), event.vet ?? event.clinic ?? event.lab, event.dosage, event.frequency];
   return parts.filter((part) => part !== undefined && part !== "").join(" · ");
 }
+
+/** The second line of a row of the wide table: what the columns of date and professional do not show (Saude-Web artboard). */
+export function itemDetail(event: HealthEvent): string {
+  const parts = [event.dose, event.batch && `lote ${event.batch}`, event.dosage, event.frequency, event.reason, event.diagnosis, event.result];
+  return parts.filter((part) => part !== undefined && part !== "").join(" · ");
+}
+
+/** The care late or due in the next days, oldest first ("Próximos 60 dias" of the Saude-Web artboard, RN-81). */
+export function careWithin(care: UpcomingCare[], days: number, now: Date = new Date()): UpcomingCare[] {
+  return care.filter((item) => daysUntil(item.dueDate, now) <= days).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+}
