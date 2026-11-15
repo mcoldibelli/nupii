@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
@@ -105,4 +107,37 @@ func TestRequestLogLinksTheLogToTheTrace(t *testing.T) {
 			t.Errorf("log line %q has trace_id %v, want %s", line["msg"], line["trace_id"], traceID)
 		}
 	}
+}
+
+// #303: the HTTP metrics have the route, as "/v1/pets/{petId}", so Grafana
+// shows the latency and the errors of each endpoint.
+func TestRequestLogPutsTheRouteInTheMetrics(t *testing.T) {
+	reader := sdkmetric.NewManualReader()
+	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /v1/pets/{petId}", func(w http.ResponseWriter, r *http.Request) {})
+	logger := slog.New(slog.DiscardHandler)
+	handler := otelhttp.NewHandler(httpx.RequestLog(logger)(mux), "http", otelhttp.WithMeterProvider(provider))
+
+	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/v1/pets/0193", nil))
+
+	var metrics metricdata.ResourceMetrics
+	if err := reader.Collect(t.Context(), &metrics); err != nil {
+		t.Fatalf("collect: %v", err)
+	}
+	for _, scope := range metrics.ScopeMetrics {
+		for _, metric := range scope.Metrics {
+			if metric.Name != "http.server.request.duration" {
+				continue
+			}
+			histogram := metric.Data.(metricdata.Histogram[float64])
+			for _, point := range histogram.DataPoints {
+				if route, ok := point.Attributes.Value("http.route"); ok && route.AsString() == "/v1/pets/{petId}" {
+					return
+				}
+			}
+			t.Fatalf("http.server.request.duration has no http.route /v1/pets/{petId}: %+v", histogram.DataPoints)
+		}
+	}
+	t.Fatal("no http.server.request.duration metric")
 }

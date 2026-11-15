@@ -101,6 +101,10 @@ services:
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?}
+      # The data source of the counts of the database (#303): the role
+      # metrics_reader, which reads only the views of the schema metrics.
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:?}
+      NUPII_DB: ${POSTGRES_DB:?}
       GF_SERVER_ROOT_URL: http://localhost:3000
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
