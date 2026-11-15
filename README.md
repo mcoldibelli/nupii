@@ -71,7 +71,7 @@ O CI roda os mesmos testes em cada PR (`.github/workflows/`).
 
 ## Publicação
 
-A publicação vai para uma VPS com `./deploy/publish.sh`, a partir do `main`. O processo está no [ADR 0029](docs/adr/0029-publicacao-na-vps.md), e a observabilidade (Grafana) no [ADR 0032](docs/adr/0032-observabilidade-lgtm.md).
+A publicação vai para uma VPS com `./deploy/publish.sh`, a partir do `main`. O processo está no [ADR 0029](docs/adr/0029-publicacao-na-vps.md), e a observabilidade no [ADR 0032](docs/adr/0032-observabilidade-lgtm.md). O Grafana é de uso interno e abre só por túnel SSH: `ssh -L 3000:127.0.0.1:8092 vps`, depois `http://localhost:3000`, com o usuário `admin` e a senha `GRAFANA_ADMIN_PASSWORD` do `/opt/nupii-self/.env`.
 
 ## Regras do projeto
 

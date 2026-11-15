@@ -94,13 +94,14 @@ services:
       retries: 30
 
   # ADR 0032: Grafana, Loki, Tempo, Prometheus and the collector Alloy. Only
-  # Grafana has a port, on 127.0.0.1, for the Caddy block of grafana.nupii.com.br.
+  # Grafana has a port, on 127.0.0.1 and with no Caddy block: open it with an
+  # SSH tunnel (ssh -L 3000:127.0.0.1:8092 vps, then http://localhost:3000).
   grafana:
     image: grafana/grafana:13.3.1
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?}
-      GF_SERVER_ROOT_URL: https://grafana.nupii.com.br
+      GF_SERVER_ROOT_URL: http://localhost:3000
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_ANALYTICS_REPORTING_ENABLED: "false"

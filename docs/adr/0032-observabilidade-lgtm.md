@@ -27,7 +27,7 @@ A VPS tem 2 CPU e 7,8 GB de RAM e também roda outro sistema. A imagem `grafana/
    - cada linha de log com o `trace_id` da requisição, para ligar o log ao trace no Grafana.
 5. O serviço de inferência entra só com os logs. O trace da chamada sai da API.
 6. Retenção: 7 dias para logs e traces, 30 dias para métricas. Os logs podem ter dados pessoais, e 7 dias fica dentro do prazo de 30 dias de RN-42.
-7. O Grafana abre em `https://grafana.nupii.com.br`, por um bloco novo no Caddy do host, com a porta só em `127.0.0.1` (8092). O login do Grafana fica ligado, sem acesso anônimo e sem cadastro aberto. A senha do administrador fica no `.env` da VPS. Loki, Tempo, Prometheus e Alloy não têm porta fora da rede do compose.
+7. O Grafana não tem endereço na internet: ele é de uso interno. A porta fica só em `127.0.0.1` (8092), sem bloco no Caddy, e o acesso é por túnel SSH: `ssh -L 3000:127.0.0.1:8092 vps` e `http://localhost:3000` (#293; antes era `https://grafana.nupii.com.br`, com a tela de login aberta para a internet). O login do Grafana fica ligado, sem acesso anônimo e sem cadastro aberto. A senha do administrador fica no `.env` da VPS. Loki, Tempo, Prometheus e Alloy não têm porta fora da rede do compose.
 
 ## Alternativas
 
@@ -39,7 +39,7 @@ A VPS tem 2 CPU e 7,8 GB de RAM e também roda outro sistema. A imagem `grafana/
 ## Consequências
 
 - Cinco containers a mais na VPS. A issue #241 mede a memória com `docker stats` e fixa os limites.
-- O registro DNS de `grafana.nupii.com.br` é criado pelo responsável pelo produto.
+- Só quem tem acesso SSH à VPS abre o Grafana. O registro DNS de `grafana.nupii.com.br` ficou sem uso.
 - O envio dos traces é assíncrono (processador em lote do SDK): a requisição não espera o Alloy. Uma falha do Alloy perde dados de telemetria, não requisições.
 - A observabilidade não tem cópia de segurança: 7 e 30 dias de dados podem ser perdidos.
 - O Alloy lê os logs pelo socket do Docker da VPS, montado como `:ro`. O `:ro` não limita a API do Docker: quem controla o Alloy controla o Docker do host, que também roda o `nupii-hml`. O Alloy não tem porta fora da rede do compose, e o filtro `com.docker.compose.project=nupii-self` limita os logs lidos ao projeto. A alternativa sem o socket é o driver de log do Docker mandar os logs ao Loki, o que muda a configuração do Docker do host.
