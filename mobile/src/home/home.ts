@@ -65,3 +65,19 @@ export function unreadCount(notifications: { read: boolean }[]): number {
 export function noseprintBadges(pets: Pick<Pet, "id" | "species" | "hasNoseprint">[]): Record<string, boolean> {
   return Object.fromEntries(pets.filter((pet) => pet.species === "dog").map((pet) => [pet.id, pet.hasNoseprint === true]));
 }
+
+/** The three numbers of the pet card of Inicio-Web (#233): age, weight and birth date. */
+export function petStats(pet: Pick<Pet, "birthDate" | "weightKg">, now: Date = new Date()): { label: string; value: string }[] {
+  const [year, month, day] = pet.birthDate?.split("-") ?? [];
+  return [
+    { label: "Idade", value: pet.birthDate ? age(pet.birthDate, now) : "—" },
+    { label: "Peso", value: pet.weightKg !== undefined ? `${String(pet.weightKg).replace(".", ",")} kg` : "—" },
+    { label: "Nasceu", value: pet.birthDate ? `${day}/${month}/${year.slice(2)}` : "—" },
+  ];
+}
+
+/** The days of a month (0 is January) with a care of the pet, for the calendar of Inicio-Web (#233). */
+export function careDays(care: { petId: string; dueDate: string }[], petId: string, year: number, month: number): Set<number> {
+  const prefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
+  return new Set(care.filter((item) => item.petId === petId && item.dueDate.startsWith(prefix)).map((item) => Number(item.dueDate.slice(8))));
+}
