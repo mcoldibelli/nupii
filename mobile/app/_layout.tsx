@@ -87,6 +87,7 @@ function Screens() {
         <Stack.Screen name="card" options={{ headerShown: false }} />
         <Stack.Screen name="landing" options={{ headerShown: false }} />
         <Stack.Screen name="terms" options={{ title: "Termos de uso" }} />
+        <Stack.Screen name="reset-password" options={{ headerShown: false }} />
       </Stack>
       </WebFrame>
     );
@@ -158,6 +159,7 @@ function Screens() {
       <Stack.Protected guard={false}>
         <Stack.Screen name="card" options={{ headerShown: false }} />
         <Stack.Screen name="landing" options={{ headerShown: false }} />
+        <Stack.Screen name="reset-password" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>
     </WebFrame>

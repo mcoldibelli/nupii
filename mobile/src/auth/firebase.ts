@@ -2,6 +2,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FirebaseError, initializeApp } from "firebase/app";
 import {
+  confirmPasswordReset,
   connectAuthEmulator,
   createUserWithEmailAndPassword,
   EmailAuthProvider,
@@ -16,6 +17,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   updatePassword,
+  verifyPasswordResetCode,
   type Auth,
   type AuthCredential,
 } from "firebase/auth";
@@ -23,7 +25,7 @@ import {
 import { Platform } from "react-native";
 
 import { authEmulatorUrl, firebaseConfig } from "../config";
-import { authMessage, googleMessage, resetMessage } from "./messages";
+import { authMessage, googleMessage, resetCodeMessage, resetMessage } from "./messages";
 import { reauthenticateWithPopup, signInWithPopup } from "./popup";
 
 let instance: Auth | null = null;
@@ -150,6 +152,28 @@ export async function sendPasswordReset(email: string): Promise<string | null> {
     return null;
   } catch (error) {
     return resetMessage(error instanceof FirebaseError ? error.code : "");
+  }
+}
+
+/**
+ * Checks the code of the link of the reset e-mail (RF-05). Returns the e-mail
+ * of the account, or the message of a link that does not work.
+ */
+export async function checkResetCode(code: string): Promise<{ email: string } | { message: string }> {
+  try {
+    return { email: await verifyPasswordResetCode(auth(), code) };
+  } catch (error) {
+    return { message: resetCodeMessage(error instanceof FirebaseError ? error.code : "") };
+  }
+}
+
+/** Saves the new password of the link of the reset e-mail (RF-05). Returns null, or the message of the failure. */
+export async function resetPassword(code: string, password: string): Promise<string | null> {
+  try {
+    await confirmPasswordReset(auth(), code, password);
+    return null;
+  } catch (error) {
+    return resetCodeMessage(error instanceof FirebaseError ? error.code : "");
   }
 }
 

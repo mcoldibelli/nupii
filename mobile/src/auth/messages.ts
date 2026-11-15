@@ -43,3 +43,18 @@ export function googleMessage(code: string): string | null {
       return authMessage(code);
   }
 }
+
+/** The message of a link of the reset e-mail that does not work (RF-05). */
+export function resetCodeMessage(code: string): string {
+  switch (code) {
+    case "auth/expired-action-code":
+      return "O link venceu. Peça um link novo.";
+    case "auth/invalid-action-code":
+      return "Este link não vale mais: ele já foi usado ou está incompleto. Peça um link novo.";
+    case "auth/user-disabled":
+    case "auth/user-not-found":
+      return "Esta conta não existe mais.";
+    default:
+      return authMessage(code);
+  }
+}

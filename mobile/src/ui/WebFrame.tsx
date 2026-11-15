@@ -117,7 +117,7 @@ function VisitorHeader() {
   );
 }
 
-const authPaths = ["/sign-in", "/forgot-password"];
+const authPaths = ["/sign-in", "/forgot-password", "/reset-password"];
 
 /**
  * The frame of the web layout (#231): on a wide screen, the sidebar for an
