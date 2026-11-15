@@ -27,7 +27,7 @@ app.nupii.com.br {
 		# The login with Google (#153) loads apis.google.com and the iframe of
 		# the auth domain of Firebase.
 		# No 'unsafe-eval': the web has no HEIC converter (decision of #270).
-		Content-Security-Policy "default-src 'self'; script-src 'self' https://unpkg.com https://apis.google.com 'sha256-UBT6dm6TilJSBon1wuhw/gM46v2tIVIsiwOOa31M7S0='; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https://media.nupii.com.br https://tile.openstreetmap.org https://unpkg.com; font-src 'self' data:; connect-src 'self' blob: data: https://api.nupii.com.br https://media.nupii.com.br https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://nupii-own.firebaseapp.com; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		Content-Security-Policy "default-src 'self'; script-src 'self' https://unpkg.com https://apis.google.com 'sha256-VVkWnEfZKbTOafVGdg04fyFk6+l4Yu39aD4Pn1+M3i8='; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https://media.nupii.com.br https://tile.openstreetmap.org https://unpkg.com; font-src 'self' data:; connect-src 'self' blob: data: https://api.nupii.com.br https://media.nupii.com.br https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://nupii-own.firebaseapp.com; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 	}
 	# One page for every route of the app (Expo Router on the web).
 	try_files {path} {path}.html /index.html

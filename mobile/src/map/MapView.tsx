@@ -8,15 +8,17 @@ export type MapViewProps = {
   markers: MapMarker[];
   /** When set, the person chooses a point with a tap. */
   onPick?: (point: MapPoint) => void;
+  /** The position of the person: the map starts there (#306). */
+  here?: MapPoint | null;
   style?: StyleProp<ViewStyle>;
 };
 
 /** The map of ADR 0023 in the app: the map page in a WebView. */
-export function MapView({ markers, onPick, style }: MapViewProps) {
-  const key = JSON.stringify(markers);
+export function MapView({ markers, onPick, here = null, style }: MapViewProps) {
+  const key = JSON.stringify([markers, here]);
   const pickable = onPick !== undefined;
-  // key has the markers: the page is made again only when they change.
-  const html = useMemo(() => mapHtml({ markers, pickable }), [key, pickable]);
+  // key has the markers and the position: the page is made again only when they change.
+  const html = useMemo(() => mapHtml({ markers, pickable, here }), [key, pickable]);
   return (
     <WebView
       testID="map"
@@ -29,7 +31,6 @@ export function MapView({ markers, onPick, style }: MapViewProps) {
         }
         return action === "allow";
       }}
-      geolocationEnabled
       style={style}
       onMessage={(event) => {
         const point = parsePick(event.nativeEvent.data);
