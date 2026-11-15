@@ -8,6 +8,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+
 	"github.com/mcoldibelli/nupii/backend/internal/platform/httpx"
 )
 
@@ -70,5 +74,35 @@ func TestRequestLogGivesEachRequestADifferentID(t *testing.T) {
 	a, b := first.Header().Get(httpx.RequestIDHeader), second.Header().Get(httpx.RequestIDHeader)
 	if a == "" || a == b {
 		t.Errorf("request ids = %q and %q, want two different values", a, b)
+	}
+}
+
+// ADR 0032, item 4: the log lines of a request have the trace_id of its span,
+// and the span has the name of the route, not the path with the identifiers.
+func TestRequestLogLinksTheLogToTheTrace(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(httpx.NewLogHandler(slog.NewJSONHandler(&buf, nil)))
+	recorder := tracetest.NewSpanRecorder()
+	provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(recorder))
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /v1/pets/{petId}", func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "inside handler")
+	})
+	handler := otelhttp.NewHandler(httpx.RequestLog(logger)(mux), "http", otelhttp.WithTracerProvider(provider))
+
+	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/v1/pets/0193", nil))
+
+	spans := recorder.Ended()
+	if len(spans) != 1 {
+		t.Fatalf("got %d spans, want 1", len(spans))
+	}
+	if got := spans[0].Name(); got != "GET /v1/pets/{petId}" {
+		t.Errorf("span name = %q, want GET /v1/pets/{petId}", got)
+	}
+	traceID := spans[0].SpanContext().TraceID().String()
+	for _, line := range logLines(t, &buf) {
+		if line["trace_id"] != traceID {
+			t.Errorf("log line %q has trace_id %v, want %s", line["msg"], line["trace_id"], traceID)
+		}
 	}
 }

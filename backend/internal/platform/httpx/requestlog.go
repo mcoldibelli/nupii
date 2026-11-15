@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 // RequestIDHeader is the response header that has the request identifier.
@@ -19,8 +21,9 @@ type logHandler struct {
 	slog.Handler
 }
 
-// NewLogHandler wraps next. The returned handler adds the attribute
-// request_id to each record that is logged with the context of a request.
+// NewLogHandler wraps next. The returned handler adds the attributes
+// request_id and trace_id to each record that is logged with the context of
+// a request.
 // Use the Context functions of slog (InfoContext, ErrorContext) so that the
 // handler gets that context.
 func NewLogHandler(next slog.Handler) slog.Handler {
@@ -30,6 +33,10 @@ func NewLogHandler(next slog.Handler) slog.Handler {
 func (h logHandler) Handle(ctx context.Context, record slog.Record) error {
 	if id, ok := ctx.Value(requestIDKey{}).(string); ok {
 		record.AddAttrs(slog.String("request_id", id))
+	}
+	// ADR 0032, item 4: Grafana opens the trace of a log line by this value.
+	if span := trace.SpanContextFromContext(ctx); span.HasTraceID() {
+		record.AddAttrs(slog.String("trace_id", span.TraceID().String()))
 	}
 	return h.Handler.Handle(ctx, record)
 }
@@ -62,7 +69,13 @@ func RequestLog(logger *slog.Logger) func(http.Handler) http.Handler {
 			w.Header().Set(RequestIDHeader, id)
 
 			rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
-			next.ServeHTTP(rec, r.WithContext(ctx))
+			req := r.WithContext(ctx)
+			next.ServeHTTP(rec, req)
+			// The mux writes the route on req. The span gets its name, as
+			// "GET /v1/pets/{petId}", and not the path with the identifiers.
+			if req.Pattern != "" {
+				trace.SpanFromContext(ctx).SetName(req.Pattern)
+			}
 
 			logger.LogAttrs(ctx, slog.LevelInfo, "http request",
 				slog.String("method", r.Method),

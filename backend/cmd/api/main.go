@@ -27,6 +27,7 @@ import (
 	"github.com/mcoldibelli/nupii/backend/internal/platform/jobs"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/postgres"
 	"github.com/mcoldibelli/nupii/backend/internal/platform/storage"
+	"github.com/mcoldibelli/nupii/backend/internal/platform/telemetry"
 )
 
 const (
@@ -50,6 +51,9 @@ const (
 	// _shutdownTimeout is the time the requests in progress have to end
 	// after the process gets a stop signal.
 	_shutdownTimeout = 10 * time.Second
+	// _telemetryStopTimeout is the time the spans and the metrics that wait
+	// have to reach the collector when the process stops (ADR 0032).
+	_telemetryStopTimeout = 5 * time.Second
 )
 
 func main() {
@@ -85,6 +89,21 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 		return fmt.Errorf("load configuration: %w", err)
 	}
 	logger := slog.New(httpx.NewLogHandler(slog.NewJSONHandler(logOutput, nil)))
+
+	// ADR 0032, item 3: the export starts only with OTEL_EXPORTER_OTLP_ENDPOINT.
+	// run owns the providers: it stops them last, after the HTTP server and
+	// the background work, so their last spans are sent.
+	stopTelemetry, err := telemetry.Start(ctx, getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+	if err != nil {
+		return fmt.Errorf("start telemetry: %w", err)
+	}
+	defer func() {
+		stopCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), _telemetryStopTimeout)
+		defer cancel()
+		if err := stopTelemetry(stopCtx); err != nil {
+			logger.WarnContext(ctx, "telemetry stopped with an error", slog.Any("error", err))
+		}
+	}()
 
 	startCtx, cancelStart := context.WithTimeout(ctx, _databaseStartTimeout)
 	defer cancelStart()
