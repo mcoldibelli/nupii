@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -22,11 +23,15 @@ import { useWide } from "../../src/ui/useWide";
 
 type Step = { kind: "intro" } | { kind: "capture"; slot: 0 | 1 } | { kind: "review" };
 
+// ADR 0036: the service finds the nose in a photo of the face and crops it.
 const tips: { icon: IconName; text: string }[] = [
-  { icon: "frame", text: "Encha o quadrado só com o focinho" },
+  { icon: "frame", text: "O rosto de frente, com o focinho no centro" },
   { icon: "sun", text: "Luz natural, sem reflexo de flash" },
-  { icon: "phone", text: "Celular a uns 10 cm, bem firme" },
+  { icon: "phone", text: "Celular a uns 20 cm, bem firme" },
 ];
+
+/** The camera of the phone shows the live image in the capture step; the web opens the photo chooser of the browser. */
+const liveCamera = Platform.OS !== "web";
 
 /**
  * Step 2 of the registration of a dog (RF-11): two photos of the nose, each
@@ -42,6 +47,9 @@ export default function NoseprintScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [registered, setRegistered] = useState(0);
+  const camera = useRef<CameraView>(null);
+  const [permission, requestPermission] = useCameraPermissions();
+  const [cameraReady, setCameraReady] = useState(false);
   // The browser of a computer gets the Focinho-Web artboard (#272); a tablet keeps the camera flow.
   const webWide = useWide() && Platform.OS === "web";
   const close = () => (router.canGoBack() ? router.back() : router.replace("/"));
@@ -65,9 +73,22 @@ export default function NoseprintScreen() {
     }
   }
 
+  // The live camera asks for its permission when the capture step opens.
+  useEffect(() => {
+    if (liveCamera && step.kind === "capture" && permission !== null && !permission.granted && permission.canAskAgain) {
+      void requestPermission();
+    }
+  }, [step.kind, permission, requestPermission]);
+
+  /** The photo of the live camera. quality 0.9: one compression from the sensor, under the 8 MB of RN-59. */
+  async function shoot(): Promise<LocalFile | null> {
+    const picture = await camera.current?.takePictureAsync({ quality: 0.9 });
+    return picture ? { uri: picture.uri } : null;
+  }
+
   async function capture(slot: 0 | 1, fromGallery: boolean) {
     setError(null);
-    const file = fromGallery ? await pickPhoto(NOSE_PHOTO_QUALITY) : await takePhoto(true);
+    const file = fromGallery ? await pickPhoto(NOSE_PHOTO_QUALITY) : liveCamera ? await shoot() : await takePhoto();
     if (file === "denied") {
       setError("O app não tem permissão para usar a câmera. Escolha uma foto da galeria.");
       return;
@@ -134,6 +155,7 @@ export default function NoseprintScreen() {
     return (
       <View style={[page, local.dark]}>
         <StatusBar style="light" />
+        {liveCamera && permission?.granted && <CameraView ref={camera} style={StyleSheet.absoluteFill} facing="back" onCameraReady={() => setCameraReady(true)} />}
         <View style={local.captureTop}>
           <Pressable testID="capture-back" accessibilityRole="button" accessibilityLabel="Voltar" style={local.darkButton} onPress={() => setStep(shots[0] ? { kind: "review" } : { kind: "intro" })}>
             <Icon name="back" size={18} strokeWidth={2.4} color={colors.onDark} />
@@ -145,7 +167,7 @@ export default function NoseprintScreen() {
         </View>
         <View style={local.guideArea}>
           <View style={local.tipPill}>
-            <Text style={local.tipPillText}>Encha o quadrado só com o focinho</Text>
+            <Text style={local.tipPillText}>O rosto de frente, bem de perto</Text>
           </View>
           <View style={local.guide}>
             {(["tl", "tr", "bl", "br"] as const).map((corner) => (
@@ -153,7 +175,13 @@ export default function NoseprintScreen() {
             ))}
           </View>
         </View>
-        <Text style={local.guideText}>Só o que está dentro do quadrado é usado</Text>
+        <Text style={local.guideText}>
+          {liveCamera && permission !== null && !permission.granted
+            ? "O app não tem permissão para usar a câmera. Escolha uma foto da galeria, no canto de cima."
+            : liveCamera
+              ? "Enquadre o rosto e deixe o focinho no centro. O app recorta o focinho."
+              : "Toque no botão para tirar a foto do rosto, com o focinho no centro."}
+        </Text>
         <View style={local.captureBottom}>
           <View style={{ flexDirection: "row", gap: 10, flex: 1 }}>
             {shots.map((shot, index) => (
@@ -162,7 +190,15 @@ export default function NoseprintScreen() {
               </View>
             ))}
           </View>
-          <Pressable testID="shutter-button" accessibilityRole="button" accessibilityLabel="Tirar a foto" style={local.shutter} onPress={() => void capture(slot, false)}>
+          <Pressable
+            testID="shutter-button"
+            accessibilityRole="button"
+            accessibilityLabel="Tirar a foto"
+            accessibilityState={{ disabled: liveCamera && !cameraReady }}
+            disabled={liveCamera && !cameraReady}
+            style={[local.shutter, liveCamera && !cameraReady && { opacity: 0.4 }]}
+            onPress={() => void capture(slot, false)}
+          >
             <View style={local.shutterInner} />
           </Pressable>
           <View style={{ flex: 1 }} />
@@ -249,7 +285,7 @@ export default function NoseprintScreen() {
         <Text style={local.title} accessibilityRole="header">
           Agora, o focinho
         </Text>
-        <Text style={local.subtitle}>2 fotos bem de perto, só do focinho.</Text>
+        <Text style={local.subtitle}>2 fotos do rosto, de frente e bem de perto. O app recorta o focinho.</Text>
       </View>
       <View style={{ flexDirection: "row", gap: 12 }}>
         {[true, false].map((ok) => (
@@ -260,7 +296,7 @@ export default function NoseprintScreen() {
                 <Icon name={ok ? "check" : "close"} size={14} strokeWidth={3} color={colors.onPrimary} />
               </View>
             </View>
-            <Text style={[local.exampleText, { color: ok ? colors.success : colors.dangerText }]}>{ok ? "Assim: só o focinho" : "Não: de longe"}</Text>
+            <Text style={[local.exampleText, { color: ok ? colors.success : colors.dangerText }]}>{ok ? "Assim: o rosto de perto" : "Não: de longe"}</Text>
           </View>
         ))}
       </View>

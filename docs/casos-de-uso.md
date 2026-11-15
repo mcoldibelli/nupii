@@ -97,8 +97,8 @@ flowchart LR
 ### UC-06 Cadastrar o focinho
 
 - **Ator:** Tutor. **RF:** RF-11.
-- **Fluxo:** o tutor tira ou escolhe duas fotos do focinho. Na web ele recorta o focinho. O serviço de inferência confere a foto e gera o vetor, e a API grava o focinho.
-- **Exceções:** foto sem focinho, borrada ou pequena demais.
+- **Fluxo:** o tutor tira ou escolhe duas fotos do rosto do cão, de frente e de perto. No app, a câmera aparece ao vivo; na web, ele ajusta um quadrado em volta do rosto. O serviço de inferência acha o focinho, recorta o focinho e gera o vetor do recorte, e a API grava o focinho.
+- **Exceções:** foto sem focinho, borrada, ou de longe (o focinho fica pequeno demais no recorte).
 
 ### UC-07 Ver o início
 

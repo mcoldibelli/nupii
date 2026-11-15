@@ -13,7 +13,7 @@ import { useWide } from "../src/ui/useWide";
 const create: Href = { pathname: "/sign-in", params: { mode: "create" } };
 
 const steps = [
-  { n: "1", title: "Cadastre o focinho", text: "Duas fotos bem de perto, pela câmera do celular ou enviando fotos que você já tem. O focinho vira a identidade do seu cachorro.", tags: ["2 fotos", "Pelo celular ou computador"], background: colors.brand, color: colors.ink },
+  { n: "1", title: "Cadastre o focinho", text: "Duas fotos do rosto, de frente e bem de perto, pela câmera do celular ou enviando fotos que você já tem. O focinho vira a identidade do seu cachorro.", tags: ["2 fotos", "Pelo celular ou computador"], background: colors.brand, color: colors.ink },
   { n: "2", title: "Cuide da saúde", text: "Vacinas, antipulgas, consultas e peso num histórico só, com lembretes e uma carteirinha digital para mandar ao veterinário.", tags: ["Lembretes", "Carteirinha com QR"], background: colors.accent, color: colors.onPrimary },
   { n: "3", title: "Reencontre", text: "Se ele sumir, avisamos quem está perto. Quem encontrar escaneia o focinho e você recebe o aviso na hora.", tags: ["Alerta no bairro", "Mural aberto"], background: colors.surface, color: colors.ink },
 ];
@@ -181,7 +181,7 @@ export default function Landing() {
         </View>
         <View style={{ flex: 1, gap: 10 }}>
           {[
-            ["1", "Aponte a câmera para o focinho", "bem de perto, dentro do quadrado"],
+            ["1", "Aponte a câmera para o rosto", "de frente, bem de perto, com o focinho no centro"],
             ["2", "Veja os cachorros parecidos", "com a foto de cada um, sem dados do tutor"],
             ["3", "Avise o tutor", "ele recebe o seu contato na hora"],
           ].map(([n, title, text]) => (

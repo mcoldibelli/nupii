@@ -24,7 +24,7 @@ describe("crop of a nose photo on the web (#272)", () => {
     expect(outputSide(400)).toBe(400);
     expect(outputSide(MAX_CROP_SIDE)).toBe(MAX_CROP_SIDE);
     expect(outputSide(3000)).toBe(MAX_CROP_SIDE);
-    expect(MIN_CROP_SIDE).toBe(224);
+    expect(MIN_CROP_SIDE).toBe(600);
   });
 
   it("moves and resizes the square inside the stage, always square", () => {
