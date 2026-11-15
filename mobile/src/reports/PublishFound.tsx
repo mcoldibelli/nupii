@@ -5,7 +5,7 @@ import type { LocalFile } from "../api/pets";
 import { reportFound } from "../api/reports";
 import { apiUrl, webUrl } from "../config";
 import type { MapPoint } from "../map/mapHtml";
-import { MapView } from "../map/MapView";
+import { PickMap } from "../map/PickMap";
 import { foundReportLink } from "./foundLink";
 import { REPORT_LIMITS, reportFailureMessage, toDetails } from "./form";
 import { askPetPhoto, filePart, pickPhoto, shrinkPhoto } from "../pets/pickPhoto";
@@ -106,7 +106,7 @@ export function PublishFound() {
         <Text style={local.photoText}>{photo ? "Trocar a foto do cachorro" : "Foto do cachorro (obrigatória)"}</Text>
       </Pressable>
       <Text style={styles.text}>Toque no mapa onde o cão está.</Text>
-      <MapView markers={[]} onPick={setPoint} style={local.map} />
+      <PickMap onPick={setPoint} style={local.map} />
       <Text testID="found-point" style={local.point}>
         {point === null ? "Nenhum ponto escolhido." : "Ponto escolhido."}
       </Text>

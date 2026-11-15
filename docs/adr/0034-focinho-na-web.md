@@ -1,6 +1,6 @@
 # ADR 0034: Foto do focinho na web, com recorte, webcam e HEIC
 
-Data: 2026-11-15. Estado: aceito. Este ADR aprova uma dependência no app: `heic2any` 0.0.4 (licença MIT), só na web. Com o [ADR 0036](0036-vetor-do-recorte-do-focinho.md), o quadrado é do rosto, e não só do focinho: o serviço acha e recorta o focinho. O recorte mínimo passou de 224 px para 960 px: nos recortes do rosto medidos no #292, o recorte do focinho ficou entre 24% e 37% do lado, e 224 / 0,24 dá cerca de 930 px. O quadrado começa com 90% da área. Com o caminho da web, as 10 fotos de rosto do #292 passam, e as 2 de longe são recusadas.
+Data: 2026-11-15. Estado: aceito. Este ADR aprovava uma dependência no app, `heic2any` 0.0.4, só na web; ela saiu no #270 (item 6). Com o [ADR 0036](0036-vetor-do-recorte-do-focinho.md), o quadrado é do rosto, e não só do focinho: o serviço acha e recorta o focinho. O recorte mínimo passou de 224 px para 960 px: nos recortes do rosto medidos no #292, o recorte do focinho ficou entre 24% e 37% do lado, e 224 / 0,24 dá cerca de 930 px. O quadrado começa com 90% da área. Com o caminho da web, as 10 fotos de rosto do #292 passam, e as 2 de longe são recusadas.
 
 ## Contexto
 
@@ -15,7 +15,7 @@ A foto do focinho não pode ter uma nova compressão: o detector pode deixar de 
 3. Um recorte menor que 224 px (a entrada do modelo) não é aceito: o botão fica desligado e a marca explica.
 4. "Resolução ok" é conferido no navegador. "Só o focinho" e "Nítida" vêm da conferência da API (RN-85), depois do recorte.
 5. A webcam pede 1920 × 1080; o quadro vai em PNG para o recorte. A câmera para no "Cancelar", depois da foto e quando a página sai.
-6. Uma foto HEIC é convertida no navegador para PNG com a `heic2any`, carregada por `import()` só quando a foto é HEIC. A biblioteca cria um worker a partir de uma URL `blob:`: a CSP da web (#270) precisa de `worker-src blob:`. O worker usa `new Function` (libheif): com a CSP valendo, a conversão só funciona com `'unsafe-eval'` em `script-src`. A política começa como Report-Only, e a escolha entre `'unsafe-eval'` e tirar o HEIC do Chrome e do Firefox fica na #270.
+6. ~~Uma foto HEIC é convertida no navegador com a `heic2any`.~~ Removido no #270: a `heic2any` usa `new Function`, e a CSP valendo, sem `'unsafe-eval'`, impede a conversão. A dependência saiu. O navegador abre a foto sozinho: o Safari abre HEIC, e nos outros navegadores a página pede uma foto em JPG ou PNG.
 
 ## Alternativas
 

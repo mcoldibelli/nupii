@@ -5,12 +5,12 @@ import { mapHtml, parsePick } from "./mapHtml";
 import type { MapViewProps } from "./MapView";
 
 /** The map of ADR 0023 on the web: the map page in an iframe. */
-export function MapView({ markers, onPick, style }: MapViewProps) {
+export function MapView({ markers, onPick, here = null, style }: MapViewProps) {
   const frame = useRef<HTMLIFrameElement>(null);
-  const key = JSON.stringify(markers);
+  const key = JSON.stringify([markers, here]);
   const pickable = onPick !== undefined;
-  // key has the markers: the page is made again only when they change.
-  const html = useMemo(() => mapHtml({ markers, pickable }), [key, pickable]);
+  // key has the markers and the position: the page is made again only when they change.
+  const html = useMemo(() => mapHtml({ markers, pickable, here }), [key, pickable]);
 
   useEffect(() => {
     if (!onPick) {

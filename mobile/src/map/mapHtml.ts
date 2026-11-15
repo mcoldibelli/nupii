@@ -11,6 +11,12 @@ export type MapOptions = {
   markers: MapMarker[];
   /** The person chooses a point with a tap. The page sends it as a message. */
   pickable?: boolean;
+  /**
+   * The position of the person, from the device (ADR 0025, #306). The map
+   * starts there, with a mark. The map page does not ask for the position:
+   * the web blocks it in the iframe of the map.
+   */
+  here?: MapPoint | null;
 };
 
 /** The center of the map when there is no marker: the center of São Paulo. */
@@ -21,17 +27,16 @@ const LEAFLET = "https://unpkg.com/leaflet@1.9.4/dist";
 const LEAFLET_JS_HASH = "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";
 const LEAFLET_CSS_HASH = "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=";
 /** SHA-256 of MAP_SCRIPT, in the script-src of the CSP of app.nupii.com.br (deploy/Caddyfile.nupii-self). */
-export const MAP_SCRIPT_HASH = "sha256-UBT6dm6TilJSBon1wuhw/gM46v2tIVIsiwOOa31M7S0=";
+export const MAP_SCRIPT_HASH = "sha256-VVkWnEfZKbTOafVGdg04fyFk6+l4Yu39aD4Pn1+M3i8=";
 
 /** Returns the HTML of the map page. */
-export function mapHtml({ markers, pickable = false }: MapOptions): string {
-  const first = markers[0] ?? DEFAULT_CENTER;
+export function mapHtml({ markers, pickable = false, here = null }: MapOptions): string {
+  const start = here ?? markers[0] ?? DEFAULT_CENTER;
   const config = JSON.stringify({
-    center: [first.latitude, first.longitude],
+    center: [start.latitude, start.longitude],
+    here: here ? [here.latitude, here.longitude] : null,
     markers,
     pickable,
-    // With no marker, the page starts at the position of the device.
-    locate: pickable && markers.length === 0,
   })
     // A "<" in a text could close the script of the page.
     .replace(/</g, "\\u003c");
@@ -55,7 +60,7 @@ function send(message) {
   var text = JSON.stringify(message);
   if (window.ReactNativeWebView) { window.ReactNativeWebView.postMessage(text); } else { window.parent.postMessage(text, "*"); }
 }
-var map = L.map("map").setView(config.center, 15);
+var map = L.map("map").setView(config.center, config.here ? 14 : 15);
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
   attribution: "&copy; OpenStreetMap"
@@ -66,9 +71,11 @@ var points = config.markers.map(function (m) {
   marker.addTo(map).bindPopup(document.createTextNode(m.label));
   return [m.latitude, m.longitude];
 });
-if (points.length > 1) { map.fitBounds(points, { padding: [32, 32], maxZoom: 16 }); }
-if (config.locate && navigator.geolocation) {
-  navigator.geolocation.getCurrentPosition(function (p) { map.setView([p.coords.latitude, p.coords.longitude], 16); });
+if (config.here) {
+  L.circleMarker(config.here, { radius: 8, color: "#ffffff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 })
+    .addTo(map).bindPopup("Você está aqui");
+} else if (points.length > 1) {
+  map.fitBounds(points, { padding: [32, 32], maxZoom: 16 });
 }
 var picked = null;
 if (config.pickable) {

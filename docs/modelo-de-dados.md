@@ -2,7 +2,7 @@
 
 As tabelas do PostgreSQL do Nupii, escritas a partir do sistema pronto ([roteiro](roteiro.md), fatia 11). O diagrama foi gerado do esquema de um banco com todas as migrations de `backend/db/migrations` aplicadas (versão 16, `00016_share_link_exams.sql`). Ele tem as 14 tabelas e as 14 chaves estrangeiras das migrations. Os conceitos estão no [diagrama de domínio](dominio.md).
 
-Ficam fora do diagrama `goose_db_version` (o controle das migrations) e `spatial_ref_sys` (a tabela da extensão PostGIS).
+Ficam fora do diagrama `goose_db_version` (o controle das migrations) e `spatial_ref_sys` (a tabela da extensão PostGIS). O schema `metrics` (migration 00017) só tem views de contagem para o Grafana, sem tabelas próprias ([ADR 0032](adr/0032-observabilidade-lgtm.md), item 9).
 
 ```mermaid
 erDiagram

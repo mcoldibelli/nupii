@@ -57,6 +57,19 @@ describe("mapHtml", () => {
     expect(html).not.toContain("</script><b>");
   });
 
+  it("#306: centers on the person when the app knows the position, with a mark for it", () => {
+    const html = mapHtml({ markers: [{ latitude: 1, longitude: 2, label: "a", kind: "main" }], here: { latitude: -22.3, longitude: -49.1 } });
+
+    expect(html).toContain('"center":[-22.3,-49.1]');
+    expect(html).toContain('"here":[-22.3,-49.1]');
+    expect(html).toContain("Você está aqui");
+  });
+
+  it("#306: no position of the person inside the map page (the web blocks it in the iframe)", () => {
+    expect(mapHtml({ markers: [], pickable: true })).not.toContain("navigator.geolocation");
+    expect(mapHtml({ markers: [] })).toContain('"here":null');
+  });
+
   it("centers on the first marker, or on the default center", () => {
     expect(mapHtml({ markers: [{ latitude: 1, longitude: 2, label: "a", kind: "main" }] })).toContain('"center":[1,2]');
     expect(mapHtml({ markers: [] })).toContain(`"center":[${DEFAULT_CENTER.latitude},${DEFAULT_CENTER.longitude}]`);

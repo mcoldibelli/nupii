@@ -19,6 +19,20 @@ datasources:
           matcherRegex: '"trace_id":"(\w+)"'
           url: "$${__value.raw}"
           datasourceUid: tempo
+  # The counts of the database (#303): only the views of the schema metrics.
+  - name: Nupii DB
+    uid: nupii-db
+    type: grafana-postgresql-datasource
+    access: proxy
+    url: db:5432
+    user: metrics_reader
+    jsonData:
+      database: $NUPII_DB
+      sslmode: disable
+      postgresVersion: 1800
+      maxOpenConns: 2
+    secureJsonData:
+      password: $GRAFANA_DB_PASSWORD
   - name: Tempo
     uid: tempo
     type: tempo

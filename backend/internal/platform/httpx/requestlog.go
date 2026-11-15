@@ -6,8 +6,11 @@ import (
 	"crypto/rand"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -72,9 +75,18 @@ func RequestLog(logger *slog.Logger) func(http.Handler) http.Handler {
 			req := r.WithContext(ctx)
 			next.ServeHTTP(rec, req)
 			// The mux writes the route on req. The span gets its name, as
-			// "GET /v1/pets/{petId}", and not the path with the identifiers.
+			// "GET /v1/pets/{petId}", and not the path with the identifiers;
+			// the HTTP metrics get the route (#303).
 			if req.Pattern != "" {
 				trace.SpanFromContext(ctx).SetName(req.Pattern)
+				if labeler, ok := otelhttp.LabelerFromContext(ctx); ok {
+					// A pattern with no method, as the fallback "/", is the route itself.
+					route := req.Pattern
+					if _, path, found := strings.Cut(req.Pattern, " "); found {
+						route = path
+					}
+					labeler.Add(attribute.String("http.route", route))
+				}
 			}
 
 			logger.LogAttrs(ctx, slog.LevelInfo, "http request",
