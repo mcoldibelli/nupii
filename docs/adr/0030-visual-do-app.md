@@ -13,7 +13,7 @@ O canvas usa duas fontes do Google Fonts e ícones de traço em SVG. O React Nat
 ## Decisão
 
 1. O canvas é a referência do visual. O tema (cores, fontes, espaços, cantos) e os componentes saem dele. Um par de cor que falha no contraste AA da WCAG muda, e a mudança fica registrada no arquivo do tema.
-2. As fontes são Bricolage Grotesque (títulos) e Figtree (texto), com licença OFL. O app carrega as duas com `expo-font` e os pacotes `@expo-google-fonts`. A landing usa a Nunito ([ADR 0035](0035-nunito-na-landing.md)).
+2. As fontes são Bricolage Grotesque (títulos) e Figtree (texto), com licença OFL. O app carrega as duas com `expo-font` e os pacotes `@expo-google-fonts`. O app passou a usar a Nunito em todas as telas, no lugar das duas ([ADR 0035](0035-nunito-na-landing.md)).
 3. Os ícones são os traços do canvas, desenhados com `react-native-svg`. Só `mobile/src/ui/Icon.tsx` importa o pacote.
 4. A fatia 9b muda só o visual das telas e funções que existem, e põe a barra de navegação embaixo. As funções do canvas que o sistema não tem viram issues com o rótulo `backlog`.
 5. O QR code da carteirinha ([ADR 0027](0027-link-da-carteirinha.md)) continua com componentes `View`.

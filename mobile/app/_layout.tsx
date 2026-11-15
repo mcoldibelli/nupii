@@ -1,6 +1,4 @@
-import { BricolageGrotesque_700Bold, BricolageGrotesque_800ExtraBold } from "@expo-google-fonts/bricolage-grotesque";
-import { Figtree_400Regular, Figtree_500Medium, Figtree_600SemiBold, Figtree_700Bold } from "@expo-google-fonts/figtree";
-import { Nunito_400Regular, Nunito_700Bold, Nunito_800ExtraBold } from "@expo-google-fonts/nunito";
+import { Nunito_400Regular, Nunito_500Medium, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold } from "@expo-google-fonts/nunito";
 import { useFonts } from "expo-font";
 import { Stack, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
@@ -168,16 +166,11 @@ function Screens() {
 }
 
 export default function RootLayout() {
-  // ADR 0030: the fonts of the design canvas. The first screen waits for them.
+  // ADR 0035: Nunito in all the app. The first screen waits for it.
   const [fontsLoaded, fontError] = useFonts({
-    BricolageGrotesque_700Bold,
-    BricolageGrotesque_800ExtraBold,
-    Figtree_400Regular,
-    Figtree_500Medium,
-    Figtree_600SemiBold,
-    Figtree_700Bold,
-    // ADR 0035: the landing page.
     Nunito_400Regular,
+    Nunito_500Medium,
+    Nunito_600SemiBold,
     Nunito_700Bold,
     Nunito_800ExtraBold,
   });
