@@ -1,5 +1,6 @@
 import { BricolageGrotesque_700Bold, BricolageGrotesque_800ExtraBold } from "@expo-google-fonts/bricolage-grotesque";
 import { Figtree_400Regular, Figtree_500Medium, Figtree_600SemiBold, Figtree_700Bold } from "@expo-google-fonts/figtree";
+import { Nunito_400Regular, Nunito_700Bold, Nunito_800ExtraBold } from "@expo-google-fonts/nunito";
 import { useFonts } from "expo-font";
 import { Stack, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
@@ -14,6 +15,7 @@ import { SelectedPetProvider } from "../src/pets/SelectedPetContext";
 import { Button } from "../src/ui/Button";
 import { StatusScreen } from "../src/ui/StatusScreen";
 import { WebFrame } from "../src/ui/WebFrame";
+import { useWide } from "../src/ui/useWide";
 import { colors, fonts } from "../src/ui/theme";
 
 /** The header of the screens: the title font of the canvas, with no line under it (ADR 0030). */
@@ -29,6 +31,8 @@ const headerOptions = {
 function Screens() {
   const { state, reload, signOut } = useSession();
   const welcome = useWelcome();
+  // The health form opens as a modal over the health page on a wide screen (Saude-Web-Registrar, #233).
+  const wide = useWide();
   const router = useRouter();
   const pathname = usePathname();
   // When the state of the session changes, the app goes to the first screen
@@ -84,6 +88,7 @@ function Screens() {
         <Stack.Screen name="card" options={{ headerShown: false }} />
         <Stack.Screen name="landing" options={{ headerShown: false }} />
         <Stack.Screen name="terms" options={{ title: "Termos de uso" }} />
+        <Stack.Screen name="reset-password" options={{ headerShown: false }} />
       </Stack>
       </WebFrame>
     );
@@ -120,9 +125,9 @@ function Screens() {
         <Stack.Screen name="found-notices" options={{ title: "Avisos de encontro" }} />
         <Stack.Screen name="share/[petId]" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
-        <Stack.Screen name="notifications" options={{ headerShown: false, presentation: "transparentModal", animation: "fade" }} />
+        <Stack.Screen name="notifications" options={{ headerShown: false, presentation: "transparentModal", animation: "fade", contentStyle: { backgroundColor: "transparent" } }} />
         <Stack.Screen name="health/[petId]" options={{ headerShown: false }} />
-        <Stack.Screen name="health/event" options={{ headerShown: false }} />
+        <Stack.Screen name="health/event" options={{ headerShown: false, ...(wide ? { presentation: "transparentModal", animation: "fade", contentStyle: { backgroundColor: "transparent" } } : {}) }} />
         <Stack.Screen name="reports/lost" options={{ headerShown: false }} />
       </Stack.Protected>
       <Stack.Protected guard={state.kind === "needsProfile"}>
@@ -155,6 +160,7 @@ function Screens() {
       <Stack.Protected guard={false}>
         <Stack.Screen name="card" options={{ headerShown: false }} />
         <Stack.Screen name="landing" options={{ headerShown: false }} />
+        <Stack.Screen name="reset-password" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>
     </WebFrame>
@@ -170,6 +176,10 @@ export default function RootLayout() {
     Figtree_500Medium,
     Figtree_600SemiBold,
     Figtree_700Bold,
+    // ADR 0035: the landing page.
+    Nunito_400Regular,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
   });
   // A font that fails to load does not block the app: the system font is used.
   if (!fontsLoaded && fontError === null) {

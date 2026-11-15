@@ -1,9 +1,9 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { signIn } from "../auth/firebase";
+import { signIn, signInWithGoogle } from "../auth/firebase";
 import { passwordLongEnough, validateCredentials, validateProfile } from "../auth/validation";
 import { useSession } from "../session/SessionContext";
 import { Button } from "../ui/Button";
@@ -22,6 +22,8 @@ export function AuthScreen({ startCreating = false }: { startCreating?: boolean 
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // A failure of the Google window is not a problem of the e-mail or the password fields.
+  const [fieldsInvalid, setFieldsInvalid] = useState(false);
   const [name, setName] = useState("");
   const [accepted, setAccepted] = useState(false);
   const { signUp } = useSession();
@@ -34,8 +36,10 @@ export function AuthScreen({ startCreating = false }: { startCreating?: boolean 
     const problem = (creating ? validateProfile(name, accepted) : null) ?? validateCredentials(email, password);
     if (problem !== null) {
       setError(problem);
+      setFieldsInvalid(true);
       return;
     }
+    setFieldsInvalid(true);
     setBusy(true);
     // On success the app gets the new account from the session and changes
     // the screen. This screen only shows the failure.
@@ -43,11 +47,27 @@ export function AuthScreen({ startCreating = false }: { startCreating?: boolean 
     setBusy(false);
   }
 
+  // RF-03: Google on the web (ADR 0029, item 11). The first login goes to the
+  // name and the terms (item 14); an e-mail with a password asks for it (item 12).
+  async function google() {
+    setBusy(true);
+    const result = await signInWithGoogle();
+    if (result.email !== undefined) {
+      setCreating(false);
+      setEmail(result.email);
+    }
+    setError(result.message);
+    setFieldsInvalid(result.email !== undefined);
+    setBusy(false);
+  }
+  const googleButton =
+    Platform.OS === "web" ? <Button testID="google-button" label="Continuar com Google" variant="outline" size="md" disabled={busy} onPress={() => void google()} /> : null;
+
   const createFields = (
     <>
       <Field testID="name-input" label="Como podemos te chamar?" icon="user" autoComplete="name" maxLength={100} value={name} onChangeText={setName} />
-      <Field testID="email-input" label="E-mail" icon="mail" autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={email} onChangeText={setEmail} invalid={error !== null} />
-      <Field testID="password-input" label="Crie uma senha" icon="lock" secureTextEntry autoComplete="new-password" value={password} onChangeText={setPassword} invalid={error !== null} />
+      <Field testID="email-input" label="E-mail" icon="mail" autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={email} onChangeText={setEmail} invalid={error !== null && fieldsInvalid} />
+      <Field testID="password-input" label="Crie uma senha" icon="lock" secureTextEntry autoComplete="new-password" value={password} onChangeText={setPassword} invalid={error !== null && fieldsInvalid} />
       <View style={local.rule}>
         <Icon name="check" size={14} strokeWidth={3} color={passwordLongEnough(password) ? colors.success : colors.textMuted} />
         <Text style={[local.ruleText, { color: passwordLongEnough(password) ? colors.success : colors.textMuted }]}>8 ou mais caracteres</Text>
@@ -76,7 +96,7 @@ export function AuthScreen({ startCreating = false }: { startCreating?: boolean 
         keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
-        invalid={error !== null}
+        invalid={error !== null && fieldsInvalid}
       />
       <Field
         testID="password-input"
@@ -86,7 +106,7 @@ export function AuthScreen({ startCreating = false }: { startCreating?: boolean 
         autoComplete="current-password"
         value={password}
         onChangeText={setPassword}
-        invalid={error !== null}
+        invalid={error !== null && fieldsInvalid}
       />
       {error !== null && <ErrorText testID="auth-error">{error}</ErrorText>}
       {!creating && (
@@ -112,6 +132,7 @@ export function AuthScreen({ startCreating = false }: { startCreating?: boolean 
         ) : (
           <Button testID="submit-button" label="Entrar" trailingIcon="arrowRight" busy={busy} onPress={() => void submit()} />
         )}
+        {googleButton}
         <Button testID="toggle-mode-button" label={creating ? "Já tenho conta · Entrar" : "Não tem conta? Criar conta"} variant="soft" size="md" onPress={toggle} />
       </AuthSplit>
     );
@@ -136,6 +157,7 @@ export function AuthScreen({ startCreating = false }: { startCreating?: boolean 
         </View>
         <View style={local.actions}>
           <Button testID="submit-button" label="Criar conta" trailingIcon="arrowRight" busy={busy} disabled={!accepted} onPress={() => void submit()} />
+          {googleButton}
         </View>
       </ScrollView>
     );
@@ -161,6 +183,7 @@ export function AuthScreen({ startCreating = false }: { startCreating?: boolean 
       </View>
       <View style={local.actions}>
         <Button testID="submit-button" label="Entrar" trailingIcon="arrowRight" busy={busy} onPress={() => void submit()} />
+        {googleButton}
         <Button
           testID="toggle-mode-button"
           label="Não tem conta? Criar conta"

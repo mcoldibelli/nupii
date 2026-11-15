@@ -1,126 +1,89 @@
 # Nupii
 
-Plataforma para tutores de pets, com três partes: saúde do pet, mural de perdidos e achados, e identificação de cães pela foto do focinho.
+Plataforma para tutores de cães, com três partes:
+- a saúde do pet;
+- o mural de perdidos e achados;
+- a identificação de um cão pela foto do focinho.
 
-## Estado
+A aplicação está publicada em [app.nupii.com.br](https://app.nupii.com.br), e a API em [api.nupii.com.br](https://api.nupii.com.br).
 
-As fatias 0, 1, 2 e 3 do [roteiro](docs/roteiro.md) estão prontas. O ambiente local sobe com um comando e o CI confere a API, o app, a integração e o serviço de inferência. O tutor cria a conta e entra pelo app, e cadastra os pets dele com foto de perfil. O serviço de inferência transforma a foto de um focinho em um vetor. As fatias 4 e 5 estão prontas: o tutor cadastra o focinho de um cachorro pelo app, e quem encontra um cão envia a foto do focinho pela página pública, vê os pets parecidos e deixa o contato para o tutor. O tutor registra o desaparecimento de um pet no mapa, e qualquer pessoa vê o mural, registra um avistamento e publica um achado pela web. A fatia 6 também está pronta: o tutor a até 3.000 m de um desaparecimento recebe uma notificação no app, mesmo que a API pare logo depois do registro. Na fatia 7, o tutor registra a saúde dos pets: vacinas, consultas, medicações, exames e anotações, com anexos e os próximos cuidados. Na fatia 8, o tutor compartilha a carteirinha do pet por um link com QR code, que qualquer pessoa abre na web até o tutor revogar. Na fatia 9, o tutor altera o perfil, troca e redefine a senha e exclui a conta, e a API apaga todo dia os dados pessoais com mais de 30 dias. O andamento de cada fatia está nos milestones do GitHub.
+O app (Expo, Android e web) consome a API própria, escrita em Go. A API usa o PostgreSQL e chama um serviço de IA em Python, que transforma a foto do focinho num vetor. O Firebase Authentication cuida das contas e das senhas.
 
-## Como testar o app
+## Entregáveis
 
-Dois passos, em dois terminais. No passo 1 você escolhe **um** modo:
+| Entregável | Onde está |
+|---|---|
+| Código da API | [`backend/`](backend/) (Go). Contrato OpenAPI em [`api/openapi.yaml`](api/openapi.yaml) |
+| Código do front-end | [`mobile/`](mobile/) (React Native com Expo: app Android e web) |
+| Serviço de IA (integração) | [`inference/`](inference/) (Python e ONNX) |
+| Scripts SQL do banco | [`backend/db/migrations/`](backend/db/migrations/) (criação das tabelas) e [`backend/db/queries/`](backend/db/queries/) (consultas) |
+| Testes automatizados | `backend/**/*_test.go`, `mobile/src/**/*.test.ts` e [`inference/tests/`](inference/tests/). Veja [Como testar](#como-testar) |
+| Dependências | [`backend/go.mod`](backend/go.mod), [`mobile/package.json`](mobile/package.json) e [`inference/requirements.txt`](inference/requirements.txt) |
+| Exemplos de configuração | [`deploy/.env.example`](deploy/.env.example), [`mobile/.env.example`](mobile/.env.example) e [`deploy/.env.prod.example`](deploy/.env.prod.example) |
 
-```bash
-# 1. Sobe a API, o banco, o S3, a inferência e o emulador do Firebase
-./dev.sh firebase   # sua conta real do Firebase (projeto nupii-own)
-./dev.sh emulador   # ou: contas de teste, que somem quando o container reinicia
+## Documentação
 
-# 2. Abre o app
-./dev.sh app        # emulador Android
-./dev.sh web        # ou: navegador, em http://localhost:8081
-```
-
-O passo 2 lê o modo da API que está rodando e configura o Firebase do app com ele (#261). O app e a API nunca ficam em modos diferentes. Para trocar de modo, rode o passo 1 de novo com o outro modo e reinicie o passo 2. Na primeira vez depois de uma troca, o Expo monta o pacote do zero, e isso demora mais.
-
-| Modo | Login | Arquivos que o comando confere |
-|---|---|---|
-| `emulador` | Emulador do Firebase Authentication (contas de teste) | `deploy/.env` e `mobile/.env` |
-| `firebase` | Projeto real do Firebase | `deploy/.env`, `backend/.env` com `FIREBASE_PROJECT_ID` e `GOOGLE_APPLICATION_CREDENTIALS`, e `mobile/.env` com a configuração do projeto real. Os dois arquivos vêm do `./deploy/firebase-setup.sh` |
-
-O comando para com uma mensagem quando falta um arquivo, um valor, os pesos do modelo, quando a API não está rodando no passo 2, ou quando outro programa usa a porta 8080 (por exemplo, um `go run` da API).
-
-A web (`./dev.sh web`) responde em `http://localhost:8081`, o endereço dos links que o app cria (carteirinha, mural, achado) no ambiente local.
-
-Outros comandos: `./dev.sh status`, `./dev.sh logs [serviço]` e `./dev.sh stop`. O `./dev.sh app` usa o primeiro emulador Android criado (ou o da variável `AVD`) e o Expo na porta 8099 (ou a da variável `EXPO_PORT`).
-
-Os passos detalhados de cada parte estão abaixo e nos READMEs do [backend](backend/README.md) e do [mobile](mobile/README.md).
-
-## Como publicar
-
-A publicação vai para a VPS ([ADR 0029](docs/adr/0029-publicacao-na-vps.md)), a partir do `main`, com um comando:
-
-```bash
-git checkout main && git pull
-./deploy/publish.sh
-```
-
-O script envia o código, os pesos do modelo e a chave da conta de serviço pela conexão `ssh` (host `vps` do `~/.ssh/config`), monta a web com os endereços de produção e sobe o compose `nupii-self` (`deploy/compose.prod.yaml`). Na primeira vez, ele cria o `/opt/nupii-self/.env` com segredos aleatórios. Os blocos do Caddy ficam em `deploy/Caddyfile.nupii-self` e entram no Caddyfile da VPS uma vez só.
+| Assunto | Documento |
+|---|---|
+| Problema e solução | [docs/visao.md](docs/visao.md) |
+| Requisitos (RF, RN, RNF) | [docs/requisitos.md](docs/requisitos.md) |
+| Casos de uso | [docs/casos-de-uso.md](docs/casos-de-uso.md) |
+| Tecnologias, arquitetura e organização | [docs/arquitetura.md](docs/arquitetura.md) |
+| Modelo conceitual | [docs/dominio.md](docs/dominio.md) |
+| Modelo lógico (DER) | [docs/modelo-de-dados.md](docs/modelo-de-dados.md) |
+| Endpoints da API | [api/openapi.yaml](api/openapi.yaml) e [docs/arquitetura.md](docs/arquitetura.md), seção API |
+| Autenticação | [docs/arquitetura.md](docs/arquitetura.md), seção API, e [ADR 0008](docs/adr/0008-autenticacao-firebase.md) |
+| Integrações externas | [docs/arquitetura.md](docs/arquitetura.md), seções Contexto e Serviço de inferência |
+| Testes | [docs/arquitetura.md](docs/arquitetura.md), seção Testes |
+| Decisões de arquitetura | [docs/adr/](docs/adr/), com o índice no fim deste arquivo |
+| Ordem de construção | [docs/roteiro.md](docs/roteiro.md) |
 
 ## Como executar
 
-Requisitos: Docker com o Compose, e o GitHub CLI (`gh`) com acesso ao repositório. Para desenvolver a API: Go 1.26 ou mais novo.
+Requisitos: Docker com o Compose, e o GitHub CLI (`gh`) com acesso ao repositório.
 
-1. Crie o arquivo de configuração do ambiente local:
+```bash
+cp deploy/.env.example deploy/.env      # preencha POSTGRES_PASSWORD e S3_SECRET_ACCESS_KEY (openssl rand -hex 24)
+cp mobile/.env.example mobile/.env
+./inference/download_weights.sh          # pesos do modelo, conferidos por SHA-256
 
-   ```bash
-   cp deploy/.env.example deploy/.env
-   ```
+./dev.sh emulador   # API, banco, S3, IA e o emulador do Firebase (contas de teste)
+./dev.sh web        # em outro terminal: a web em http://localhost:8081
+```
 
-   Abra o `deploy/.env` e preencha os dois valores vazios: `POSTGRES_PASSWORD` e `S3_SECRET_ACCESS_KEY`. Para gerar um valor: `openssl rand -hex 24`. O arquivo `deploy/.env` não entra no git.
+- **Projeto real do Firebase:** use `./dev.sh firebase` no lugar de `./dev.sh emulador`. Antes, rode `./deploy/firebase-setup.sh` uma vez.
+- **App no emulador Android:** use `./dev.sh app` no lugar de `./dev.sh web`.
+- **Outros comandos:** `./dev.sh status`, `./dev.sh logs [serviço]` e `./dev.sh stop`.
+- **Detalhes:** veja os READMEs do [backend](backend/README.md), do [mobile](mobile/README.md) e do [inference](inference/README.md).
 
-2. Baixe os arquivos de pesos do serviço de inferência. O script baixa os arquivos de uma release do repositório para `inference/models` e confere o SHA-256. Os arquivos não entram no git:
+Para conferir a API: `curl -i http://localhost:8080/v1/health` responde `200` com `{"status":"ok"}`.
 
-   ```bash
-   ./inference/download_weights.sh
-   ```
+## Como testar
 
-3. Suba o ambiente local: a API, o banco, o servidor S3, o emulador do Firebase Authentication e o serviço de inferência. O comando constrói as imagens e espera os serviços ficarem prontos:
+```bash
+cd backend && go test -race ./...                           # unidade
+cd backend && go test -race -tags=integration ./...         # integração e contrato (com o ambiente local no ar)
+cd mobile && npm test                                       # Jest
+cd inference && pip install -r requirements-dev.txt && pytest
+```
 
-   ```bash
-   docker compose -f deploy/compose.yaml up -d --wait
-   ```
+O CI roda os mesmos testes em cada PR (`.github/workflows/`).
 
-4. Chame a API:
+## Publicação
 
-   ```bash
-   curl -i http://localhost:8080/v1/health
-   ```
+A publicação vai para uma VPS com `./deploy/publish.sh`, a partir do `main`. O processo está no [ADR 0029](docs/adr/0029-publicacao-na-vps.md), e a observabilidade (Grafana) no [ADR 0032](docs/adr/0032-observabilidade-lgtm.md).
 
-   Resposta esperada:
+## Regras do projeto
 
-   ```
-   HTTP/1.1 200 OK
-   Content-Type: application/json
-   X-Request-Id: <identificador da requisição>
+- Nenhuma senha, chave ou token fica no repositório: os valores ficam em arquivos `.env`, fora do git, e nos secrets do CI.
+- Toda tarefa é uma issue, com um branch próprio que entra em `develop` por PR. Nenhuma mudança entra direto em `main`.
+- Toda decisão que não é trivial vira um ADR. Nenhuma dependência entra sem estar num ADR aceito.
+- Uma mudança que altera o que um documento diz atualiza esse documento no mesmo PR.
 
-   {"status":"ok"}
-   ```
+## Decisões de arquitetura
 
-Para parar o ambiente local: `docker compose -f deploy/compose.yaml down`. Os dados ficam nos volumes. Para apagar também os dados, use `down -v`.
-
-Se a sua instalação tem só o binário `docker-compose`, use esse nome no lugar de `docker compose`.
-
-| Serviço | Endereço | Variáveis no `deploy/.env` |
-|---|---|---|
-| API | `http://localhost:8080` | |
-| PostgreSQL 18 com PostGIS e pgvector | `localhost:5432` | `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD` |
-| SeaweedFS (protocolo S3) | `http://localhost:8333` | `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` |
-| Emulador do Firebase Authentication | `http://localhost:9099` | |
-| Serviço de inferência | `http://localhost:8000` | |
-
-As contas criadas no emulador ficam na memória e somem quando o container reinicia. Os tutores continuam no banco. Use `down -v` para apagar os dois juntos.
-
-Se você mudar a senha do banco depois da primeira subida, apague os dados com `down -v`: o Postgres só grava a senha quando cria o banco.
-
-Para desenvolver a API, suba só o banco e o servidor S3 e execute a API com `go run`. Os comandos estão no README do [backend](backend/README.md).
-
-Para executar o app, veja o README do [mobile](mobile/README.md).
-
-Para executar o serviço de inferência, veja o README do [inference](inference/README.md).
-
-O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app no projeto real, execute `./deploy/firebase-setup.sh`: ele guia os passos do console e guarda cada valor fora do git.
-
-## Documentos
-
-| Documento | O que tem |
-|---|---|
-| [docs/visao.md](docs/visao.md) | Problema, usuários, escopo e o que fica fora do escopo. |
-| [docs/requisitos.md](docs/requisitos.md) | Requisitos funcionais (RF), regras de negócio (RN) e requisitos não funcionais (RNF), com identificador. |
-| [docs/arquitetura.md](docs/arquitetura.md) | Partes do sistema, módulos, tarefas, dados, convenções, testes e glossário. |
-| [docs/roteiro.md](docs/roteiro.md) | Ordem de construção em fatias verticais, com o critério de pronto de cada uma. |
-| [docs/adr/](docs/adr/) | Uma decisão de arquitetura por arquivo. |
-
-## Decisões
+<details>
+<summary>Índice dos ADRs (0001 a 0035)</summary>
 
 | ADR | Decisão | Estado |
 |---|---|---|
@@ -157,13 +120,7 @@ O ambiente local não usa o projeto real do Firebase. Para ligar a API e o app n
 | [0031](docs/adr/0031-copiar-para-a-area-de-transferencia.md) | Copiar o link da carteirinha com o expo-clipboard | aceito |
 | [0032](docs/adr/0032-observabilidade-lgtm.md) | Observabilidade na VPS com Grafana, Loki, Tempo, Prometheus e Alloy | aceito |
 | [0033](docs/adr/0033-reduzir-fotos-antes-do-envio.md) | Reduzir as fotos de perfil e de achado antes do envio, com o expo-image-manipulator | aceito |
+| [0034](docs/adr/0034-focinho-na-web.md) | Foto do focinho na web: recorte em PNG sem nova compressão, webcam e HEIC com a heic2any | aceito |
+| [0035](docs/adr/0035-nunito-na-landing.md) | Fonte Nunito na landing, com o @expo-google-fonts/nunito | aceito |
 
-## Regras do projeto
-
-- Toda decisão que não é trivial vira um ADR antes do código.
-- Nenhuma dependência entra sem estar em um ADR aceito.
-- Nenhuma senha, chave secreta ou token fica no repositório, em issue ou em PR. Os valores ficam em arquivos `.env`, fora do git, e nos secrets do CI.
-- Toda tarefa em trabalho é uma issue no GitHub, criada antes de o trabalho começar.
-- Cada issue tem um branch próprio, que entra em `develop` por PR. Nenhuma mudança entra direto em `main`.
-- Toda fatia do roteiro termina com teste executado e documento atualizado.
-- Uma decisão ou uma implementação que muda o que um documento diz atualiza esse documento na mesma mudança.
+</details>

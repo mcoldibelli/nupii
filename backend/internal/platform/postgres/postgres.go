@@ -10,12 +10,20 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
+	"go.opentelemetry.io/otel"
 )
 
 // Open creates a connection pool for the database at url and checks that
-// the database responds. The caller closes the pool.
+// the database responds. Each query makes a span (ADR 0032). The caller
+// closes the pool.
 func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
-	pool, err := pgxpool.New(ctx, url)
+	config, err := pgxpool.ParseConfig(url)
+	if err != nil {
+		return nil, fmt.Errorf("parse database url: %w", err)
+	}
+	// Without the export of ADR 0032 the global tracer is a no-op.
+	config.ConnConfig.Tracer = queryTracer{tracer: otel.Tracer("github.com/mcoldibelli/nupii/backend/internal/platform/postgres")}
+	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("create connection pool: %w", err)
 	}

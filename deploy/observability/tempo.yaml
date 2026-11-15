@@ -1,0 +1,32 @@
+# Tempo 3.1, monolithic mode (-target=all, no Kafka), blocks on the volume
+# (ADR 0032). Based on example/docker-compose/single-binary of the v3.1.1 tag.
+server:
+  http_listen_port: 3200
+  log_level: warn
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        http:
+          endpoint: "0.0.0.0:4318"
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /var/tempo/wal
+    local:
+      path: /var/tempo/blocks
+
+# ADR 0032, item 6: 7 days of traces.
+backend_worker:
+  compaction:
+    block_retention: 168h
+
+# GOMEMLIMIT from the memory limit of the container.
+memory:
+  automemlimit_enabled: true
+
+usage_report:
+  reporting_enabled: false

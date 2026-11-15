@@ -1,4 +1,4 @@
-import { noseprintBadges, petSubtitle, pickPet, unreadCount, weightTrend } from "./home";
+import { careDays, noseprintBadges, petStats, petSubtitle, pickPet, unreadCount, weightTrend } from "./home";
 
 const now = new Date(Date.UTC(2026, 10, 12, 12));
 const pet = { id: "p1", name: "Shakira", species: "dog", createdAt: "x" } as const;
@@ -51,5 +51,32 @@ describe("noseprintBadges (#252)", () => {
     ] as const;
 
     expect(noseprintBadges([...pets])).toEqual({ a: true, b: false, c: false });
+  });
+});
+
+describe("Inicio-Web (#233)", () => {
+  const now = new Date("2026-11-15T12:00:00Z");
+
+  it("gives the age, the weight and the birth date of the pet card", () => {
+    expect(petStats({ birthDate: "2025-05-09", weightKg: 7.2 }, now)).toEqual([
+      { label: "Idade", value: "1 ano" },
+      { label: "Peso", value: "7,2 kg" },
+      { label: "Nasceu", value: "09/05/25" },
+    ]);
+    expect(petStats({}, now)).toEqual([
+      { label: "Idade", value: "—" },
+      { label: "Peso", value: "—" },
+      { label: "Nasceu", value: "—" },
+    ]);
+  });
+
+  it("marks the days of a month that have a care of the pet", () => {
+    const care = [
+      { petId: "a", dueDate: "2026-11-18" },
+      { petId: "a", dueDate: "2026-12-02" },
+      { petId: "b", dueDate: "2026-11-20" },
+    ];
+    expect(careDays(care, "a", 2026, 10)).toEqual(new Set([18]));
+    expect(careDays(care, "a", 2026, 11)).toEqual(new Set([2]));
   });
 });

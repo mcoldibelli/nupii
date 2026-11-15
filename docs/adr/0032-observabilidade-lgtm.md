@@ -42,6 +42,8 @@ A VPS tem 2 CPU e 7,8 GB de RAM e também roda outro sistema. A imagem `grafana/
 - O registro DNS de `grafana.nupii.com.br` é criado pelo responsável pelo produto.
 - O envio dos traces é assíncrono (processador em lote do SDK): a requisição não espera o Alloy. Uma falha do Alloy perde dados de telemetria, não requisições.
 - A observabilidade não tem cópia de segurança: 7 e 30 dias de dados podem ser perdidos.
+- O Alloy lê os logs pelo socket do Docker da VPS, montado como `:ro`. O `:ro` não limita a API do Docker: quem controla o Alloy controla o Docker do host, que também roda o `nupii-hml`. O Alloy não tem porta fora da rede do compose, e o filtro `com.docker.compose.project=nupii-self` limita os logs lidos ao projeto. A alternativa sem o socket é o driver de log do Docker mandar os logs ao Loki, o que muda a configuração do Docker do host.
+- Versões fixadas (#241): Grafana 13.3.1, Loki 3.7.10, Tempo 3.1.1 (modo monolítico, sem Kafka), Prometheus 3.16.0 (receptor OTLP) e Alloy 1.22.0. Memória no teste local, logo após a subida: Grafana 255 MiB, Loki 155 MiB, Tempo 137 MiB, Alloy 93 MiB e Prometheus 90 MiB. Limites: 384, 384, 384, 192 e 256 MiB. A medida na VPS fica para a publicação.
 
 ## Verificação
 

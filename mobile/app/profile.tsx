@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { changePassword } from "../src/auth/firebase";
+import { changePassword, hasPassword } from "../src/auth/firebase";
 import { validateNewPassword } from "../src/auth/validation";
 import { useSession } from "../src/session/SessionContext";
 import { Button } from "../src/ui/Button";
@@ -26,6 +26,9 @@ export default function Profile() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // ADR 0029, item 13: an account with only Google has no password to change,
+  // and confirms the delete in the window of Google.
+  const [withPassword] = useState(hasPassword);
 
   async function run(action: () => Promise<string | null>, success: string) {
     setBusy(true);
@@ -108,19 +111,25 @@ export default function Profile() {
           ))}
         </View>
 
+        {withPassword && (
         <View style={local.section}>
           <Text style={local.heading}>Trocar a senha</Text>
           <Field testID="current-password-input" label="Senha atual" icon="lock" secureTextEntry value={current} onChangeText={setCurrent} />
           <Field testID="new-password-input" label="Senha nova" icon="lock" secureTextEntry value={next} onChangeText={setNext} />
           <Button testID="password-save" label="Trocar a senha" variant="dark" size="md" disabled={busy} onPress={() => void savePassword()} />
         </View>
+        )}
 
         <Button testID="sign-out-button" label="Sair" variant="soft" size="md" onPress={signOut} />
 
         <View style={local.section}>
           <Text style={local.heading}>Excluir a conta</Text>
           <Text style={local.muted}>Os seus pets, a saúde deles e os cadastros dos focinhos são apagados. Não dá para desfazer.</Text>
-          <Field testID="delete-password-input" label="Senha para excluir a conta" icon="lock" secureTextEntry value={deletePassword} onChangeText={setDeletePassword} />
+          {withPassword ? (
+            <Field testID="delete-password-input" label="Senha para excluir a conta" icon="lock" secureTextEntry value={deletePassword} onChangeText={setDeletePassword} />
+          ) : (
+            <Text style={local.muted}>Para confirmar, entre de novo com o Google na janela que vai abrir.</Text>
+          )}
           <Button testID="delete-account" label="Excluir a conta" variant="danger" size="md" disabled={busy} onPress={confirmDelete} />
         </View>
       </ScrollView>

@@ -1,0 +1,7 @@
+# Prometheus 3.16 gets the metrics of the API by OTLP from Alloy
+# (--web.enable-otlp-receiver). It scrapes nothing (ADR 0032).
+storage:
+  tsdb:
+    # ADR 0032, item 6: 30 days of metrics.
+    retention:
+      time: 30d

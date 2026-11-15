@@ -24,3 +24,37 @@ export function authMessage(code: string): string {
 export function resetMessage(code: string): string | null {
   return code === "auth/user-not-found" ? null : authMessage(code);
 }
+
+/**
+ * The message of a failed login with Google on the web (RF-03), or null when
+ * the person closed the window of Google.
+ */
+export function googleMessage(code: string): string | null {
+  switch (code) {
+    case "auth/popup-closed-by-user":
+    case "auth/cancelled-popup-request":
+      return null;
+    case "auth/popup-blocked":
+      return "O navegador bloqueou a janela do Google. Permita janelas deste site e tente de novo.";
+    case "auth/account-exists-with-different-credential":
+      // ADR 0029, item 12: the next login with the password links Google to the account.
+      return "Este e-mail já tem uma conta com senha. Entre com a senha para ligar o Google à conta.";
+    default:
+      return authMessage(code);
+  }
+}
+
+/** The message of a link of the reset e-mail that does not work (RF-05). */
+export function resetCodeMessage(code: string): string {
+  switch (code) {
+    case "auth/expired-action-code":
+      return "O link venceu. Peça um link novo.";
+    case "auth/invalid-action-code":
+      return "Este link não vale mais: ele já foi usado ou está incompleto. Peça um link novo.";
+    case "auth/user-disabled":
+    case "auth/user-not-found":
+      return "Esta conta não existe mais.";
+    default:
+      return authMessage(code);
+  }
+}
