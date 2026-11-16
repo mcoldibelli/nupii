@@ -167,7 +167,7 @@ export function AuthScreen({ startCreating = false }: { startCreating?: boolean 
     <ScrollView style={local.page} contentContainerStyle={local.content} keyboardShouldPersistTaps="handled">
       <View style={[local.hero, { height: 224 + insets.top }]}>
         <View style={[local.brand, { paddingTop: space.xl + insets.top }]}>
-          <LogoMark size={26} color={colors.onPrimary} eyes={colors.accent} />
+          <LogoMark size={26} color={colors.onPrimary} />
           <Text style={local.brandText}>nupii</Text>
         </View>
         <View style={local.mascot}>

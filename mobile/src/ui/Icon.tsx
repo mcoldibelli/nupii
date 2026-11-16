@@ -175,13 +175,12 @@ export function Icon({ name, size = 22, color = colors.ink, strokeWidth = 2, fil
   );
 }
 
-/** The face mark of the logo, in the color of the background it sits on. */
-export function LogoMark({ size = 28, color = colors.brand, eyes = colors.background }: { size?: number; color?: string; eyes?: string }) {
+/** The mark of the logo: a dog nose with the line of the mouth below (#319). */
+export function LogoMark({ size = 28, color = colors.brand }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 26 26" aria-hidden>
-      <Path d="M13 3c5 0 9 3.6 9 8.6 0 5.6-4.4 10.4-9 10.4S4 17.2 4 11.6C4 6.6 8 3 13 3z" fill={color} />
-      <Ellipse cx="9.4" cy="12.6" rx="1.9" ry="2.6" fill={eyes} />
-      <Ellipse cx="16.6" cy="12.6" rx="1.9" ry="2.6" fill={eyes} />
+      <Path d="M5.5 7.2C5.5 5.3 8.2 4.6 13 4.6S20.5 5.3 20.5 7.2C20.5 10.8 16.4 14.4 13 14.4S5.5 10.8 5.5 7.2Z" fill={color} />
+      <Path d="M13 14V17.4M4.2 16.2C6 21.4 11.2 21.6 13 17.4 14.8 21.6 20 21.4 21.8 16.2" stroke={color} strokeWidth={2.4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }

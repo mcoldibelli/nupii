@@ -40,7 +40,7 @@ export default function Welcome() {
           <WelcomeArt collar={slide.collar} width={width} noseBox={index === 0} />
         </View>
         <View style={[local.top, { marginTop: insets.top + space.xl }]}>
-          <LogoMark size={28} color={colors.onPrimary} eyes={slide.hero} />
+          <LogoMark size={28} color={colors.onPrimary} />
           <Text style={local.brand}>nupii</Text>
           <Pressable testID="welcome-sign-in" accessibilityRole="button" style={local.signIn} onPress={() => leave()}>
             <Text style={local.signInText}>Entrar</Text>
