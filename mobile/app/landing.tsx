@@ -64,8 +64,8 @@ export default function Landing() {
         </View>
         <View style={{ flex: 1, alignItems: "center" }}>
           <View style={[local.art, { width: wide ? 460 : 320, height: wide ? 460 : 320 }]}>
-            {/* Photo: Faber Leonardo on Unsplash, cut out (ADR 0030, item 27). */}
-            <Image source={heroDog} accessibilityIgnoresInvertColors style={{ width: wide ? 400 : 280, height: wide ? 449 : 314 }} />
+            {/* Photo: Victor G on Unsplash, cut out (ADR 0030, item 27). */}
+            <Image source={heroDog} accessibilityIgnoresInvertColors style={{ width: wide ? 400 : 280, height: wide ? 410 : 287 }} />
             <View style={[local.float, { top: 40, left: 0 }]}>
               <View style={[local.floatIcon, { backgroundColor: colors.danger }]}>
                 <Icon name="pin" size={14} color={colors.onPrimary} />
