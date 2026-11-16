@@ -1,7 +1,9 @@
 import { router, usePathname, type Href } from "expo-router";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { listPets, type Pet } from "../api/pets";
+import { apiUrl } from "../config";
 import { useSelectedPet } from "../pets/SelectedPetContext";
 import { useSession } from "../session/SessionContext";
 import { Icon, LogoMark, type IconName } from "./Icon";
@@ -21,8 +23,24 @@ export function Brand({ href = "/" }: { href?: Href }) {
 /** The sidebar of the logged-in web artboards (Inicio-Web, Mural-Web, Saude-Web). */
 function Sidebar() {
   const pathname = usePathname();
-  const { state, signOut } = useSession();
-  const { pet } = useSelectedPet();
+  const { state, signOut, idToken } = useSession();
+  const { pet, select } = useSelectedPet();
+  // #315: all the pets of the owner, read again on each route (a pet created or deleted shows).
+  const [pets, setPets] = useState<Pet[]>([]);
+  useEffect(() => {
+    void (async () => {
+      const token = await idToken();
+      const result = token === null ? null : await listPets(apiUrl, token);
+      if (result?.ok) {
+        setPets(result.value);
+      }
+    })();
+  }, [idToken, pathname]);
+  const choose = (item: Pet) => {
+    select({ id: item.id, name: item.name });
+    // On the health page the health of the chosen pet opens; elsewhere the home shows it.
+    router.replace(pathname.startsWith("/health") ? { pathname: "/health/[petId]", params: { petId: item.id, petName: item.name } } : "/");
+  };
   const owner = state.kind === "ready" ? state.owner : null;
   const adding = pathname === "/pets/new" || pathname.startsWith("/noseprint");
   const items: { label: string; icon: IconName; href: Href; selected: boolean }[] = [
@@ -47,17 +65,28 @@ function Sidebar() {
         ))}
       </View>
       <View style={{ gap: 6 }}>
-        <Text style={local.overline}>MEU PET</Text>
-        {pet && (
-          <Pressable accessibilityRole="link" style={local.pet} onPress={() => router.push({ pathname: "/pets/[id]", params: { id: pet.id } })}>
-            <View style={local.petInitial}>
-              <Text style={local.petInitialText}>{pet.name.slice(0, 1).toUpperCase()}</Text>
-            </View>
-            <Text style={local.petName} numberOfLines={1}>
-              {pet.name}
-            </Text>
-          </Pressable>
-        )}
+        <Text style={local.overline}>{pets.length > 1 ? "MEUS PETS" : "MEU PET"}</Text>
+        {pets.map((item) => {
+          const selected = item.id === pet?.id;
+          return (
+            <Pressable
+              key={item.id}
+              testID={`sidebar-pet-${item.name}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              accessibilityLabel={selected ? `${item.name}, escolhido` : `Escolher ${item.name}`}
+              style={[local.pet, selected && local.petSelected]}
+              onPress={() => (selected ? router.push({ pathname: "/pets/[id]", params: { id: item.id } }) : choose(item))}
+            >
+              <View style={local.petInitial}>
+                <Text style={local.petInitialText}>{item.name.slice(0, 1).toUpperCase()}</Text>
+              </View>
+              <Text style={local.petName} numberOfLines={1}>
+                {item.name}
+              </Text>
+            </Pressable>
+          );
+        })}
         {/* AddPet-Web: the item shows the registration in progress (#233). */}
         <Pressable accessibilityRole="link" accessibilityState={{ selected: adding }} style={[local.nav, adding && local.navSelected]} onPress={() => router.push("/pets/new")}>
           <Icon name="plus" size={18} color={adding ? colors.brand : colors.textSecondary} />
@@ -160,6 +189,7 @@ const local = StyleSheet.create({
   navText: { fontFamily: fonts.bodySemibold, fontSize: 15, color: colors.textSecondary },
   overline: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 0.6, color: colors.textMuted, paddingHorizontal: 12 },
   pet: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 52, paddingHorizontal: 10, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border },
+  petSelected: { borderColor: colors.ink, backgroundColor: colors.surface },
   petInitial: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },
   petInitialText: { fontFamily: fonts.title, fontSize: 15, color: colors.primary },
   petName: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
