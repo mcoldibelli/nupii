@@ -6,11 +6,12 @@ import { listBoard, type Report } from "../src/api/reports";
 import { apiUrl } from "../src/config";
 import { timeAgo } from "../src/reports/board";
 import { Button } from "../src/ui/Button";
-import { Icon, LogoMark, Mascot, type IconName } from "../src/ui/Icon";
+import { Icon, LogoMark, type IconName } from "../src/ui/Icon";
 import { colors, fonts, radius, space } from "../src/ui/theme";
 import { useWide } from "../src/ui/useWide";
 
 const create: Href = { pathname: "/sign-in", params: { mode: "create" } };
+const heroDog = require("../assets/photos/hero-dog.webp");
 
 const steps = [
   { n: "1", title: "Cadastre o focinho", text: "Duas fotos do rosto, de frente e bem de perto, pela câmera do celular ou enviando fotos que você já tem. O focinho vira a identidade do seu cachorro.", tags: ["2 fotos", "Pelo celular ou computador"], background: colors.brand, color: colors.ink },
@@ -63,9 +64,8 @@ export default function Landing() {
         </View>
         <View style={{ flex: 1, alignItems: "center" }}>
           <View style={[local.art, { width: wide ? 460 : 320, height: wide ? 460 : 320 }]}>
-            <View style={[local.circle, { width: wide ? 380 : 260, height: wide ? 380 : 260, borderRadius: wide ? 190 : 130 }]}>
-              <Mascot width={wide ? 250 : 170} />
-            </View>
+            {/* Photo: Faber Leonardo on Unsplash, cut out (ADR 0030, item 27). */}
+            <Image source={heroDog} accessibilityIgnoresInvertColors style={{ width: wide ? 400 : 280, height: wide ? 449 : 314 }} />
             <View style={[local.float, { top: 40, left: 0 }]}>
               <View style={[local.floatIcon, { backgroundColor: colors.danger }]}>
                 <Icon name="pin" size={14} color={colors.onPrimary} />
@@ -261,7 +261,6 @@ const local = StyleSheet.create({
   hero: { fontFamily: fonts.title, fontSize: 84, lineHeight: 84, letterSpacing: -3, color: colors.ink },
   lead: { fontFamily: fonts.body, fontSize: 18, lineHeight: 27, color: colors.textSecondary },
   art: { position: "relative", alignItems: "center", justifyContent: "center" },
-  circle: { backgroundColor: colors.brand, alignItems: "center", justifyContent: "flex-end", overflow: "hidden" },
   float: { position: "absolute", flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.background, shadowColor: colors.ink, shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 4 },
   floatIcon: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   floatTitle: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.ink },
