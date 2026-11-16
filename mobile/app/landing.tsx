@@ -6,11 +6,12 @@ import { listBoard, type Report } from "../src/api/reports";
 import { apiUrl } from "../src/config";
 import { timeAgo } from "../src/reports/board";
 import { Button } from "../src/ui/Button";
-import { Icon, LogoMark, Mascot, type IconName } from "../src/ui/Icon";
+import { Icon, LogoMark, type IconName } from "../src/ui/Icon";
 import { colors, fonts, radius, space } from "../src/ui/theme";
 import { useWide } from "../src/ui/useWide";
 
 const create: Href = { pathname: "/sign-in", params: { mode: "create" } };
+const heroDog = require("../assets/photos/hero-dog.webp");
 
 const steps = [
   { n: "1", title: "Cadastre o focinho", text: "Duas fotos do rosto, de frente e bem de perto, pela câmera do celular ou enviando fotos que você já tem. O focinho vira a identidade do seu cachorro.", tags: ["2 fotos", "Pelo celular ou computador"], background: colors.brand, color: colors.ink },
@@ -23,6 +24,12 @@ const health: { icon: IconName; color: string; title: string; text: string }[] =
   { icon: "bell", color: colors.primary, title: "Lembrete antes de cada dose", text: "Um aviso alguns dias antes, e outro se passar da data." },
   { icon: "weight", color: colors.dark, title: "Peso e consultas", text: "Gráfico do peso ao longo dos meses e o histórico de consultas e exames, com os laudos." },
   { icon: "card", color: colors.success, title: "Carteirinha digital", text: "Mande para o veterinário, o hotel ou a creche por link ou QR code, e revogue quando quiser." },
+];
+
+const heroSteps: { icon: IconName; color: string; title: string; text: string }[] = [
+  { icon: "pin", color: colors.danger, title: "Thor sumiu aqui", text: "há 40 min · 1,2 km" },
+  { icon: "scan", color: colors.dark, title: "Focinho cadastrado", text: "2 fotos de perto" },
+  { icon: "check", color: colors.success, title: "Tutor avisado", text: "agora mesmo" },
 ];
 
 const promises: { icon: IconName; title: string; text: string }[] = [
@@ -62,36 +69,22 @@ export default function Landing() {
           </View>
         </View>
         <View style={{ flex: 1, alignItems: "center" }}>
-          <View style={[local.art, { width: wide ? 460 : 320, height: wide ? 460 : 320 }]}>
-            <View style={[local.circle, { width: wide ? 380 : 260, height: wide ? 380 : 260, borderRadius: wide ? 190 : 130 }]}>
-              <Mascot width={wide ? 250 : 170} />
-            </View>
-            <View style={[local.float, { top: 40, left: 0 }]}>
-              <View style={[local.floatIcon, { backgroundColor: colors.danger }]}>
-                <Icon name="pin" size={14} color={colors.onPrimary} />
-              </View>
-              <View>
-                <Text style={local.floatTitle}>Thor sumiu aqui</Text>
-                <Text style={local.floatText}>há 40 min · 1,2 km</Text>
-              </View>
-            </View>
-            <View style={[local.float, { top: wide ? 230 : 150, right: 0 }]}>
-              <View style={[local.floatIcon, { backgroundColor: colors.dark }]}>
-                <Icon name="scan" size={14} color={colors.onPrimary} />
-              </View>
-              <View>
-                <Text style={local.floatTitle}>Focinho cadastrado</Text>
-                <Text style={local.floatText}>2 fotos de perto</Text>
-              </View>
-            </View>
-            <View style={[local.float, { bottom: 30, left: 20 }]}>
-              <View style={[local.floatIcon, { backgroundColor: colors.success }]}>
-                <Icon name="check" size={14} color={colors.onPrimary} strokeWidth={3} />
-              </View>
-              <View>
-                <Text style={local.floatTitle}>Tutor avisado</Text>
-                <Text style={local.floatText}>agora mesmo</Text>
-              </View>
+          <View style={[local.art, { width: wide ? 460 : 320 }]}>
+            {/* Photo: Victor G on Unsplash, cut out (ADR 0030, item 27). */}
+            <Image source={heroDog} accessibilityIgnoresInvertColors style={{ width: wide ? 400 : 280, height: wide ? 410 : 287 }} />
+            {/* The card covers the cut at the bottom of the photo. */}
+            <View style={[local.heroCard, wide && { flexDirection: "row", justifyContent: "space-between" }]}>
+              {heroSteps.map((step) => (
+                <View key={step.title} style={local.heroStep}>
+                  <View style={[local.floatIcon, { backgroundColor: step.color }]}>
+                    <Icon name={step.icon} size={14} color={colors.onPrimary} strokeWidth={step.icon === "check" ? 3 : 2} />
+                  </View>
+                  <View>
+                    <Text style={local.floatTitle}>{step.title}</Text>
+                    <Text style={local.floatText}>{step.text}</Text>
+                  </View>
+                </View>
+              ))}
             </View>
           </View>
         </View>
@@ -261,8 +254,8 @@ const local = StyleSheet.create({
   hero: { fontFamily: fonts.title, fontSize: 84, lineHeight: 84, letterSpacing: -3, color: colors.ink },
   lead: { fontFamily: fonts.body, fontSize: 18, lineHeight: 27, color: colors.textSecondary },
   art: { position: "relative", alignItems: "center", justifyContent: "center" },
-  circle: { backgroundColor: colors.brand, alignItems: "center", justifyContent: "flex-end", overflow: "hidden" },
-  float: { position: "absolute", flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.background, shadowColor: colors.ink, shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 4 },
+  heroCard: { alignSelf: "stretch", marginTop: -8, gap: 10, paddingVertical: 14, paddingHorizontal: 14, borderRadius: 22, backgroundColor: colors.background, shadowColor: colors.ink, shadowOpacity: 0.14, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
+  heroStep: { flexDirection: "row", alignItems: "center", gap: 10 },
   floatIcon: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   floatTitle: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.ink },
   floatText: { fontFamily: fonts.body, fontSize: 12, color: colors.textMuted },
