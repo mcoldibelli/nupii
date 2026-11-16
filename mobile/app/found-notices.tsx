@@ -1,20 +1,23 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { FlatList, Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { listFoundNotices, type FoundNotice } from "../src/api/biometrics";
 import { failureMessage, SESSION_FAILURE } from "../src/api/http";
 import { apiUrl } from "../src/config";
-import { formatDateTime, mapUrl, phoneUrl } from "../src/biometrics/messages";
+import { formatDateTime, phoneUrl } from "../src/biometrics/messages";
+import { MapView } from "../src/map/MapView";
 import { styles } from "../src/screens/styles";
 import { useSession } from "../src/session/SessionContext";
-import { colors, fonts } from "../src/ui/theme";
+import { colors, fonts, radius } from "../src/ui/theme";
 
 /** The notices of the people that found a pet of the owner (RF-14). */
 export default function FoundNotices() {
   const { idToken } = useSession();
   const [notices, setNotices] = useState<FoundNotice[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The notice whose map is open, below the notice, in the app (no map app or web site).
+  const [mapOf, setMapOf] = useState<string | null>(null);
 
   // The list is read each time the screen gets the focus.
   useFocusEffect(
@@ -63,12 +66,14 @@ export default function FoundNotices() {
             </Pressable>
             {item.message !== undefined && <Text style={local.line}>{item.message}</Text>}
             {item.latitude !== undefined && item.longitude !== undefined && (
-              <Pressable
-                accessibilityRole="link"
-                onPress={() => void Linking.openURL(mapUrl(Platform.OS, item.latitude as number, item.longitude as number))}
-              >
-                <Text style={[local.line, styles.linkText]}>Ver o local no mapa</Text>
-              </Pressable>
+              <>
+                <Pressable testID={`found-notice-map-${item.petName}`} accessibilityRole="button" onPress={() => setMapOf(mapOf === item.id ? null : item.id)}>
+                  <Text style={[local.line, styles.linkText]}>{mapOf === item.id ? "Esconder o mapa" : "Ver o local no mapa"}</Text>
+                </Pressable>
+                {mapOf === item.id && (
+                  <MapView markers={[{ latitude: item.latitude, longitude: item.longitude, label: `Onde ${item.petName} foi encontrado`, kind: "main" }]} style={local.map} />
+                )}
+              </>
             )}
           </View>
         )}
@@ -82,4 +87,5 @@ const local = StyleSheet.create({
   notice: { borderBottomColor: colors.border, borderBottomWidth: 1, paddingVertical: 12 },
   title: { fontSize: 18, fontFamily: fonts.titleBold, marginBottom: 4 },
   line: { fontFamily: fonts.body, fontSize: 16, marginBottom: 4 },
+  map: { height: 220, width: "100%", marginTop: 4, borderRadius: radius.card, overflow: "hidden" },
 });

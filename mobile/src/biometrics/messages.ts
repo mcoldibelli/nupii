@@ -27,15 +27,6 @@ export function formatDateTime(iso: string): string {
   return `${two(date.getDate())}/${two(date.getMonth() + 1)}/${date.getFullYear()} ${two(date.getHours())}:${two(date.getMinutes())}`;
 }
 
-/**
- * Returns the address that opens a point in the map app of the device. The
- * coordinates do not go to a web site of a third party.
- */
-export function mapUrl(platform: string, latitude: number, longitude: number): string {
-  const point = `${latitude},${longitude}`;
-  return platform === "ios" ? `maps:?q=${point}` : `geo:${point}?q=${point}`;
-}
-
 /** Returns the address that opens the phone app with the number. */
 export function phoneUrl(phone: string): string {
   return `tel:${phone.replace(/[^0-9+]/g, "")}`;
