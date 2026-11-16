@@ -1,16 +1,18 @@
 import { router } from "expo-router";
 import type { ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { AuthSideArt, Icon, Mascot } from "./Icon";
+import { AuthSideArt, Icon } from "./Icon";
 import { colors, fonts, space } from "./theme";
 import { Brand } from "./WebFrame";
 
+export const signInDog = require("../../assets/photos/signin-dog.webp");
+const signUpDog = require("../../assets/photos/signup-dog.webp");
+
 const sides = {
-  // Login-Web: purple, the black and white dog.
-  signIn: { background: colors.accent, title: "Tudo do seu cachorro num lugar só.", text: "Vacinas, lembretes, carteirinha e o focinho cadastrado, esperando por você.", textColor: "#EDE7FF", caramel: false },
-  // Cadastro-Web: orange, the caramel dog.
-  create: { background: colors.brand, title: "Todo focinho é único. O do seu também.", text: "Crie a conta, cadastre o focinho e o bairro passa a ajudar se ele um dia sumir.", textColor: colors.ink, caramel: true },
+  // Login-Web: purple, the pinscher. Cadastro-Web: orange, the beagle (photos: ADR 0030, item 29).
+  signIn: { background: colors.accent, title: "Tudo do seu cachorro num lugar só.", text: "Vacinas, lembretes, carteirinha e o focinho cadastrado, esperando por você.", textColor: "#EDE7FF", dog: signInDog, dogWidth: 239 },
+  create: { background: colors.brand, title: "Todo focinho é único. O do seu também.", text: "Crie a conta, cadastre o focinho e o bairro passa a ajudar se ele um dia sumir.", textColor: colors.ink, dog: signUpDog, dogWidth: 380 },
 };
 
 /**
@@ -46,7 +48,7 @@ export function AuthSplit({ side, children }: { side: keyof typeof sides; childr
           <Text style={[local.sideBody, { color: look.textColor }]}>{look.text}</Text>
         </View>
         <View style={local.dog}>
-          <Mascot width={340} caramel={look.caramel} />
+          <Image source={look.dog} accessibilityIgnoresInvertColors style={{ width: look.dogWidth, height: 430 }} />
         </View>
       </View>
     </View>

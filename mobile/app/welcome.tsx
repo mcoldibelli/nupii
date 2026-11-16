@@ -37,7 +37,7 @@ export default function Welcome() {
     <ScrollView style={local.page} contentContainerStyle={{ flexGrow: 1 }}>
       <View style={[local.hero, { backgroundColor: slide.hero, height: heroHeight + insets.top }]}>
         <View style={{ position: "absolute", top: insets.top, left: 0 }}>
-          <WelcomeArt collar={slide.collar} width={width} noseBox={index === 0} />
+          <WelcomeArt width={width} noseBox={index === 0} />
         </View>
         <View style={[local.top, { marginTop: insets.top + space.xl }]}>
           <LogoMark size={28} color={colors.onPrimary} />

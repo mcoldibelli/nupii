@@ -1,9 +1,14 @@
+import { Image, View } from "react-native";
 import Svg, { Circle, Ellipse, G, Line, Path, Polyline, Rect, Text as SvgText } from "react-native-svg";
 
 import { colors } from "./theme";
 
+const welcomeDog = require("../../assets/photos/welcome-dog.webp");
+const noseGood = require("../../assets/photos/nose-good.webp");
+const noseBad = require("../../assets/photos/nose-bad.webp");
+
 // The drawings of the design canvas (ADR 0030): the stroke icons, the logo
-// and the mascot. Only this file imports react-native-svg.
+// and the art around the dog photos. Only this file imports react-native-svg.
 const icons = {
   home: <Path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
   pin: (
@@ -185,34 +190,6 @@ export function LogoMark({ size = 28, color = colors.brand }: { size?: number; c
   );
 }
 
-/** The dog of the sign-in header of the canvas. It is decoration. */
-export function Mascot({ width = 186, caramel = false }: { width?: number; caramel?: boolean }) {
-  // The caramel dog of Cadastro-Web has other colors, plain eyes and a purple collar.
-  const fur = caramel ? { body: "#D88B3F", ears: "#A9622A", head: "#E39C52", collar: colors.accent } : { body: "#2B2730", ears: "#1E1B20", head: "#3A3540", collar: colors.brand };
-  return (
-    <Svg width={width} height={(width * 260) / 240} viewBox="0 0 240 260" aria-hidden>
-      <Path d="M44 260 C44 188 82 156 120 156 C158 156 196 188 196 260 Z" fill={fur.body} />
-      <Path d="M94 260 C94 214 106 192 120 192 C134 192 146 214 146 260 Z" fill="#F7E8D4" />
-      <Path d="M64 82 C46 66 40 40 52 24 C72 30 90 50 98 70 Z" fill={fur.ears} />
-      <Path d="M176 82 C194 66 200 40 188 24 C168 30 150 50 142 70 Z" fill={fur.ears} />
-      <Ellipse cx="120" cy="108" rx="64" ry="58" fill={fur.head} />
-      <Path d="M120 54 C110 70 108 90 112 104 L128 104 C132 90 130 70 120 54 Z" fill="#F7E8D4" fillOpacity={0.85} />
-      <Ellipse cx="120" cy="136" rx="34" ry="25" fill="#F7E8D4" />
-      {!caramel && <Circle cx="96" cy="98" r="9.5" fill="#FFFFFF" />}
-      <Circle cx="96" cy="98" r={caramel ? 7 : 6.5} fill="#1E1B18" />
-      {!caramel && <Circle cx="144" cy="98" r="9.5" fill="#FFFFFF" />}
-      <Circle cx="144" cy="98" r={caramel ? 7 : 6.5} fill="#1E1B18" />
-      <Circle cx="98.5" cy="95.5" r="2.2" fill="#FFFFFF" />
-      <Circle cx="146.5" cy="95.5" r="2.2" fill="#FFFFFF" />
-      <Path d="M105 121 C105 113 135 113 135 121 C135 129 127 134 120 134 C113 134 105 129 105 121 Z" fill="#1E1B18" />
-      <Path d="M114 148 C114 160 126 160 126 148 Z" fill="#E8636B" />
-      <Path d="M120 134 V144 M120 144 C115 149 108 149 104 145 M120 144 C125 149 132 149 136 145" stroke="#1E1B18" strokeWidth={3} fill="none" strokeLinecap="round" />
-      <Path d="M76 170 C100 182 140 182 164 170 L162 184 C140 196 100 196 78 184 Z" fill={fur.collar} />
-      <Circle cx="120" cy="194" r="7.5" fill="#F2C14E" />
-    </Svg>
-  );
-}
-
 /** The circles, the line and the paw behind the side of Login-Web and Cadastro-Web (#232). */
 export function AuthSideArt() {
   return (
@@ -231,8 +208,8 @@ export function AuthSideArt() {
   );
 }
 
-/** The background and the caramel dog of the welcome header (Landing-Mobile artboard). */
-export function WelcomeArt({ collar, width, noseBox = false }: { collar: string; width: number; noseBox?: boolean }) {
+/** The background and the dog photo of the welcome header (Landing-Mobile artboard). */
+export function WelcomeArt({ width, noseBox = false }: { width: number; noseBox?: boolean }) {
   const paw = (x: number, y: number, rotate: number, scale: number) => (
     <G fill="#FFFFFF" fillOpacity={0.3} transform={`translate(${x} ${y}) rotate(${rotate}) scale(${scale})`}>
       <Ellipse cx="0" cy="8" rx="9" ry="7.5" />
@@ -243,34 +220,21 @@ export function WelcomeArt({ collar, width, noseBox = false }: { collar: string;
     </G>
   );
   const scale = width / 390;
+  // The photo and the nose box use the units of the 390 x 470 artboard.
   return (
-    <Svg width={width} height={470 * scale} viewBox="0 0 390 470" aria-hidden style={{ position: "absolute", left: 0, top: 0 }}>
+    <View style={{ position: "absolute", left: 0, top: 0, width, height: 470 * scale }}>
+    <Svg width={width} height={470 * scale} viewBox="0 0 390 470" aria-hidden>
       <Circle cx="195" cy="420" r="190" fill="#FFFFFF" fillOpacity={0.1} />
       <Circle cx="195" cy="420" r="140" fill="#FFFFFF" fillOpacity={0.1} />
       <Path d="M-30 250 C 50 200, 90 300, 160 250" stroke="#FFFFFF" strokeOpacity={0.35} strokeWidth={2.5} fill="none" strokeLinecap="round" />
       <Path d="M300 220 c 40 -10 70 20 110 0" stroke="#FFFFFF" strokeOpacity={0.35} strokeWidth={2.5} fill="none" strokeLinecap="round" />
       {paw(350, 300, 20, 1.2)}
       {paw(36, 340, -18, 0.9)}
-      <G transform="translate(79 219) scale(0.9667)">
-        <Path d="M44 260 C44 188 82 156 120 156 C158 156 196 188 196 260 Z" fill="#D88B3F" />
-        <Path d="M94 260 C94 214 106 192 120 192 C134 192 146 214 146 260 Z" fill="#F7E8D4" />
-        <Path d="M64 82 C46 66 40 40 52 24 C72 30 90 50 98 70 Z" fill="#A9622A" />
-        <Path d="M176 82 C194 66 200 40 188 24 C168 30 150 50 142 70 Z" fill="#A9622A" />
-        <Ellipse cx="120" cy="108" rx="64" ry="58" fill="#E39C52" />
-        <Path d="M120 54 C110 70 108 90 112 104 L128 104 C132 90 130 70 120 54 Z" fill="#F7E8D4" fillOpacity={0.85} />
-        <Ellipse cx="120" cy="136" rx="34" ry="25" fill="#F7E8D4" />
-        <Circle cx="96" cy="98" r="7" fill="#1E1B18" />
-        <Circle cx="144" cy="98" r="7" fill="#1E1B18" />
-        <Circle cx="98.5" cy="95.5" r="2.2" fill="#FFFFFF" />
-        <Circle cx="146.5" cy="95.5" r="2.2" fill="#FFFFFF" />
-        <Path d="M105 121 C105 113 135 113 135 121 C135 129 127 134 120 134 C113 134 105 129 105 121 Z" fill="#1E1B18" />
-        <Path d="M114 148 C114 160 126 160 126 148 Z" fill="#E8636B" />
-        <Path d="M120 134 V144 M120 144 C115 149 108 149 104 145 M120 144 C125 149 132 149 136 145" stroke="#1E1B18" strokeWidth={3} fill="none" strokeLinecap="round" />
-        <Path d="M76 170 C100 182 140 182 164 170 L162 184 C140 196 100 196 78 184 Z" fill={collar} />
-        <Circle cx="120" cy="194" r="7.5" fill="#F2C14E" />
-      </G>
-      {noseBox && <Rect x="166" y="323" width="58" height="45" rx="14" fill="none" stroke="#FFFFFF" strokeWidth={2.5} strokeDasharray="6 5" />}
     </Svg>
+    {/* Photo: Simon Lohmann on Unsplash, cut out (ADR 0030, item 28). */}
+    <Image source={welcomeDog} accessibilityIgnoresInvertColors style={{ position: "absolute", left: 119 * scale, top: 200 * scale, width: 152 * scale, height: 270 * scale }} />
+    {noseBox && <View style={{ position: "absolute", left: 161 * scale, top: 250 * scale, width: 58 * scale, height: 45 * scale, borderRadius: 14 * scale, borderWidth: 2.5, borderStyle: "dashed", borderColor: "#FFFFFF" }} />}
+    </View>
   );
 }
 
@@ -308,37 +272,10 @@ export function WeightChart({ points, width }: { points: { date: string; kg: num
   );
 }
 
-/** The examples of the noseprint intro (Focinho-Intro artboard): the nose up close, or the dog far away. */
+/** The examples of the noseprint intro (Focinho-Intro artboard): the face from close, or the dog from far (ADR 0036). */
 export function NoseExample({ good, size }: { good: boolean; size: number }) {
-  // ADR 0036: the good photo is the face from close, the bad one is the dog from far.
-  return good ? (
-    <Svg width={size} height={size} viewBox="0 0 150 150" aria-hidden>
-      <Rect width="150" height="150" fill="#2A2622" />
-      <G transform="translate(-30 -40) scale(0.875)">
-        <Path d="M64 82 C46 66 40 40 52 24 C72 30 90 50 98 70 Z" fill="#A9622A" />
-        <Path d="M176 82 C194 66 200 40 188 24 C168 30 150 50 142 70 Z" fill="#A9622A" />
-        <Ellipse cx="120" cy="108" rx="64" ry="58" fill="#E39C52" />
-        <Ellipse cx="120" cy="136" rx="34" ry="25" fill="#F7E8D4" />
-        <Circle cx="96" cy="98" r="7" fill="#1E1B18" />
-        <Circle cx="144" cy="98" r="7" fill="#1E1B18" />
-        <Path d="M105 121 C105 113 135 113 135 121 C135 129 127 134 120 134 C113 134 105 129 105 121 Z" fill="#1E1B18" />
-      </G>
-    </Svg>
-  ) : (
-    <Svg width={size} height={size} viewBox="0 0 150 150" aria-hidden>
-      <Rect width="150" height="150" fill="#2A2622" />
-      <G transform="translate(45 40) scale(0.25)">
-        <Path d="M64 82 C46 66 40 40 52 24 C72 30 90 50 98 70 Z" fill="#A9622A" />
-        <Path d="M176 82 C194 66 200 40 188 24 C168 30 150 50 142 70 Z" fill="#A9622A" />
-        <Ellipse cx="120" cy="108" rx="64" ry="58" fill="#E39C52" />
-        <Ellipse cx="120" cy="136" rx="34" ry="25" fill="#F7E8D4" />
-        <Circle cx="96" cy="98" r="7" fill="#1E1B18" />
-        <Circle cx="144" cy="98" r="7" fill="#1E1B18" />
-        <Path d="M105 121 C105 113 135 113 135 121 C135 129 127 134 120 134 C113 134 105 129 105 121 Z" fill="#1E1B18" />
-        <Path d="M44 260 C44 188 82 156 120 156 C158 156 196 188 196 260 Z" fill="#D88B3F" />
-      </G>
-    </Svg>
-  );
+  // Photos: Nick Fewings on Unsplash (ADR 0030, item 28).
+  return <Image source={good ? noseGood : noseBad} accessibilityIgnoresInvertColors style={{ width: size, height: size }} />;
 }
 
 const paw = (
