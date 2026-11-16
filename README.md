@@ -70,6 +70,7 @@ O modo `emulador` não precisa de conta no Firebase: crie uma conta de teste na 
 | Testes | [docs/arquitetura.md](docs/arquitetura.md), seção Testes |
 | Decisões de arquitetura | [docs/adr/](docs/adr/), com o índice no fim deste arquivo |
 | Ordem de construção | [docs/roteiro.md](docs/roteiro.md) |
+| Uso de IA no desenvolvimento | [docs/uso-de-ia.md](docs/uso-de-ia.md) |
 
 ## Como executar
 
