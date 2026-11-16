@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { signIn, signInWithGoogle } from "../auth/firebase";
@@ -8,8 +8,8 @@ import { passwordLongEnough, validateCredentials, validateProfile } from "../aut
 import { useSession } from "../session/SessionContext";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Field";
-import { AuthSplit } from "../ui/AuthSplit";
-import { Icon, LogoMark, Mascot } from "../ui/Icon";
+import { AuthSplit, signInDog } from "../ui/AuthSplit";
+import { Icon, LogoMark } from "../ui/Icon";
 import { BackButton, Checkbox } from "../ui/Surfaces";
 import { Body, ErrorText, Title } from "../ui/Text";
 import { colors, fonts, space } from "../ui/theme";
@@ -171,7 +171,7 @@ export function AuthScreen({ startCreating = false }: { startCreating?: boolean 
           <Text style={local.brandText}>nupii</Text>
         </View>
         <View style={local.mascot}>
-          <Mascot width={170} />
+          <Image source={signInDog} accessibilityIgnoresInvertColors style={{ width: 111, height: 200 }} />
         </View>
       </View>
       <View style={local.form}>

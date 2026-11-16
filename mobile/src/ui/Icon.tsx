@@ -8,8 +8,7 @@ const noseGood = require("../../assets/photos/nose-good.webp");
 const noseBad = require("../../assets/photos/nose-bad.webp");
 
 // The drawings of the design canvas (ADR 0030): the stroke icons, the logo
-// the mascot of the sign-in and the art around the dog photos. Only this file
-// imports react-native-svg.
+// and the art around the dog photos. Only this file imports react-native-svg.
 const icons = {
   home: <Path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
   pin: (
@@ -187,34 +186,6 @@ export function LogoMark({ size = 28, color = colors.brand }: { size?: number; c
     <Svg width={size} height={size} viewBox="0 0 26 26" aria-hidden>
       <Path d="M5.5 7.2C5.5 5.3 8.2 4.6 13 4.6S20.5 5.3 20.5 7.2C20.5 10.8 16.4 14.4 13 14.4S5.5 10.8 5.5 7.2Z" fill={color} />
       <Path d="M13 14V17.4M4.2 16.2C6 21.4 11.2 21.6 13 17.4 14.8 21.6 20 21.4 21.8 16.2" stroke={color} strokeWidth={2.4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-
-/** The dog of the sign-in header of the canvas. It is decoration. */
-export function Mascot({ width = 186, caramel = false }: { width?: number; caramel?: boolean }) {
-  // The caramel dog of Cadastro-Web has other colors, plain eyes and a purple collar.
-  const fur = caramel ? { body: "#D88B3F", ears: "#A9622A", head: "#E39C52", collar: colors.accent } : { body: "#2B2730", ears: "#1E1B20", head: "#3A3540", collar: colors.brand };
-  return (
-    <Svg width={width} height={(width * 260) / 240} viewBox="0 0 240 260" aria-hidden>
-      <Path d="M44 260 C44 188 82 156 120 156 C158 156 196 188 196 260 Z" fill={fur.body} />
-      <Path d="M94 260 C94 214 106 192 120 192 C134 192 146 214 146 260 Z" fill="#F7E8D4" />
-      <Path d="M64 82 C46 66 40 40 52 24 C72 30 90 50 98 70 Z" fill={fur.ears} />
-      <Path d="M176 82 C194 66 200 40 188 24 C168 30 150 50 142 70 Z" fill={fur.ears} />
-      <Ellipse cx="120" cy="108" rx="64" ry="58" fill={fur.head} />
-      <Path d="M120 54 C110 70 108 90 112 104 L128 104 C132 90 130 70 120 54 Z" fill="#F7E8D4" fillOpacity={0.85} />
-      <Ellipse cx="120" cy="136" rx="34" ry="25" fill="#F7E8D4" />
-      {!caramel && <Circle cx="96" cy="98" r="9.5" fill="#FFFFFF" />}
-      <Circle cx="96" cy="98" r={caramel ? 7 : 6.5} fill="#1E1B18" />
-      {!caramel && <Circle cx="144" cy="98" r="9.5" fill="#FFFFFF" />}
-      <Circle cx="144" cy="98" r={caramel ? 7 : 6.5} fill="#1E1B18" />
-      <Circle cx="98.5" cy="95.5" r="2.2" fill="#FFFFFF" />
-      <Circle cx="146.5" cy="95.5" r="2.2" fill="#FFFFFF" />
-      <Path d="M105 121 C105 113 135 113 135 121 C135 129 127 134 120 134 C113 134 105 129 105 121 Z" fill="#1E1B18" />
-      <Path d="M114 148 C114 160 126 160 126 148 Z" fill="#E8636B" />
-      <Path d="M120 134 V144 M120 144 C115 149 108 149 104 145 M120 144 C125 149 132 149 136 145" stroke="#1E1B18" strokeWidth={3} fill="none" strokeLinecap="round" />
-      <Path d="M76 170 C100 182 140 182 164 170 L162 184 C140 196 100 196 78 184 Z" fill={fur.collar} />
-      <Circle cx="120" cy="194" r="7.5" fill="#F2C14E" />
     </Svg>
   );
 }
