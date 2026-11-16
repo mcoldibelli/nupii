@@ -171,7 +171,7 @@ export function AuthScreen({ startCreating = false }: { startCreating?: boolean 
           <Text style={local.brandText}>nupii</Text>
         </View>
         <View style={local.mascot}>
-          <Image source={signInDog} accessibilityIgnoresInvertColors style={{ width: 111, height: 200 }} />
+          <Image source={signInDog} accessibilityIgnoresInvertColors style={{ width: 171, height: 200 }} />
         </View>
       </View>
       <View style={local.form}>
