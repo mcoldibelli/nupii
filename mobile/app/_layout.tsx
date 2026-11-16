@@ -12,6 +12,7 @@ import { useWelcome, WelcomeProvider } from "../src/welcome/WelcomeContext";
 import { SelectedPetProvider } from "../src/pets/SelectedPetContext";
 import { Button } from "../src/ui/Button";
 import { StatusScreen } from "../src/ui/StatusScreen";
+import { DialogHost } from "../src/ui/DialogHost";
 import { WebFrame } from "../src/ui/WebFrame";
 import { useWide } from "../src/ui/useWide";
 import { colors, fonts } from "../src/ui/theme";
@@ -183,6 +184,8 @@ export default function RootLayout() {
       <WelcomeProvider>
         <SelectedPetProvider>
           <Screens />
+          {/* #313: the dialogs of ask() on the web. */}
+          {Platform.OS === "web" && <DialogHost />}
         </SelectedPetProvider>
       </WelcomeProvider>
       <StatusBar style="auto" />

@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getNoseprint, type Noseprint } from "../../src/api/biometrics";
@@ -33,6 +33,8 @@ export default function PetProfile() {
   const [noseprint, setNoseprint] = useState<Noseprint | null | undefined>(undefined);
   const [report, setReport] = useState<Report | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  // #311: the menu of more options is on the screen; on the web, a dialog of the browser could not show two actions.
+  const [menu, setMenu] = useState(false);
 
   // Read again when the owner comes back from the edit, the noseprint or the lost report.
   useFocusEffect(
@@ -111,16 +113,33 @@ export default function PetProfile() {
           accessibilityRole="button"
           accessibilityLabel="Mais opções"
           style={[local.round, local.heroRight, { top: 24 + insets.top }]}
-          onPress={() =>
-            ask(pet.name, undefined, [
-              { text: "Editar dados", onPress: () => router.push({ pathname: "/pets/edit/[id]", params: { id: pet.id } }) },
-              { text: "Carteirinha", onPress: () => router.push({ pathname: "/share/[petId]", params: { petId: pet.id, petName: pet.name } }) },
-              { text: "Cancelar", style: "cancel" },
-            ])
-          }
+          onPress={() => setMenu(true)}
         >
           <Icon name="more" size={20} />
         </Pressable>
+        <Modal visible={menu} transparent animationType="fade" onRequestClose={() => setMenu(false)}>
+          <Pressable testID="profile-menu-close" accessibilityLabel="Fechar o menu" style={StyleSheet.absoluteFill} onPress={() => setMenu(false)} />
+          <View testID="profile-menu" accessibilityRole="menu" style={[local.menu, { top: 76 + insets.top }]}>
+            {[
+              { label: "Editar dados", icon: "pencil" as const, testID: "menu-edit", go: () => router.push({ pathname: "/pets/edit/[id]", params: { id: pet.id } }) },
+              { label: "Carteirinha", icon: "card" as const, testID: "menu-card", go: () => router.push({ pathname: "/share/[petId]", params: { petId: pet.id, petName: pet.name } }) },
+            ].map((item) => (
+              <Pressable
+                key={item.testID}
+                testID={item.testID}
+                accessibilityRole="menuitem"
+                style={local.menuItem}
+                onPress={() => {
+                  setMenu(false);
+                  item.go();
+                }}
+              >
+                <Icon name={item.icon} size={18} />
+                <Text style={local.menuText}>{item.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </Modal>
       </View>
       <View style={local.sheet}>
         <View style={local.nameRow}>
@@ -220,6 +239,9 @@ const local = StyleSheet.create({
   round: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },
   heroLeft: { position: "absolute", left: 20 },
   heroRight: { position: "absolute", right: 20 },
+  menu: { position: "absolute", right: 20, minWidth: 200, paddingVertical: 6, borderRadius: 18, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  menuItem: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 48, paddingHorizontal: 16 },
+  menuText: { fontFamily: fonts.bodySemibold, fontSize: 15, color: colors.ink },
   sheet: { marginTop: -28, backgroundColor: colors.background, borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingTop: 22, paddingHorizontal: space.xl, gap: space.lg },
   nameRow: { flexDirection: "row", alignItems: "flex-end", gap: 12 },
   name: { fontFamily: fonts.title, fontSize: 32, letterSpacing: -0.8, color: colors.ink },
